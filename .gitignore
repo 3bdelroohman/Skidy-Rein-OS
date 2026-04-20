@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# temp / batch / AI artifacts
+_*.js
+_*.txt
+BATCH*_RESULT.txt
+CLAUDE_*BUNDLE*.txt
+_backup_batch*/
+
+# temp / batch / AI artifacts
+_*.js
+_*.txt
+BATCH*_RESULT.txt
+CLAUDE_*BUNDLE*.txt
+_backup_batch*/
