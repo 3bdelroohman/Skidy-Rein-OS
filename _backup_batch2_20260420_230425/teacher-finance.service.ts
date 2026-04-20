@@ -1,7 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database.types";
-import type { CourseType, CourseFamily, ScheduleSessionItem } from "@/types/crm";
-import { COURSE_TRACK } from "@/types/crm";
+import type { CourseType, ScheduleSessionItem } from "@/types/crm";
 import { readStorage, writeStorage } from "@/services/storage";
 
 /* ------------------------------------------------------------------ */
@@ -22,7 +21,7 @@ export interface TeacherFinanceConfig {
   sessionRate60: number;
   sessionRate90: number;
   sessionRate120: number;
-  familyAdjustments: Record<CourseFamily, number>;
+  trackAdjustments: Record<CourseType, number>;
   notes: string | null;
   updatedAt: string | null;
 }
@@ -31,7 +30,6 @@ export interface TeacherFinanceLineItem {
   sessionId: string;
   className: string;
   course: CourseType;
-  family: CourseFamily;
   minutes: number;
   payout: number;
 }
@@ -45,15 +43,28 @@ export interface TeacherFinanceSummary {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Defaults                                                           */
+/*  Defaults + helpers                                                 */
 /* ------------------------------------------------------------------ */
 const LOCAL_KEY = "skidy.crm.teacher-finance";
 
-const DEFAULT_FAMILY_ADJ: Record<CourseFamily, number> = {
-  junior: 0,
-  intermediate: 20,
-  advanced: 30,
-  specialized: 40,
+const DEFAULT_TRACK: Record<CourseType, number> = {
+  scratch: 0,
+  app_inventor: 0,
+  robotics_basic: 0,
+  ai_intro: 0,
+  python: 20,
+  godot: 20,
+  robotics_iot: 20,
+  fastapi: 20,
+  html_css: 30,
+  javascript_tailwind: 30,
+  front_end: 30,
+  ai_ml: 40,
+  data_science: 40,
+  back_end: 40,
+  raspberry_pi: 0,
+  web: 30,
+  ai: 40,
 };
 
 function defaultConfig(teacherId: string): TeacherFinanceConfig {
@@ -62,7 +73,7 @@ function defaultConfig(teacherId: string): TeacherFinanceConfig {
     sessionRate60: 120,
     sessionRate90: 180,
     sessionRate120: 240,
-    familyAdjustments: { ...DEFAULT_FAMILY_ADJ },
+    trackAdjustments: { ...DEFAULT_TRACK },
     notes: null,
     updatedAt: null,
   };
@@ -80,18 +91,19 @@ function rowToConfig(teacherId: string, row: DbRow): TeacherFinanceConfig {
     sessionRate60: safe(row.session_rate_60, 120),
     sessionRate90: safe(row.session_rate_90, 180),
     sessionRate120: safe(row.session_rate_120, 240),
-    familyAdjustments: {
-      junior: safe(row.adj_scratch, 0),
-      intermediate: safe(row.adj_python, 20),
-      advanced: safe(row.adj_web, 30),
-      specialized: safe(row.adj_ai, 40),
+    trackAdjustments: {
+      ...DEFAULT_TRACK,
+      scratch: safe(row.adj_scratch, 0),
+      python: safe(row.adj_python, 20),
+      web: safe(row.adj_web, 30),
+      ai: safe(row.adj_ai, 40),
     },
     notes: row.notes ?? null,
     updatedAt: row.updated_at ?? null,
   };
 }
 
-/* localStorage cache */
+/* localStorage cache (fallback + fast first paint) */
 function readLocal(teacherId: string): TeacherFinanceConfig | null {
   const all = readStorage<Record<string, TeacherFinanceConfig>>(LOCAL_KEY, {});
   return all[teacherId] ?? null;
@@ -104,7 +116,7 @@ function writeLocal(config: TeacherFinanceConfig): void {
 }
 
 /* ------------------------------------------------------------------ */
-/*  GET config                                                         */
+/*  GET config (async � Supabase first, localStorage fallback)         */
 /* ------------------------------------------------------------------ */
 export async function getTeacherFinanceConfig(
   teacherId: string,
@@ -130,6 +142,7 @@ export async function getTeacherFinanceConfig(
     }
   }
 
+  // Fallback: localStorage
   const cached = readLocal(teacherId);
   if (cached) {
     return {
@@ -137,11 +150,12 @@ export async function getTeacherFinanceConfig(
       sessionRate60: safe(cached.sessionRate60, base.sessionRate60),
       sessionRate90: safe(cached.sessionRate90, base.sessionRate90),
       sessionRate120: safe(cached.sessionRate120, base.sessionRate120),
-      familyAdjustments: {
-        junior: safe(cached.familyAdjustments?.junior, base.familyAdjustments.junior),
-        intermediate: safe(cached.familyAdjustments?.intermediate, base.familyAdjustments.intermediate),
-        advanced: safe(cached.familyAdjustments?.advanced, base.familyAdjustments.advanced),
-        specialized: safe(cached.familyAdjustments?.specialized, base.familyAdjustments.specialized),
+      trackAdjustments: {
+        ...DEFAULT_TRACK,
+        scratch: safe(cached.trackAdjustments?.scratch, base.trackAdjustments.scratch),
+        python: safe(cached.trackAdjustments?.python, base.trackAdjustments.python),
+        web: safe(cached.trackAdjustments?.web, base.trackAdjustments.web),
+        ai: safe(cached.trackAdjustments?.ai, base.trackAdjustments.ai),
       },
       notes: cached.notes ?? null,
       updatedAt: cached.updatedAt ?? null,
@@ -152,14 +166,14 @@ export async function getTeacherFinanceConfig(
 }
 
 /* ------------------------------------------------------------------ */
-/*  SAVE config                                                        */
+/*  SAVE config (async � Supabase upsert + localStorage cache)         */
 /* ------------------------------------------------------------------ */
 export async function saveTeacherFinanceConfig(input: {
   teacherId: string;
   sessionRate60: number;
   sessionRate90: number;
   sessionRate120: number;
-  familyAdjustments: Record<CourseFamily, number>;
+  trackAdjustments: Record<CourseType, number>;
   notes?: string | null;
 }): Promise<TeacherFinanceConfig> {
   const config: TeacherFinanceConfig = {
@@ -167,16 +181,18 @@ export async function saveTeacherFinanceConfig(input: {
     sessionRate60: safe(input.sessionRate60, 120),
     sessionRate90: safe(input.sessionRate90, 180),
     sessionRate120: safe(input.sessionRate120, 240),
-    familyAdjustments: {
-      junior: safe(input.familyAdjustments.junior, 0),
-      intermediate: safe(input.familyAdjustments.intermediate, 20),
-      advanced: safe(input.familyAdjustments.advanced, 30),
-      specialized: safe(input.familyAdjustments.specialized, 40),
+    trackAdjustments: {
+      ...DEFAULT_TRACK,
+      scratch: safe(input.trackAdjustments.scratch, 0),
+      python: safe(input.trackAdjustments.python, 20),
+      web: safe(input.trackAdjustments.web, 30),
+      ai: safe(input.trackAdjustments.ai, 40),
     },
     notes: input.notes?.trim() || null,
     updatedAt: new Date().toISOString(),
   };
 
+  // Always cache locally
   writeLocal(config);
 
   const supabase = getSupabaseClient();
@@ -189,10 +205,10 @@ export async function saveTeacherFinanceConfig(input: {
           session_rate_60: config.sessionRate60,
           session_rate_90: config.sessionRate90,
           session_rate_120: config.sessionRate120,
-          adj_scratch: config.familyAdjustments.junior,
-          adj_python: config.familyAdjustments.intermediate,
-          adj_web: config.familyAdjustments.advanced,
-          adj_ai: config.familyAdjustments.specialized,
+          adj_scratch: config.trackAdjustments.scratch,
+          adj_python: config.trackAdjustments.python,
+          adj_web: config.trackAdjustments.web,
+          adj_ai: config.trackAdjustments.ai,
           notes: config.notes,
         },
         { onConflict: "teacher_id" },
@@ -208,7 +224,7 @@ export async function saveTeacherFinanceConfig(input: {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Compute summary                                                    */
+/*  Compute summary (sync � pure computation, no DB)                   */
 /* ------------------------------------------------------------------ */
 function toMinutes(startTime: string, endTime: string): number {
   const [sh, sm] = startTime.split(":").map(Number);
@@ -234,9 +250,8 @@ export function computeTeacherFinanceSummary(
 ): TeacherFinanceSummary {
   const lines = sessions.map((s) => {
     const minutes = toMinutes(s.startTime, s.endTime);
-    const family = COURSE_TRACK[s.course] ?? "junior";
-    const payout = getBaseRate(minutes, config) + (config.familyAdjustments[family] ?? 0);
-    return { sessionId: s.id, className: s.className, course: s.course, family, minutes, payout };
+    const payout = getBaseRate(minutes, config) + (config.trackAdjustments[s.course] ?? 0);
+    return { sessionId: s.id, className: s.className, course: s.course, minutes, payout };
   });
 
   const weeklyEstimated = lines.reduce((sum, l) => sum + l.payout, 0);

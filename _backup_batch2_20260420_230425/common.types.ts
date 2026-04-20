@@ -125,39 +125,6 @@ export type FollowUpType =
 /** Course type based on age placement logic */
 export type CourseType = "scratch" | "app_inventor" | "robotics_basic" | "ai_intro" | "python" | "godot" | "robotics_iot" | "fastapi" | "html_css" | "javascript_tailwind" | "front_end" | "ai_ml" | "data_science" | "back_end" | "raspberry_pi" | "web" | "ai";
 
-
-/** Course family — 4 business-level categories for finance/reporting */
-export type CourseFamily = "junior" | "intermediate" | "advanced" | "specialized";
-
-/** Course track — maps each course to its family */
-export const COURSE_TRACK: Record<CourseType, CourseFamily> = {
-  scratch: "junior",
-  app_inventor: "junior",
-  robotics_basic: "junior",
-  ai_intro: "junior",
-  python: "intermediate",
-  godot: "intermediate",
-  robotics_iot: "intermediate",
-  fastapi: "intermediate",
-  html_css: "advanced",
-  javascript_tailwind: "advanced",
-  front_end: "advanced",
-  ai_ml: "specialized",
-  data_science: "specialized",
-  back_end: "specialized",
-  raspberry_pi: "junior",
-  web: "advanced",
-  ai: "specialized",
-};
-
-/** Labels for CourseFamily */
-export const COURSE_FAMILY_LABELS: Record<CourseFamily, { ar: string; en: string }> = {
-  junior: { ar: "مبتدئ", en: "Junior" },
-  intermediate: { ar: "متوسط", en: "Intermediate" },
-  advanced: { ar: "متقدم", en: "Advanced" },
-  specialized: { ar: "متخصص", en: "Specialized" },
-};
-
 /** Generic API response wrapper */
 export interface ApiResponse<T> {
   data: T | null;

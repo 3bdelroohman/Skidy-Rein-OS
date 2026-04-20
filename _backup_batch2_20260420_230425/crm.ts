@@ -14,8 +14,7 @@
   UserRole,
 } from "@/types/common.types";
 import type { DashboardTaskStatus, FollowUpStatus } from "@/config/status-meta";
-export type { CourseType, CourseFamily, StudentStatus, EmploymentType, PaymentStatus, PaymentMethod, LeadSource, LeadStage, LeadTemperature, LossReason, Priority, FollowUpType, CommChannel, UserRole } from "@/types/common.types";
-export { COURSE_TRACK, COURSE_FAMILY_LABELS } from "@/types/common.types";
+export type { CourseType, StudentStatus, EmploymentType, PaymentStatus, PaymentMethod, LeadSource, LeadStage, LeadTemperature, LossReason, Priority, FollowUpType, CommChannel, UserRole } from "@/types/common.types";
 
 
 export interface LeadListItem {

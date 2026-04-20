@@ -1,0 +1,63 @@
+﻿=== BATCH 2 FIX RESULT ===
+Date: 2026-04-20 23:08:01
+
+--- BUILD ---
+
+> skidy-rein-crm@1.0.0 build
+> next build
+
+Γû▓ Next.js 16.2.2 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 4.6s
+  Running TypeScript ...
+  Finished TypeScript in 7.0s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/22) ...
+  Generating static pages using 11 workers (5/22) 
+  Generating static pages using 11 workers (10/22) 
+  Generating static pages using 11 workers (16/22) 
+Γ£ô Generating static pages using 11 workers (22/22) in 561ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî ╞Æ /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /action-center
+Γö£ ╞Æ /follow-ups
+Γö£ ╞Æ /leads
+Γö£ ╞Æ /leads/[id]
+Γö£ ╞Æ /leads/[id]/edit
+Γö£ ╞Æ /leads/new
+Γö£ Γùï /login
+Γö£ ╞Æ /parents
+Γö£ ╞Æ /parents/[id]
+Γö£ ╞Æ /parents/new
+Γö£ ╞Æ /payments
+Γö£ ╞Æ /payments/[id]
+Γö£ ╞Æ /payments/[id]/invoice
+Γö£ ╞Æ /payments/invoice/[id]
+Γö£ ╞Æ /payments/new
+Γö£ ╞Æ /reports
+Γö£ ╞Æ /schedule
+Γö£ ╞Æ /schedule/[id]
+Γö£ ╞Æ /schedule/new
+Γö£ ╞Æ /settings
+Γö£ ╞Æ /students
+Γö£ ╞Æ /students/[id]
+Γö£ ╞Æ /students/[id]/report
+Γö£ ╞Æ /students/new
+Γö£ ╞Æ /teachers
+Γö£ ╞Æ /teachers/[id]
+Γö£ ╞Æ /teachers/finance
+Γöö ╞Æ /teachers/new
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
+
+--- TSC ---
+
+
