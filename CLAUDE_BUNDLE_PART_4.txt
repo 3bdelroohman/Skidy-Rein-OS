@@ -1,0 +1,821 @@
+ ? "noreferrer" : undefined} className="block transition-opacity hover:opacity-90">{content}</a>;
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 p-3"><span className="text-sm text-muted-foreground">{label}</span><span className="font-semibold text-foreground">{value}</span></div>;
+}
+
+function SummaryBox({ title, value }: { title: string; value: string }) {
+  return <div className="rounded-2xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">{title}</p><p className="mt-2 text-2xl font-bold text-foreground">{value}</p></div>;
+}
+
+function EmptyCopy({ locale, ar, en }: { locale: "ar" | "en"; ar: string; en: string }) {
+  return <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{t(locale, ar, en)}</div>;
+}
+
+
+==================== FILE :: src/app/(dashboard)/students/[id]/page.tsx ====================
+
+"use client";
+
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, CalendarDays, CalendarPlus, FileText, GraduationCap, MessageCircle, ReceiptText, UserCircle, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useUIStore } from "@/stores/ui-store";
+import { STUDENT_STATUS_META, getMetaLabel } from "@/config/status-meta";
+import { getCourseLabel, t } from "@/lib/locale";
+import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { extractLeadIdFromProjectionId, getStudentDetails } from "@/services/relations.service";
+import { deleteStudent } from "@/services/students.service";
+import { LoadingState, PageStateCard } from "@/components/shared/page-state";
+import type { StudentDetails } from "@/types/crm";
+
+export default function StudentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const locale = useUIStore((state) => state.locale);
+  const isAr = locale === "ar";
+  const [student, setStudent] = useState<StudentDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    let mounted = true;
+    getStudentDetails(id).then((data) => {
+      if (mounted) {
+        setStudent(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  const handleDeleteStudent = async () => {
+    if (!student) return;
+    const confirmed = window.confirm(locale === "ar" ? "هل تريد حذف هذا الطالب نهائيًا؟" : "Delete this student permanently?");
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await deleteStudent(student.id);
+      toast.success(locale === "ar" ? "تم حذف الطالب" : "Student deleted");
+      router.push("/students");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : (locale === "ar" ? "تعذر حذف الطالب" : "Could not delete student"));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
+
+  if (loading) {
+    return (
+      <LoadingState
+        titleAr="جارِ تحميل ملف الطالب"
+        titleEn="Loading student profile"
+        descriptionAr="يتم الآن تجهيز الربط بين الطالب وولي الأمر والمدرسين والجلسات المرتبطة."
+        descriptionEn="Linking the student with the parent, teachers, and related sessions now."
+      />
+    );
+  }
+
+  if (!student) {
+    return (
+      <PageStateCard
+        variant="warning"
+        titleAr="الطالب غير موجود"
+        titleEn="Student not found"
+        descriptionAr="قد يكون هذا الملف محذوفًا أو أن الرابط غير صحيح. ارجع إلى قائمة الطلاب ثم اختر الملف الصحيح."
+        descriptionEn="This student profile may have been removed or the link is incorrect. Go back to the students list and open the correct record."
+        actionHref="/students"
+        actionLabelAr="العودة إلى الطلاب"
+        actionLabelEn="Back to students"
+      />
+    );
+  }
+
+  const status = STUDENT_STATUS_META[student.status];
+  const sourceLeadId = extractLeadIdFromProjectionId(student.id);
+  const primaryTeacher = student.teachers[0] ?? null;
+  const linkedClassName = student.className ?? "";
+  const scheduleHref = `/schedule/new?className=${encodeURIComponent(linkedClassName)}${student.currentCourse ? `&course=${student.currentCourse}` : ""}${primaryTeacher ? `&teacherId=${primaryTeacher.id}` : ""}`;
+  const createActualHref = `/students/new?parentName=${encodeURIComponent(student.parentName)}&parentPhone=${encodeURIComponent(student.parentPhone)}&childName=${encodeURIComponent(student.fullName)}${student.age > 0 ? `&childAge=${student.age}` : ""}${student.currentCourse ? `&currentCourse=${student.currentCourse}` : ""}${student.className ? `&className=${encodeURIComponent(student.className)}` : ""}`;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Link href="/students" className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">
+            {isAr ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{student.fullName}</h1>
+            <p className="text-sm text-muted-foreground">{student.parentName} — {student.parentPhone}</p>
+          </div>
+        <button onClick={handleDeleteStudent} disabled={deleting} className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+          <Trash2 size={16} />
+          {deleting ? (locale === "ar" ? "جارِ الحذف..." : "Deleting...") : (locale === "ar" ? "حذف" : "Delete")}
+        </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {sourceLeadId ? (
+            <>
+              <Link href={`/leads/${sourceLeadId}`} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+                <FileText size={16} />
+                {t(locale, "العميل الأصلي", "Source lead")}
+              </Link>
+              <Link href={createActualHref} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                <UserCircle size={16} />
+                {t(locale, "إنشاء ملف طالب فعلي", "Create real student profile")}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href={`/students/${student.id}/report`} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+                <FileText size={16} />
+                {t(locale, "التقرير الشهري", "Monthly report")}
+              </Link>
+              <Link href={`/payments/new?studentId=${student.id}`} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+                <ReceiptText size={16} />
+                {t(locale, "إضافة دفعة", "Add payment")}
+              </Link>
+              <Link href={scheduleHref} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+                <CalendarPlus size={16} />
+                {t(locale, "إضافة حصة", "Add session")}
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <QuickStat title={t(locale, "الحالة", "Status")} value={getMetaLabel(status, locale)} />
+        <QuickStat title={t(locale, "المدرس الحالي", "Current teacher")} value={primaryTeacher?.fullName ?? t(locale, "غير مرتبط بعد", "Not linked yet")} />
+        <QuickStat title={t(locale, "الكلاس الحالي", "Current class")} value={student.className ?? t(locale, "غير مسجل", "Not assigned")} />
+        <QuickStat title={t(locale, "المسؤول", "Owner")} value={student.ownerName ?? t(locale, "غير مخصص", "Unassigned")} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
+            <GraduationCap size={20} className="text-brand-600" />
+            <h2 className="text-lg font-bold text-foreground">{t(locale, "ملف الطالب", "Student profile")}</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Info label={t(locale, "العمر", "Age")} value={`${student.age} ${t(locale, "سنة", "years")}`} />
+            <Info label={t(locale, "الحالة", "Status")} value={getMetaLabel(status, locale)} />
+            <Info label={t(locale, "الكورس الحالي", "Current course")} value={student.currentCourse ? getCourseLabel(student.currentCourse, locale) : t(locale, "غير محدد", "Not set")} />
+            <Info label={t(locale, "الكلاس", "Class")} value={student.className ?? t(locale, "غير مسجل", "Not assigned")} />
+            <Info label={t(locale, "تاريخ الالتحاق", "Enrollment date")} value={formatDate(student.enrollmentDate, locale)} />
+            <Info label={t(locale, "عدد الحصص", "Sessions attended")} value={student.sessionsAttended.toString()} />
+            <Info label={t(locale, "إجمالي المدفوع", "Total paid")} value={formatCurrencyEgp(student.totalPaid, locale)} />
+            <Info label={t(locale, "المسؤول", "Owner")} value={student.ownerName ?? t(locale, "غير مخصص", "Unassigned")} />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h3 className="mb-3 flex items-center gap-2 font-bold text-foreground"><UserCircle size={18} className="text-brand-600" />{t(locale, "ولي الأمر", "Parent")}</h3>
+            <div className="space-y-3">
+              <Info label={t(locale, "الاسم", "Name")} value={student.parent?.fullName ?? student.parentName} />
+              <Info label={t(locale, "الهاتف", "Phone")} value={student.parent?.phone ?? student.parentPhone} />
+              {student.parent?.whatsapp ? <Info label="WhatsApp" value={student.parent.whatsapp} /> : null}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {student.parent ? (
+                <Link href={`/parents/${student.parent.id}`} className="rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90">
+                  {t(locale, "فتح ملف ولي الأمر", "Open parent profile")}
+                </Link>
+              ) : null}
+              <a href={`tel:${student.parentPhone}`} className="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted">
+                {t(locale, "اتصال", "Call")}
+              </a>
+              <a href={`https://wa.me/2${student.parentPhone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted">
+                {t(locale, "واتساب", "WhatsApp")}
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h3 className="mb-3 flex items-center gap-2 font-bold text-foreground"><MessageCircle size={18} className="text-brand-600" />{t(locale, "المدرسون المرتبطون", "Linked teachers")}</h3>
+            <div className="flex flex-wrap gap-2">
+              {student.teachers.length === 0 ? (
+                <span className="text-sm text-muted-foreground">{t(locale, "لا يوجد مدرس مرتبط بعد", "No linked teacher yet")}</span>
+              ) : (
+                student.teachers.map((teacher) => (
+                  <Link key={teacher.id} href={`/teachers/${teacher.id}`} className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                    {teacher.fullName}
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><CalendarDays size={18} className="text-brand-600" />{t(locale, "الجلسات المرتبطة", "Linked sessions")}</h3>
+          {student.relatedSessions.length === 0 ? (
+            <EmptyCopy locale={locale} ar="لا توجد جلسات مرتبطة بهذا الطالب حتى الآن" en="No sessions are linked to this student yet" />
+          ) : (
+            <div className="space-y-3">
+              {student.relatedSessions.map((session) => (
+                <Link key={session.id} href={`/schedule/${session.id}`} className="block rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">{session.className}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{session.startTime} → {session.endTime}</p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{getCourseLabel(session.course, locale)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="mb-4 font-bold text-foreground">{t(locale, "الإخوة / الملفات المرتبطة", "Siblings / related profiles")}</h3>
+          {student.siblings.length === 0 ? (
+            <EmptyCopy locale={locale} ar="لا توجد ملفات أخرى مرتبطة بنفس ولي الأمر" en="No additional student profiles are linked to this parent" />
+          ) : (
+            <div className="space-y-3">
+              {student.siblings.map((item) => (
+                <Link key={item.id} href={`/students/${item.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40">
+                  <div>
+                    <p className="font-semibold text-foreground">{item.fullName}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.className ?? t(locale, "غير مسجل", "Not assigned")}</p>
+                  </div>
+                  <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ backgroundColor: STUDENT_STATUS_META[item.status].bg, color: STUDENT_STATUS_META[item.status].color }}>
+                    {getMetaLabel(STUDENT_STATUS_META[item.status], locale)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickStat({ title, value }: { title: string; value: string }) {
+  return <div className="rounded-2xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">{title}</p><p className="mt-2 font-semibold text-foreground">{value}</p></div>;
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold text-foreground">{value}</p></div>;
+}
+
+function EmptyCopy({ locale, ar, en }: { locale: "ar" | "en"; ar: string; en: string }) {
+  return <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{t(locale, ar, en)}</div>;
+}
+
+
+==================== FILE :: src/app/(dashboard)/payments/new/page.tsx ====================
+
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, ReceiptText, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
+
+import { PageStateCard } from "@/components/shared/page-state";
+import { canManagePaymentsForUser } from "@/config/roles";
+import { useCurrentUser } from "@/providers/user-provider";
+import { createPayment } from "@/services/payments.service";
+import { listStudents } from "@/services/students.service";
+import { useUIStore } from "@/stores/ui-store";
+import type { PaymentMethod, PaymentStatus } from "@/types/common.types";
+import type { StudentListItem } from "@/types/crm";
+import { t } from "@/lib/locale";
+import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS: PaymentStatus[] = ["pending", "paid", "partial", "overdue"];
+const METHOD_OPTIONS: Array<PaymentMethod | ""> = ["", "instapay", "bank_transfer", "wallet", "cash", "card"];
+
+function normalizeSessionBlock(value: string): number {
+  const parsed = Number(value || 4);
+  if (!Number.isFinite(parsed)) return 4;
+  return Math.max(4, Math.ceil(parsed / 4) * 4);
+}
+
+export default function NewPaymentPage() {
+  const locale = useUIStore((state) => state.locale);
+  const isAr = locale === "ar";
+  const user = useCurrentUser();
+  const canManage = canManagePaymentsForUser(user);
+  const router = useRouter();
+  const [students, setStudents] = useState<StudentListItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    studentId: "",
+    amount: "1200",
+    status: "pending" as PaymentStatus,
+    method: "" as PaymentMethod | "",
+    dueDate: new Date().toISOString().slice(0, 10),
+    blockStartDate: new Date().toISOString().slice(0, 10),
+    blockEndDate: "",
+    deferredUntil: "",
+    notes: "",
+    sessionsCovered: "4",
+  });
+
+  useEffect(() => {
+    listStudents().then(setStudents);
+  }, []);
+
+  const selectedStudent = useMemo(
+    () => students.find((student) => student.id === form.studentId) ?? null,
+    [students, form.studentId],
+  );
+  const normalizedSessions = useMemo(() => normalizeSessionBlock(form.sessionsCovered), [form.sessionsCovered]);
+  const amountNumber = Number(form.amount || 0);
+  const hasRoundedSessions = normalizedSessions !== Number(form.sessionsCovered || 0);
+
+  if (!canManage) {
+    return (
+      <PageStateCard
+        variant="danger"
+        titleAr="لا تملك صلاحية إدارة المدفوعات"
+        titleEn="You cannot manage payments"
+        descriptionAr="إدارة المدفوعات محصورة على الأدوار المخولة فقط داخل الفريق المالي. يمكنك مشاهدة السجلات لكن لا يمكنك إنشاء دفعة جديدة."
+        descriptionEn="Payment management is restricted to the approved finance users. You can review records but cannot create a new payment."
+        actionHref="/payments"
+        actionLabelAr="العودة إلى المدفوعات"
+        actionLabelEn="Back to payments"
+      />
+    );
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!form.studentId) {
+      toast.error(t(locale, "اختر الطالب أولاً", "Choose a student first"));
+      return;
+    }
+
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      toast.error(t(locale, "أدخل مبلغًا صحيحًا أكبر من صفر", "Enter a valid amount greater than zero"));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const created = await createPayment({
+        studentId: form.studentId,
+        amount: amountNumber,
+        status: form.status,
+        method: form.method || null,
+        dueDate: form.dueDate,
+        sessionsCovered: normalizedSessions,
+        blockStartDate: form.blockStartDate || null,
+        blockEndDate: form.blockEndDate || null,
+        deferredUntil: form.deferredUntil || null,
+        notes: form.notes || null,
+      });
+      toast.success(t(locale, "تم إنشاء الدفعة بنجاح", "Payment created successfully"));
+      router.push(`/payments/${created.id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر إنشاء الدفعة", "Could not create payment"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={() => router.push("/payments")} className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">
+          {isAr ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
+        </button>
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><ReceiptText size={24} className="text-brand-600" />{t(locale, "إضافة دفعة جديدة", "Add new payment")}</h1>
+          <p className="text-sm text-muted-foreground">{t(locale, "الفاتورة الافتراضية تغطي 4 جلسات. إذا أدخلت 5 أو 6 جلسات فسيتم تقريبها تلقائيًا إلى أقرب مضاعف لـ 4 حتى يبقى منطق الفوترة ثابتًا وواضحًا.", "The default invoice covers 4 sessions. If you enter 5 or 6 sessions, it will be rounded up to the nearest multiple of 4 so the billing logic stays consistent and clear.")}</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
+          <Field label={t(locale, "الطالب", "Student")}>
+            <select value={form.studentId} onChange={(event) => setForm((prev) => ({ ...prev, studentId: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
+              <option value="">{t(locale, "اختر الطالب", "Choose student")}</option>
+              {students.map((student) => (
+                <option key={student.id} value={student.id}>{student.fullName}</option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t(locale, "المبلغ", "Amount")}>
+              <input type="number" min="1" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+            </Field>
+            <Field label={t(locale, "عدد الجلسات", "Sessions covered")}>
+              <input type="number" min="4" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+            </Field>
+          </div>
+
+          {hasRoundedSessions ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+              <TriangleAlert size={18} className="mt-0.5 shrink-0" />
+              <p>
+                {t(locale, `سيتم إصدار الفاتورة على ${normalizedSessions} جلسات بدل ${form.sessionsCovered} لأن دورة الفوترة معتمدة على مضاعفات 4 جلسات.`, `The invoice will be issued for ${normalizedSessions} sessions instead of ${form.sessionsCovered}, because the billing cycle is locked to multiples of 4 sessions.`)}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t(locale, "الحالة", "Status")}>
+              <select value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as PaymentStatus }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
+                {STATUS_OPTIONS.map((status) => (<option key={status} value={status}>{status}</option>))}
+              </select>
+            </Field>
+            <Field label={t(locale, "طريقة الدفع", "Payment method")}>
+              <select value={form.method} onChange={(event) => setForm((prev) => ({ ...prev, method: event.target.value as PaymentMethod | "" }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
+                <option value="">{t(locale, "لاحقًا", "Later")}</option>
+                {METHOD_OPTIONS.filter(Boolean).map((method) => (<option key={method} value={method}>{method}</option>))}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label={t(locale, "بداية الباقة", "Block start")}>
+              <input type="date" value={form.blockStartDate} onChange={(event) => setForm((prev) => ({ ...prev, blockStartDate: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+            </Field>
+            <Field label={t(locale, "نهاية الباقة", "Block end")}>
+              <input type="date" value={form.blockEndDate} onChange={(event) => setForm((prev) => ({ ...prev, blockEndDate: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+            </Field>
+            <Field label={t(locale, "تاريخ الاستحقاق", "Due date")}>
+              <input type="date" value={form.dueDate} onChange={(event) => setForm((prev) => ({ ...prev, dueDate: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+            </Field>
+          </div>
+
+          <Field label={t(locale, "تأجيل الدفع حتى", "Deferred until")}>
+            <input type="date" value={form.deferredUntil} onChange={(event) => setForm((prev) => ({ ...prev, deferredUntil: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+          </Field>
+
+          <Field label={t(locale, "ملاحظة", "Note")}>
+            <textarea value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} rows={4} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" placeholder={t(locale, "مثال: اتفقنا أن يتم السداد بعد انتهاء الأربع جلسات", "Example: the parent will pay after the four sessions are completed")} />
+          </Field>
+        </div>
+
+        <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
+          <h2 className="text-lg font-bold text-foreground">{t(locale, "ملخص سريع", "Quick summary")}</h2>
+          <SummaryRow label={t(locale, "الطالب", "Student")} value={selectedStudent?.fullName ?? "—"} />
+          <SummaryRow label={t(locale, "ولي الأمر", "Parent")} value={selectedStudent?.parentName ?? "—"} />
+          <SummaryRow label={t(locale, "الفوترة", "Billing")} value={t(locale, `باقة ${normalizedSessions} جلسات`, `${normalizedSessions}-session block`)} />
+          <SummaryRow label={t(locale, "المبلغ", "Amount")} value={form.amount ? `${form.amount} ${isAr ? "ج.م" : "EGP"}` : "—"} />
+          <SummaryRow label={t(locale, "الاستحقاق", "Due date")} value={form.dueDate || "—"} />
+          <SummaryRow label={t(locale, "التأجيل", "Deferred until")} value={form.deferredUntil || t(locale, "بدون تأجيل", "No deferment")} />
+
+          <button type="submit" disabled={saving} className={cn("w-full rounded-xl bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600", saving && "opacity-70")}>{saving ? t(locale, "جارِ الإنشاء...", "Creating...") : t(locale, "إنشاء الدفعة وإصدار فاتورة", "Create payment & issue invoice")}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-sm font-semibold text-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+
+==================== FILE :: src/components/schedule/schedule-entry-form.tsx ====================
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, CalendarPlus, Save } from "lucide-react";
+import { toast } from "sonner";
+import { t, getDayLabel } from "@/lib/locale";
+import { useUIStore } from "@/stores/ui-store";
+import type { CourseType } from "@/types/common.types";
+import type { CreateScheduleEntryInput, TeacherListItem } from "@/types/crm";
+import { listTeachers } from "@/services/teachers.service";
+
+interface ScheduleEntryFormProps {
+  title: string;
+  description: string;
+  submitLabel: string;
+  successMessage: string;
+  onSubmit: (payload: CreateScheduleEntryInput) => Promise<void>;
+  cancelHref?: string;
+  initialValues?: {
+    className?: string;
+    teacherId?: string;
+    course?: CourseType;
+  };
+}
+
+const COURSE_OPTIONS: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];
+
+function getCourseLabel(course: CourseType, locale: "ar" | "en") {
+  const labels: Record<CourseType, { ar: string; en: string }> = {
+    app_inventor: { ar: "App Inventor", en: "App Inventor" },
+    robotics_basic: { ar: "روبوتكس", en: "Robotics Basic" },
+    ai_intro: { ar: "مقدمة AI", en: "AI Intro" },
+    godot: { ar: "Godot", en: "Godot" },
+    robotics_iot: { ar: "Robotics / IoT", en: "Robotics / IoT" },
+    fastapi: { ar: "FastAPI", en: "FastAPI" },
+    javascript_tailwind: { ar: "JavaScript / Tailwind", en: "JavaScript / Tailwind" },
+    front_end: { ar: "Front End", en: "Front End" },
+    data_science: { ar: "Data Science", en: "Data Science" },
+    back_end: { ar: "Back End", en: "Back End" },
+    raspberry_pi: { ar: "Raspberry Pi", en: "Raspberry Pi" },
+    scratch: { ar: "Scratch", en: "Scratch" },
+    python: { ar: "Python", en: "Python" },
+    html_css: { ar: "HTML / CSS", en: "HTML / CSS" },
+    ai_ml: { ar: "AI & Machine Learning", en: "AI & Machine Learning" },
+  };
+  return locale === "ar" ? labels[course].ar : labels[course].en;
+}
+
+export function ScheduleEntryForm({ title, description, submitLabel, successMessage, onSubmit, cancelHref = "/schedule", initialValues }: ScheduleEntryFormProps) {
+  const router = useRouter();
+  const locale = useUIStore((state) => state.locale);
+  const isAr = locale === "ar";
+  const [loading, setLoading] = useState(false);
+  const [teachers, setTeachers] = useState<TeacherListItem[]>([]);
+  const [form, setForm] = useState({
+    className: initialValues?.className ?? "",
+    teacherId: initialValues?.teacherId ?? "",
+    course: initialValues?.course ?? ("scratch" as CourseType),
+    day: "0",
+    startTime: "16:00",
+    endTime: "17:00",
+  });
+
+  useEffect(() => {
+    listTeachers().then((items) => {
+      setTeachers(items);
+      setForm((prev) => {
+        const hasRequestedTeacher = prev.teacherId && items.some((teacher) => teacher.id === prev.teacherId);
+        return { ...prev, teacherId: hasRequestedTeacher ? prev.teacherId : prev.teacherId || items[0]?.id || "" };
+      });
+    });
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.className.trim() || !form.teacherId) {
+      toast.error(t(locale, "اسم الحصة والمدرس مطلوبان", "Class name and teacher are required"));
+      return;
+    }
+    if (form.endTime <= form.startTime) {
+      toast.error(t(locale, "وقت النهاية يجب أن يكون بعد وقت البداية", "End time must be after start time"));
+      return;
+    }
+    setLoading(true);
+    try {
+      await onSubmit({
+        className: form.className.trim(),
+        teacherId: form.teacherId,
+        course: form.course,
+        day: Number(form.day),
+        startTime: form.startTime,
+        endTime: form.endTime,
+      });
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر إضافة الحصة", "Could not create schedule entry"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={() => router.push(cancelHref)} className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">{isAr ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}</button>
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><CalendarPlus size={28} className="text-brand-600" />{title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t(locale, "اسم الحصة / الحدث *", "Session / event name *")} value={form.className} onChange={(value) => setForm((prev) => ({ ...prev, className: value }))} />
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "المدرس *", "Teacher *")}</label>
+              <select value={form.teacherId} onChange={(event) => setForm((prev) => ({ ...prev, teacherId: event.target.value }))} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
+                {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.fullName}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "المسار", "Track")}</label>
+              <select value={form.course} onChange={(event) => setForm((prev) => ({ ...prev, course: event.target.value as CourseType }))} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
+                {COURSE_OPTIONS.map((course) => <option key={course} value={course}>{getCourseLabel(course, locale)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "اليوم", "Day")}</label>
+              <select value={form.day} onChange={(event) => setForm((prev) => ({ ...prev, day: event.target.value }))} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
+                {Array.from({ length: 7 }, (_, day) => <option key={day} value={day}>{getDayLabel(day, locale)}</option>)}
+              </select>
+            </div>
+            <Field label={t(locale, "وقت البداية", "Start time")} value={form.startTime} onChange={(value) => setForm((prev) => ({ ...prev, startTime: value }))} type="time" />
+            <Field label={t(locale, "وقت النهاية", "End time")} value={form.endTime} onChange={(value) => setForm((prev) => ({ ...prev, endTime: value }))} type="time" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
+          <button type="button" onClick={() => router.push(cancelHref)} className="rounded-xl px-6 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted">{t(locale, "إلغاء", "Cancel")}</button>
+          <button type="submit" disabled={loading} className="flex items-center gap-2 rounded-xl bg-brand-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+            {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Save size={18} />{submitLabel}</>}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+  return <div><label className="mb-1.5 block text-sm font-medium text-foreground">{label}</label><input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring" /></div>;
+}
+
+
+==================== FILE :: src/components/teachers/teacher-form.tsx ====================
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, BookOpen, Save } from "lucide-react";
+import { toast } from "sonner";
+import { t, getEmploymentTypeLabel } from "@/lib/locale";
+import { useUIStore } from "@/stores/ui-store";
+import type { CourseType, EmploymentType } from "@/types/common.types";
+import type { CreateTeacherInput } from "@/types/crm";
+
+const COURSE_OPTIONS: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];
+
+function getCourseLabel(course: CourseType, locale: "ar" | "en") {
+  const labels: Record<CourseType, { ar: string; en: string }> = {
+    scratch: { ar: "Scratch", en: "Scratch" },
+    python: { ar: "Python", en: "Python" },
+    web: { ar: "Web", en: "Web" },
+    ai: { ar: "AI", en: "AI" },
+  };
+  return locale === "ar" ? labels[course].ar : labels[course].en;
+}
+
+interface TeacherFormProps {
+  title: string;
+  description: string;
+  submitLabel: string;
+  successMessage: string;
+  onSubmit: (payload: CreateTeacherInput) => Promise<void>;
+  cancelHref?: string;
+}
+
+export function TeacherForm({ title, description, submitLabel, successMessage, onSubmit, cancelHref = "/teachers" }: TeacherFormProps) {
+  const router = useRouter();
+  const locale = useUIStore((state) => state.locale);
+  const isAr = locale === "ar";
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    phone: "",
+    employment: "part_time" as EmploymentType,
+    specialization: ["scratch"] as CourseType[],
+  });
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.fullName.trim() || !form.phone.trim()) {
+      toast.error(t(locale, "اسم المدرس والهاتف مطلوبان", "Teacher name and phone are required"));
+      return;
+    }
+    if (form.specialization.length === 0) {
+      toast.error(t(locale, "اختر مسارًا واحدًا على الأقل", "Choose at least one specialization"));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit({
+        fullName: form.fullName.trim(),
+        phone: form.phone.trim(),
+        employment: form.employment,
+        specialization: form.specialization,
+      });
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر إنشاء المدرس", "Could not create teacher"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCourse = (course: CourseType) => {
+    setForm((prev) => {
+      const exists = prev.specialization.includes(course);
+      const next = exists ? prev.specialization.filter((item) => item !== course) : [...prev.specialization, course];
+      return { ...prev, specialization: next };
+    });
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={() => router.push(cancelHref)} className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">
+          {isAr ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
+        </button>
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><BookOpen size={28} className="text-brand-600" />{title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t(locale, "اسم المدرس *", "Teacher name *")} value={form.fullName} onChange={(value) => setForm((prev) => ({ ...prev, fullName: value }))} />
+            <Field label={t(locale, "الهاتف *", "Phone *")} value={form.phone} onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))} type="tel" />
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "نوع التعاقد", "Employment type")}</label>
+              <select value={form.employment} onChange={(event) => setForm((prev) => ({ ...prev, employment: event.target.value as EmploymentType }))} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
+                {(["full_time", "part_time", "freelance"] as EmploymentType[]).map((item) => (
+                  <option key={item} value={item}>{getEmploymentTypeLabel(item, locale)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-foreground">{t(locale, "المسارات التي يدرّسها", "Taught tracks")}</label>
+              <div className="flex flex-wrap gap-2">
+                {COURSE_OPTIONS.map((course) => {
+                  const active = form.specialization.includes(course);
+                  return (
+                    <button key={course} type="button" onClick={() => toggleCourse(course)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${active ? "border-brand-600 bg-brand-600 text-white" : "border-border bg-card text-foreground hover:bg-muted"}`}>
+                      {getCourseLabel(course, locale)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
+          <button type="button" onClick={() => router.push(cancelHref)} className="rounded-xl px-6 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted">{t(locale, "إلغاء", "Cancel")}</button>
+          <button type="submit" disabled={loading} className="flex items-center gap-2 rounded-xl bg-brand-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+            {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Save size={18} />{submitLabel}</>}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
+    </div>
+  );
+}
+
+
+==================== FILE :: src/services/schedule.service.ts ====================
+
+import { createBrowserClient } from "@supabase/ssr";
+import type { CourseType } from "@/types/common.types";
+import type { Database } from "@/types/database.types";
+import type { CreateScheduleEntryInput, ParentListItem, ScheduleSessionDetails, ScheduleSessionItem, StudentListItem, TeacherListItem } from "@/types/crm";
+import { isBrowser, readStorage, writeStorage } from "@/services/storage";
+import { listParents } from "@/services/parents.service";
+import { listStudents } from "@/services/students.service";
+import { listTeachers } from "@/services/teachers.service";
+
+const SCHEDULE_KEY = "skidy.crm.schedule";
+const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
+const VALID_COURSES: CourseType[] = ["scratch", "python", "web", "ai"];
+
+const DEFAULT_SCHEDULE: ScheduleSessionItem[] = [
+  { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTim

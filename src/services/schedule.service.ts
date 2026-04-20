@@ -120,6 +120,15 @@ function inferTeacher(
 }
 
 
+
+function trimTime(v: string): string {
+  const p = v.split(":");
+  return p.length >= 2 ? p[0] + ":" + p[1] : v;
+}
+
+function cleanClassName(v: string): string {
+  return v.replace(/\s*\([^)]*\)\s*/g, "").trim() || v;
+}
 function mapSessionFromClass(
   row: RawClassRow,
   teachers: TeacherListItem[],
@@ -136,7 +145,7 @@ function mapSessionFromClass(
     day: row.start_date ? new Date(row.start_date).getDay() : 0,
     startTime: "16:00",
     endTime: "17:00",
-    className: asString(row.name, "Class"),
+    className: cleanClassName(asString(row.name, "Class")),
     teacher: teacher?.fullName ?? "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
     students: enrollmentCount,
     course: asCourse(row.course_id ? courseMap.get(row.course_id) : null),
@@ -160,9 +169,9 @@ function mapSessionFromSession(
     classId: asNullableString(row.class_id),
     teacherId: asNullableString(row.teacher_id ?? classRow?.teacher_id),
     day: row.session_date ? new Date(row.session_date).getDay() : 0,
-    startTime: asString(row.start_time, "16:00"),
-    endTime: asString(row.end_time, "17:00"),
-    className: asString(classRow?.name ?? row.topic, "Session"),
+    startTime: trimTime(asString(row.start_time, "16:00")),
+    endTime: trimTime(asString(row.end_time, "17:00")),
+    className: cleanClassName(asString(classRow?.name ?? row.topic, "Session")),
     teacher: teacher?.fullName ?? "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
     students: studentsCount,
     course: asCourse(classRow?.course_id ? courseMap.get(classRow.course_id) : null),

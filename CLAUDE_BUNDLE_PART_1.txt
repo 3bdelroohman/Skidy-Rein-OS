@@ -1,0 +1,1518 @@
+
+==================== BUNDLE PURPOSE ====================
+
+This bundle is prepared for Claude text-only analysis.
+Goal: continue the internal system project accurately without repo upload.
+Use this as project truth. Do not assume missing schema or flows.
+
+==================== WORKDIR ====================
+
+C:\Users\3bdel\Documents\skidy-rein-crm
+
+==================== GIT STATUS ====================
+
+ M src/app/(dashboard)/parents/[id]/page.tsx
+ M src/app/(dashboard)/schedule/page.tsx
+ M src/app/(dashboard)/teachers/[id]/page.tsx
+ M src/app/(dashboard)/teachers/page.tsx
+ M src/components/schedule/schedule-entry-form.tsx
+ M src/components/teachers/teacher-form.tsx
+ M src/services/schedule.service.ts
+ M src/types/common.types.ts
+?? PROJECT_CONTEXT.md
+?? _check.js
+?? _claude_bundle.js
+?? _dump.txt
+?? _dump2.txt
+?? _dump3.txt
+?? _fix10.js
+?? _fix11.js
+?? _fix12.js
+?? _fix13.js
+?? _fix15.js
+?? _fix17.js
+?? _fix3.js
+?? _fix4.js
+?? _fix5.js
+?? _fix6.js
+?? _fix7.js
+?? _fix8.js
+?? _fix9.js
+?? _fix_all.js
+?? _project_snapshot.txt
+
+
+==================== LAST 10 COMMITS ====================
+
+00907e2 chore: final cleanup - zero lint warnings, all locale props restored
+229c885 chore: truly zero warnings - removed all remaining unused code
+651adb9 chore: zero warnings - removed all unused vars, imports, and dead functions
+8983279 fix: lint cleanup - remove old scripts, fix unused vars, fix setState in effect
+7d3ff6b feat: Priority 2+3 complete - RLS policies, audit triggers, pre-push hook
+4d190e9 fix: graceful fallback for local-only teacher delete (no more false error toast)
+fc47a1d feat: Priority 1+2 - duplicate constraints, lead-to-enrollment flow, teacher finance to Supabase
+e78c87d Fix: DB defaults for NOT NULL columns + is_cancelled in sessions + courses seed
+425543d Fix follow-ups: remove ghost columns (lead_name, status, type), use is_completed + resolved lead names
+0fab27b Fix runtime: students parent lookup, honest teacher delete, schedule course resolution from courses table
+
+
+==================== PACKAGE.JSON ====================
+
+{
+  "name": "skidy-rein-crm",
+  "version": "1.0.0",
+  "description": "Academy management system for Skidy Rein — Kids coding education platform",
+  "author": "Abdelrahman",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "date-fns-jalali": "^4.1.0-0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
+    "next": "16.2.2",
+    "next-intl": "^4.9.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.72.0",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.1.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+==================== TSCONFIG ====================
+
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+==================== PROJECT CONTEXT ====================
+
+﻿# Skidy Rein CRM — Full Context for New Chat
+
+## Tech
+Next.js 16 + TypeScript strict + Supabase + Tailwind + Zustand
+Repo: 3bdelroohman/Skidy-Rein-CRM
+
+## DB Tables (Supabase)
+app_settings, attendance, audit_log, class_enrollments, classes,
+courses, follow_ups, lead_activities, leads, notifications,
+parents, payments, profiles, referrals, sessions, students,
+teacher_finance_config, teachers, trials
+
+IMPORTANT: schedule table = "sessions" (NOT schedule_sessions)
+IMPORTANT: courses table has 4 rows: scratch, python, web, ai
+
+## Data
+leads: 96 (85 won, 11 new) | parents: 71 | students: 85
+teachers: 10 | sessions: 32 | courses: 4
+
+## Auth Users (all role=admin now)
+alaa@skidyrain.com, 3bdelroohman@gmail.com, samar@skidyrain.com,
+hagar@skidyrain.com, khaled@skidyrain.com
+
+## Routes: src/app/(dashboard)/...
+leads, parents, students, teachers, schedule, payments, reports,
+follow-ups, action-center, settings
+teachers/finance, teachers/[id], students/[id]/report
+
+## Course Options (from student-form dropdown)
+scratch, app_inventor, robotics_basic, ai_intro, python, godot,
+robotics_iot, fastapi, html_css, javascript_tailwind, front_end,
+ai_ml, data_science, back_end, raspberry_pi
+
+## Completed
+- Build clean 22/22 pages
+- CRUD all entities
+- RLS 30 policies + 19 temp_read policies + Audit 24 triggers
+- Teacher finance in Supabase (teacher_finance_config table)
+- Duplicate prevention + Auto-enrollment (lead won -> parent+student)
+- Pre-push quality gate
+
+## Current Issues (TODO)
+1. Schedule: times show HH:MM:SS instead of HH:MM
+2. Schedule: class names include dates like "JavaScript(Sun 6:30 PM)"
+3. Schedule: cards overflow their boxes
+4. Teacher finance: needs duration dropdown + course dropdown (from DB) + editable price
+5. Payments/new: student names show in dropdown (WORKING) but need verify
+
+## Rules
+1. No schema assumptions - ask first
+2. Node.js scripts for Arabic files (not PowerShell)
+3. SQL runs in Supabase SQL Editor only (NOT PowerShell)
+4. Every fix must keep npm run build clean
+5. Big batches not line-by-line
+6. PowerShell breaks Arabic UTF-8 - use Node scripts
+7. [id] in paths breaks PowerShell - use Node scripts
+
+## How to get any file
+node -e "require('child_process').spawn('clip').stdin.end(require('fs').readFileSync('FILE_PATH','utf8'))"
+
+## How to get multiple files
+node -e "let o='';['file1','file2'].forEach(f=>{o+='\n=== '+f+' ===\n';try{o+=require('fs').readFileSync(f,'utf8')}catch(e){o+='NOT FOUND'}});require('child_process').spawn('clip').stdin.end(o)"
+
+## How to list all pages
+node -e "const{readdirSync:r,statSync:s}=require('fs'),{join:j}=require('path');function walk(d,f=[]){try{r(d).forEach(e=>{const p=j(d,e);s(p).isDirectory()?walk(p,f):e==='page.tsx'&&f.push(p)})}catch(e){}return f}console.log(walk('src').join('\n'))"
+
+
+==================== APP ROUTES ====================
+
+src\app\(auth)\login\page.tsx
+src\app\(dashboard)\action-center\page.tsx
+src\app\(dashboard)\follow-ups\page.tsx
+src\app\(dashboard)\leads\[id]\edit\page.tsx
+src\app\(dashboard)\leads\[id]\page.tsx
+src\app\(dashboard)\leads\new\page.tsx
+src\app\(dashboard)\leads\page.tsx
+src\app\(dashboard)\page.tsx
+src\app\(dashboard)\parents\[id]\page.tsx
+src\app\(dashboard)\parents\new\page.tsx
+src\app\(dashboard)\parents\page.tsx
+src\app\(dashboard)\payments\[id]\invoice\page.tsx
+src\app\(dashboard)\payments\[id]\page.tsx
+src\app\(dashboard)\payments\invoice\[id]\page.tsx
+src\app\(dashboard)\payments\new\page.tsx
+src\app\(dashboard)\payments\page.tsx
+src\app\(dashboard)\reports\page.tsx
+src\app\(dashboard)\schedule\[id]\page.tsx
+src\app\(dashboard)\schedule\new\page.tsx
+src\app\(dashboard)\schedule\page.tsx
+src\app\(dashboard)\settings\page.tsx
+src\app\(dashboard)\students\[id]\page.tsx
+src\app\(dashboard)\students\[id]\report\page.tsx
+src\app\(dashboard)\students\new\page.tsx
+src\app\(dashboard)\students\page.tsx
+src\app\(dashboard)\teachers\[id]\page.tsx
+src\app\(dashboard)\teachers\finance\page.tsx
+src\app\(dashboard)\teachers\new\page.tsx
+src\app\(dashboard)\teachers\page.tsx
+
+==================== SERVICES ====================
+
+src\services\dashboard.service.ts
+src\services\duplicate-guard.service.ts
+src\services\enrollment.service.ts
+src\services\follow-ups.service.ts
+src\services\leads.service.ts
+src\services\operations.service.ts
+src\services\owner-summary.service.ts
+src\services\parents.service.ts
+src\services\payments.service.ts
+src\services\relations.service.ts
+src\services\reports.service.ts
+src\services\schedule.service.ts
+src\services\storage.ts
+src\services\student-enrollment-control.service.ts
+src\services\student-finance.service.ts
+src\services\student-journey.service.ts
+src\services\student-report.service.ts
+src\services\students.service.ts
+src\services\teacher-evaluations.service.ts
+src\services\teacher-finance.service.ts
+src\services\teacher-reassignment.service.ts
+src\services\teachers.service.ts
+
+==================== MIGRATIONS ====================
+
+supabase\migrations\20250101000001_duplicate_constraints.sql
+supabase\migrations\20250101000002_teacher_finance_table.sql
+supabase\migrations\20250101000004_fix_teacher_finance_cols.sql
+supabase\migrations\20250101000005_rls_policies.sql
+supabase\migrations\20250101000006_cleanup_old_policies.sql
+supabase\migrations\20250101000007_audit_triggers.sql
+
+==================== KEYWORD SCAN :: TODO/FIXME/HACK/BUG ====================
+
+(empty)
+
+==================== MODIFIED FILES ====================
+
+src/app/(dashboard)/parents/[id]/page.tsx
+src/app/(dashboard)/schedule/page.tsx
+src/app/(dashboard)/teachers/[id]/page.tsx
+src/app/(dashboard)/teachers/page.tsx
+src/components/schedule/schedule-entry-form.tsx
+src/components/teachers/teacher-form.tsx
+src/services/schedule.service.ts
+src/types/common.types.ts
+PROJECT_CONTEXT.md
+_check.js
+_claude_bundle.js
+_dump.txt
+_dump2.txt
+_dump3.txt
+_fix10.js
+_fix11.js
+_fix12.js
+_fix13.js
+_fix15.js
+_fix17.js
+_fix3.js
+_fix4.js
+_fix5.js
+_fix6.js
+_fix7.js
+_fix8.js
+_fix9.js
+_fix_all.js
+_project_snapshot.txt
+
+==================== FILE :: package.json ====================
+
+{
+  "name": "skidy-rein-crm",
+  "version": "1.0.0",
+  "description": "Academy management system for Skidy Rein — Kids coding education platform",
+  "author": "Abdelrahman",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "date-fns-jalali": "^4.1.0-0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
+    "next": "16.2.2",
+    "next-intl": "^4.9.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.72.0",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.1.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+==================== FILE :: tsconfig.json ====================
+
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+==================== FILE :: next.config.ts ====================
+
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+
+
+==================== FILE :: PROJECT_CONTEXT.md ====================
+
+﻿# Skidy Rein CRM — Full Context for New Chat
+
+## Tech
+Next.js 16 + TypeScript strict + Supabase + Tailwind + Zustand
+Repo: 3bdelroohman/Skidy-Rein-CRM
+
+## DB Tables (Supabase)
+app_settings, attendance, audit_log, class_enrollments, classes,
+courses, follow_ups, lead_activities, leads, notifications,
+parents, payments, profiles, referrals, sessions, students,
+teacher_finance_config, teachers, trials
+
+IMPORTANT: schedule table = "sessions" (NOT schedule_sessions)
+IMPORTANT: courses table has 4 rows: scratch, python, web, ai
+
+## Data
+leads: 96 (85 won, 11 new) | parents: 71 | students: 85
+teachers: 10 | sessions: 32 | courses: 4
+
+## Auth Users (all role=admin now)
+alaa@skidyrain.com, 3bdelroohman@gmail.com, samar@skidyrain.com,
+hagar@skidyrain.com, khaled@skidyrain.com
+
+## Routes: src/app/(dashboard)/...
+leads, parents, students, teachers, schedule, payments, reports,
+follow-ups, action-center, settings
+teachers/finance, teachers/[id], students/[id]/report
+
+## Course Options (from student-form dropdown)
+scratch, app_inventor, robotics_basic, ai_intro, python, godot,
+robotics_iot, fastapi, html_css, javascript_tailwind, front_end,
+ai_ml, data_science, back_end, raspberry_pi
+
+## Completed
+- Build clean 22/22 pages
+- CRUD all entities
+- RLS 30 policies + 19 temp_read policies + Audit 24 triggers
+- Teacher finance in Supabase (teacher_finance_config table)
+- Duplicate prevention + Auto-enrollment (lead won -> parent+student)
+- Pre-push quality gate
+
+## Current Issues (TODO)
+1. Schedule: times show HH:MM:SS instead of HH:MM
+2. Schedule: class names include dates like "JavaScript(Sun 6:30 PM)"
+3. Schedule: cards overflow their boxes
+4. Teacher finance: needs duration dropdown + course dropdown (from DB) + editable price
+5. Payments/new: student names show in dropdown (WORKING) but need verify
+
+## Rules
+1. No schema assumptions - ask first
+2. Node.js scripts for Arabic files (not PowerShell)
+3. SQL runs in Supabase SQL Editor only (NOT PowerShell)
+4. Every fix must keep npm run build clean
+5. Big batches not line-by-line
+6. PowerShell breaks Arabic UTF-8 - use Node scripts
+7. [id] in paths breaks PowerShell - use Node scripts
+
+## How to get any file
+node -e "require('child_process').spawn('clip').stdin.end(require('fs').readFileSync('FILE_PATH','utf8'))"
+
+## How to get multiple files
+node -e "let o='';['file1','file2'].forEach(f=>{o+='\n=== '+f+' ===\n';try{o+=require('fs').readFileSync(f,'utf8')}catch(e){o+='NOT FOUND'}});require('child_process').spawn('clip').stdin.end(o)"
+
+## How to list all pages
+node -e "const{readdirSync:r,statSync:s}=require('fs'),{join:j}=require('path');function walk(d,f=[]){try{r(d).forEach(e=>{const p=j(d,e);s(p).isDirectory()?walk(p,f):e==='page.tsx'&&f.push(p)})}catch(e){}return f}console.log(walk('src').join('\n'))"
+
+
+==================== FILE :: src/types/common.types.ts ====================
+
+/**
+ * Common TypeScript types used across the application
+ * Updated to reflect simplified sales system (8-stage pipeline)
+ * @author Abdelrahman
+ */
+
+/** Supported UI languages */
+export type Locale = "ar" | "en";
+
+/** Application user role */
+export type UserRole = "admin" | "sales" | "ops" | "owner";
+
+/**
+ * Lead pipeline stage — 8 stages (simplified from 12)
+ * Decision: simpler pipeline = higher team compliance
+ */
+export type LeadStage =
+  | "new"
+  | "qualified"
+  | "trial_proposed"
+  | "trial_booked"
+  | "trial_attended"
+  | "offer_sent"
+  | "won"
+  | "lost";
+
+/** Lead temperature — simplified scoring (3 levels) */
+export type LeadTemperature = "hot" | "warm" | "cold";
+
+/**
+ * Loss reason — Dropdown (not free text)
+ * Critical for diagnosing: pricing? ads? objections?
+ */
+export type LossReason =
+  | "price"
+  | "wants_offline"
+  | "no_laptop"
+  | "age_mismatch"
+  | "no_response"
+  | "exams_deferred"
+  | "not_convinced_online"
+  | "chose_competitor"
+  | "other";
+
+/** Trial session status */
+export type TrialStatus =
+  | "scheduled"
+  | "reminded"
+  | "attended"
+  | "no_show"
+  | "rescheduled"
+  | "cancelled";
+
+/** Student enrollment status */
+export type StudentStatus =
+  | "trial"
+  | "active"
+  | "paused"
+  | "at_risk"
+  | "completed"
+  | "churned";
+
+/** Payment status */
+export type PaymentStatus =
+  | "paid"
+  | "pending"
+  | "overdue"
+  | "refunded"
+  | "partial";
+
+/** Teacher employment type */
+export type EmploymentType = "full_time" | "part_time" | "freelance";
+
+/** Communication channel */
+export type CommChannel = "whatsapp" | "email" | "call" | "sms";
+
+/** Lead source */
+export type LeadSource =
+  | "facebook_ad"
+  | "instagram_ad"
+  | "group"
+  | "referral"
+  | "direct"
+  | "website"
+  | "other";
+
+/** Objection type from sales system */
+export type ObjectionType =
+  | "price"
+  | "timing"
+  | "online"
+  | "uncertain"
+  | "hyperactive_child"
+  | "certificate"
+  | "other";
+
+/** Attendance status */
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+/** Payment method */
+export type PaymentMethod =
+  | "bank_transfer"
+  | "card"
+  | "wallet"
+  | "cash"
+  | "instapay";
+
+/** Feedback type */
+export type FeedbackType = "complaint" | "suggestion" | "praise" | "general";
+
+/** Priority levels */
+export type Priority = "low" | "medium" | "high" | "urgent";
+
+/** Follow-up type */
+export type FollowUpType =
+  | "first_contact"
+  | "qualification"
+  | "trial_reminder"
+  | "post_trial"
+  | "no_show"
+  | "closing"
+  | "payment_reminder"
+  | "re_engagement";
+
+/** Course type based on age placement logic */
+export type CourseType = "scratch" | "app_inventor" | "robotics_basic" | "ai_intro" | "python" | "godot" | "robotics_iot" | "fastapi" | "html_css" | "javascript_tailwind" | "front_end" | "ai_ml" | "data_science" | "back_end" | "raspberry_pi";
+
+/** Generic API response wrapper */
+export interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
+  success: boolean;
+}
+
+/** Pagination parameters */
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Filter and sort options for data tables */
+export interface DataTableParams {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  filters?: Record<string, string | string[]>;
+}
+
+==================== FILE :: src/types/database.types.ts ====================
+
+﻿/**
+ * Supabase database types - VERIFIED against real schema
+ * DO NOT add columns that do not exist in Supabase.
+ */
+
+import type {
+  CommChannel,
+  CourseType,
+  FollowUpType,
+  LeadSource,
+  LeadStage,
+  LeadTemperature,
+  LossReason,
+  PaymentMethod,
+  PaymentStatus,
+  Priority,
+  StudentStatus,
+  UserRole,
+} from "@/types/common.types";
+
+export type EmploymentType = "full_time" | "part_time" | "freelance";
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+export type ObjectionType =
+  | "price"
+  | "timing"
+  | "online"
+  | "uncertain"
+  | "hyperactive_child"
+  | "certificate"
+  | "other";
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          full_name: string;
+          full_name_ar: string | null;
+          email: string;
+          phone: string | null;
+          role: UserRole;
+          avatar_url: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
+          id: string;
+          full_name: string;
+          email: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        Relationships: [];
+      };
+
+      leads: {
+        Row: {
+          id: string;
+          parent_id: string | null;
+          parent_name: string;
+          parent_phone: string;
+          parent_whatsapp: string | null;
+          child_name: string;
+          child_age: number;
+          stage: LeadStage;
+          temperature: LeadTemperature;
+          source: LeadSource;
+          has_laptop: boolean | null;
+          has_prior_experience: boolean | null;
+          child_interests: string | null;
+          suggested_course: CourseType | null;
+          price_range_shared: boolean;
+          whatsapp_collected: boolean;
+          main_objection: ObjectionType | null;
+          loss_reason: LossReason | null;
+          loss_notes: string | null;
+          assigned_to: string;
+          first_contact_at: string | null;
+          last_contact_at: string | null;
+          next_follow_up_at: string | null;
+          won_at: string | null;
+          lost_at: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["leads"]["Row"]> & {
+          parent_name: string;
+          parent_phone: string;
+          child_name: string;
+          child_age: number;
+          stage: LeadStage;
+          temperature: LeadTemperature;
+          source: LeadSource;
+          assigned_to: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["leads"]["Row"]>;
+        Relationships: [];
+      };
+
+      follow_ups: {
+        Row: {
+          id: string;
+          lead_id: string | null;
+          student_id: string | null;
+          parent_id: string | null;
+          type: FollowUpType;
+          channel: CommChannel;
+          priority: Priority;
+          scheduled_at: string;
+          completed_at: string | null;
+          is_completed: boolean;
+          title: string;
+          title_ar: string | null;
+          description: string | null;
+          outcome: string | null;
+          assigned_to: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["follow_ups"]["Row"]> & {
+          type: FollowUpType;
+          channel: CommChannel;
+          priority: Priority;
+          scheduled_at: string;
+          title: string;
+          assigned_to: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["follow_ups"]["Row"]>;
+        Relationships: [];
+      };
+
+      lead_activities: {
+        Row: {
+          id: string;
+          lead_id: string;
+          action: string;
+          from_stage: LeadStage | null;
+          to_stage: LeadStage | null;
+          channel: CommChannel | null;
+          description: string | null;
+          metadata: Record<string, unknown> | null;
+          performed_by: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["lead_activities"]["Row"]> & {
+          lead_id: string;
+          action: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["lead_activities"]["Row"]>;
+        Relationships: [];
+      };
+
+      students: {
+        Row: {
+          id: string;
+          lead_id: string | null;
+          parent_id: string;
+          full_name: string;
+          full_name_ar: string | null;
+          age: number;
+          date_of_birth: string | null;
+          status: StudentStatus;
+          current_class_id: string | null;
+          current_course: CourseType | null;
+          enrollment_date: string;
+          total_paid: number;
+          sessions_attended: number;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["students"]["Row"]> & {
+          parent_id: string;
+          full_name: string;
+          age: number;
+          status: StudentStatus;
+          enrollment_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["students"]["Row"]>;
+        Relationships: [];
+      };
+
+      parents: {
+        Row: {
+          id: string;
+          full_name: string;
+          full_name_ar: string | null;
+          phone: string;
+          whatsapp: string | null;
+          email: string | null;
+          city: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["parents"]["Row"]> & {
+          full_name: string;
+          phone: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["parents"]["Row"]>;
+        Relationships: [];
+      };
+
+      payments: {
+        Row: {
+          id: string;
+          student_id: string;
+          parent_id: string;
+          class_id: string | null;
+          amount: number;
+          status: PaymentStatus;
+          method: PaymentMethod | null;
+          due_date: string;
+          paid_at: string | null;
+          period_start: string | null;
+          period_end: string | null;
+          receipt_url: string | null;
+          notes: string | null;
+          collected_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
+          student_id: string;
+          parent_id: string;
+          amount: number;
+          status: PaymentStatus;
+          due_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["payments"]["Row"]>;
+        Relationships: [];
+      };
+
+      courses: {
+        Row: {
+          id: string;
+          name: string;
+          name_ar: string;
+          type: CourseType;
+          description: string | null;
+          age_min: number;
+          age_max: number;
+          duration_weeks: number;
+          sessions_per_week: number;
+          session_duration_minutes: number;
+          price: number;
+          max_students: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["courses"]["Row"]> & {
+          name: string;
+          name_ar: string;
+          type: CourseType;
+          age_min: number;
+          age_max: number;
+          duration_weeks: number;
+          sessions_per_week: number;
+          session_duration_minutes: number;
+          price: number;
+          max_students: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["courses"]["Row"]>;
+        Relationships: [];
+      };
+
+      classes: {
+        Row: {
+          id: string;
+          name: string;
+          name_ar: string | null;
+          course_id: string;
+          teacher_id: string;
+          max_students: number;
+          current_students: number;
+          start_date: string;
+          end_date: string | null;
+          is_active: boolean;
+          meeting_link: string | null;
+          schedule_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["classes"]["Row"]> & {
+          name: string;
+          course_id: string;
+          teacher_id: string;
+          max_students: number;
+          start_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["classes"]["Row"]>;
+        Relationships: [];
+      };
+
+      sessions: {
+        Row: {
+          id: string;
+          class_id: string;
+          teacher_id: string;
+          session_date: string;
+          start_time: string;
+          end_time: string;
+          topic: string | null;
+          notes: string | null;
+          meeting_link: string | null;
+          is_cancelled: boolean;
+          cancel_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["sessions"]["Row"]> & {
+          class_id: string;
+          teacher_id: string;
+          session_date: string;
+          start_time: string;
+          end_time: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sessions"]["Row"]>;
+        Relationships: [];
+      };
+
+      teachers: {
+        Row: {
+          id: string;
+          profile_id: string | null;
+          full_name: string;
+          full_name_ar: string | null;
+          phone: string | null;
+          email: string | null;
+          specialization: string[] | null;
+          employment: EmploymentType;
+          hourly_rate: number | null;
+          max_classes_per_week: number;
+          is_active: boolean;
+          bio: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["teachers"]["Row"]> & {
+          full_name: string;
+          employment: EmploymentType;
+        };
+        Update: Partial<Database["public"]["Tables"]["teachers"]["Row"]>;
+        Relationships: [];
+      };
+
+      class_enrollments: {
+        Row: {
+          id: string;
+          student_id: string;
+          class_id: string;
+          enrolled_at: string;
+          dropped_at: string | null;
+          is_active: boolean;
+        };
+        Insert: Partial<Database["public"]["Tables"]["class_enrollments"]["Row"]> & {
+          student_id: string;
+          class_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["class_enrollments"]["Row"]>;
+        Relationships: [];
+      };
+
+      attendance: {
+        Row: {
+          id: string;
+          session_id: string;
+          student_id: string;
+          status: AttendanceStatus;
+          joined_at: string | null;
+          left_at: string | null;
+          notes: string | null;
+          recorded_by: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["attendance"]["Row"]> & {
+          session_id: string;
+          student_id: string;
+          status: AttendanceStatus;
+        };
+        Update: Partial<Database["public"]["Tables"]["attendance"]["Row"]>;
+        Relationships: [];
+      };
+
+      app_settings: {
+        Row: {
+          id: string;
+          key: string;
+          value: Record<string, unknown>;
+          description: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["app_settings"]["Row"]> & {
+          key: string;
+          value: Record<string, unknown>;
+        };
+        Update: Partial<Database["public"]["Tables"]["app_settings"]["Row"]>;
+        Relationships: [];
+      };
+      // === NEW TABLES ===
+      teacher_finance_config: {
+        Row: {
+          id: string
+          teacher_id: string
+          session_rate_60: number
+          session_rate_90: number
+          session_rate_120: number
+          adj_scratch: number
+          adj_python: number
+          adj_web: number
+          adj_ai: number
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          session_rate_60?: number
+          session_rate_90?: number
+          session_rate_120?: number
+          adj_scratch?: number
+          adj_python?: number
+          adj_web?: number
+          adj_ai?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          session_rate_60?: number
+          session_rate_90?: number
+          session_rate_120?: number
+          adj_scratch?: number
+          adj_python?: number
+          adj_web?: number
+          adj_ai?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_finance_config_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: true
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      audit_log: {
+        Row: {
+          id: string
+          table_name: string
+          record_id: string | null
+          action: string
+          old_data: Record<string, unknown> | null
+          new_data: Record<string, unknown> | null
+          performed_by: string | null
+          performed_at: string
+        }
+        Insert: {
+          id?: string
+          table_name: string
+          record_id?: string | null
+          action: string
+          old_data?: Record<string, unknown> | null
+          new_data?: Record<string, unknown> | null
+          performed_by?: string | null
+          performed_at?: string
+        }
+        Update: {
+          id?: string
+          table_name?: string
+          record_id?: string | null
+          action?: string
+          old_data?: Record<string, unknown> | null
+          new_data?: Record<string, unknown> | null
+          performed_by?: string | null
+          performed_at?: string
+        }
+        Relationships: []
+      }
+    };
+
+    
+Views: Record<string, never>;
+
+    Functions: {
+      get_my_role: {
+        Args: Record<string, never>;
+        Returns: UserRole | null;
+      };
+    };
+
+    Enums: {
+      attendance_status: AttendanceStatus;
+      comm_channel: CommChannel;
+      course_type: CourseType;
+      employment_type: EmploymentType;
+      follow_up_type: FollowUpType;
+      lead_source: LeadSource;
+      lead_stage: LeadStage;
+      lead_temperature: LeadTemperature;
+      loss_reason: LossReason;
+      objection_type: ObjectionType;
+      payment_method: PaymentMethod;
+      priority: Priority;
+      student_status: StudentStatus;
+      user_role: UserRole;
+    };
+  };
+}
+
+export type TableName = keyof Database["public"]["Tables"];
+export type TableRow<T extends TableName> = Database["public"]["Tables"][T]["Row"];
+export type TableInsert<T extends TableName> = Database["public"]["Tables"][T]["Insert"];
+export type TableUpdate<T extends TableName> = Database["public"]["Tables"][T]["Update"];
+
+
+==================== FILE :: src/lib/auth.ts ====================
+
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import type { UserRole } from "@/types/common.types";
+
+const VALID_ROLES: UserRole[] = ["admin", "sales", "ops", "owner"];
+
+async function getSupabaseServer() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Can't set cookies in Server Components — expected
+          }
+        },
+      },
+    }
+  );
+}
+
+export async function getCurrentUser() {
+  const supabase = await getSupabaseServer();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) return null;
+
+  // Query profile — depends on RLS SELECT policy
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Debug logging (visible in Vercel Function logs)
+  if (profileError) {
+    console.error("[auth] Profile query error:", profileError.message);
+  }
+  if (!profile) {
+    console.warn("[auth] No profile for:", user.id, user.email);
+  }
+  if (profile) {
+    console.info("[auth] Profile loaded:", user.email, "role:", profile.role);
+  }
+
+  // Extract role — fallback "owner" (least privileged) if profile missing
+  const dbRole = profile?.role as string | undefined;
+  const role: UserRole =
+    dbRole && VALID_ROLES.includes(dbRole as UserRole)
+      ? (dbRole as UserRole)
+      : "owner";
+
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    fullName:
+      profile?.full_name ??
+      user.email?.split("@")[0] ??
+      "User",
+    fullNameAr:
+      profile?.full_name_ar ??
+      "مستخدم",
+    role,
+    avatarUrl: profile?.avatar_url ?? null,
+    isActive: profile?.is_active !== false,
+  };
+}
+
+export async function requireAuth() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+export async function requireRole(roles: UserRole[]) {
+  const user = await requireAuth();
+  if (!roles.includes(user.role)) redirect("/");
+  return user;
+}
+
+==================== FILE :: src/lib/locale.ts ====================
+
+import type {
+  CommChannel,
+  CourseType,
+  EmploymentType,
+  FollowUpType,
+  LeadSource,
+  LeadStage,
+  LeadTemperature,
+  Locale,
+  LossReason,
+  PaymentMethod,
+  PaymentStatus,
+  Priority,
+  StudentStatus,
+} from "@/types/common.types";
+import {
+  COMM_CHANNEL_EN_LABELS,
+  COMM_CHANNEL_LABELS,
+  CONVERSION_EN_TERMS,
+  CONVERSION_TERMS,
+  COURSE_TYPE_EN_LABELS,
+  COURSE_TYPE_LABELS,
+  DAY_EN_LABELS,
+  DAY_LABELS,
+  EMPLOYMENT_TYPE_EN_LABELS,
+  EMPLOYMENT_TYPE_LABELS,
+  FILTER_EN_LABELS,
+  FILTER_LABELS,
+  FOLLOW_UP_TYPE_EN_LABELS,
+  FOLLOW_UP_TYPE_LABELS,
+  LEAD_SOURCE_EN_LABELS,
+  LEAD_SOURCE_LABELS,
+  LOSS_REASON_EN_LABELS,
+  LOSS_REASON_LABELS,
+  PAYMENT_METHOD_EN_LABELS,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_EN_LABELS,
+  PAYMENT_STATUS_LABELS,
+  PRIORITY_EN_LABELS,
+  PRIORITY_LABELS,
+  STAGE_EN_LABELS,
+  STAGE_LABELS,
+  STUDENT_STATUS_EN_LABELS,
+  STUDENT_STATUS_LABELS,
+  TEMPERATURE_EN_LABELS,
+  TEMPERATURE_LABELS,
+} from "@/config/labels";
+
+export function isArabic(locale: Locale): boolean {
+  return locale === "ar";
+}
+
+export function t(locale: Locale, ar: string, en: string): string {
+  return locale === "ar" ? ar : en;
+}
+
+export function getStageLabel(stage: LeadStage, locale: Locale): string {
+  return locale === "ar" ? STAGE_LABELS[stage] : STAGE_EN_LABELS[stage];
+}
+
+export function getTemperatureLabel(temperature: LeadTemperature, locale: Locale): string {
+  return locale === "ar" ? TEMPERATURE_LABELS[temperature] : TEMPERATURE_EN_LABELS[temperature];
+}
+
+export function getStudentStatusLabel(status: StudentStatus, locale: Locale): string {
+  return locale === "ar" ? STUDENT_STATUS_LABELS[status] : STUDENT_STATUS_EN_LABELS[status];
+}
+
+export function getPriorityLabel(priority: Priority, locale: Locale): string {
+  return locale === "ar" ? PRIORITY_LABELS[priority] : PRIORITY_EN_LABELS[priority];
+}
+
+export function getLossReasonLabel(reason: LossReason, locale: Locale): string {
+  return locale === "ar" ? LOSS_REASON_LABELS[reason] : LOSS_REASON_EN_LABELS[reason];
+}
+
+export function getFollowUpTypeLabel(type: FollowUpType, locale: Locale): string {
+  return locale === "ar" ? FOLLOW_UP_TYPE_LABELS[type] : FOLLOW_UP_TYPE_EN_LABELS[type];
+}
+
+export function getLeadSourceLabel(source: LeadSource, locale: Locale): string {
+  return locale === "ar" ? LEAD_SOURCE_LABELS[source] : LEAD_SOURCE_EN_LABELS[source];
+}
+
+export function getCommChannelLabel(channel: CommChannel, locale: Locale): string {
+  return locale === "ar" ? COMM_CHANNEL_LABELS[channel] : COMM_CHANNEL_EN_LABELS[channel];
+}
+
+export function getCourseLabel(course: CourseType, locale: Locale): string {
+  return locale === "ar" ? COURSE_TYPE_LABELS[course] : COURSE_TYPE_EN_LABELS[course];
+}
+
+export function getPaymentStatusLabel(status: PaymentStatus, locale: Locale): string {
+  return locale === "ar" ? PAYMENT_STATUS_LABELS[status] : PAYMENT_STATUS_EN_LABELS[status];
+}
+
+export function getPaymentMethodLabel(method: PaymentMethod | null | undefined, locale: Locale): string {
+  if (!method) return locale === "ar" ? "—" : "—";
+  return locale === "ar" ? PAYMENT_METHOD_LABELS[method] : PAYMENT_METHOD_EN_LABELS[method];
+}
+
+export function getEmploymentTypeLabel(type: EmploymentType, locale: Locale): string {
+  return locale === "ar" ? EMPLOYMENT_TYPE_LABELS[type] : EMPLOYMENT_TYPE_EN_LABELS[type];
+}
+
+export function getFilterLabel(key: keyof typeof FILTER_LABELS, locale: Locale): string {
+  return locale === "ar" ? FILTER_LABELS[key] : FILTER_EN_LABELS[key];
+}
+
+export function getDayLabel(dayIndex: number, locale: Locale): string {
+  const safeIndex = Math.max(0, Math.min(dayIndex, DAY_LABELS.length - 1));
+  return locale === "ar" ? DAY_LABELS[safeIndex] : DAY_EN_LABELS[safeIndex];
+}
+
+export function getConversionTerm(
+  key: keyof typeof CONVERSION_TERMS,
+  locale: Locale,
+): string {
+  return locale === "ar" ? CONVERSION_TERMS[key] : CONVERSION_EN_TERMS[key];
+}
+
+export function getStatusActionLabel(status: "pending" | "completed" | "overdue", locale: Locale): string {
+  if (locale === "ar") {
+    if (status === "completed") return "مكتملة";
+    if (status === "overdue") return "متأخرة";
+    return "قيد التنفيذ";
+  }
+
+  if (status === "completed") return "Completed";
+  if (status === "overdue") return "Overdue";
+  return "Pending";
+}
+
+
+==================== FILE :: src/lib/formatters.ts ====================
+
+import {
+  COURSE_TYPE_EN_LABELS,
+  COURSE_TYPE_LABELS,
+  LEAD_SOURCE_EN_LABELS,
+  LEAD_SOURCE_LABELS,
+} from "@/config/labels";
+import type { CourseType, LeadSource, Locale } from "@/types/common.types";
+
+function toDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDate(value: string | Date | null | undefined, locale: Locale = "ar"): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  return date.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function formatTime(value: string | Date | null | undefined, locale: Locale = "ar"): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  return date.toLocaleTimeString(locale === "ar" ? "ar-EG" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function formatDateTime(value: string | Date | null | undefined, locale: Locale = "ar"): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  return `${formatDate(date, locale)} — ${formatTime(date, locale)}`;
+}
+
+export function formatCurrencyEgp(value: number | null | undefined, locale: Locale = "ar"): string {
+  const safeValue = value ?? 0;
+  return locale === "ar"
+    ? `${safeValue.toLocaleString("ar-EG")} ج.م`
+    : `EGP ${safeValue.toLocaleString("en-US")}`;
+}
+
+export function formatCourseLabel(course: CourseType | null | undefined, locale: Locale = "ar"): string {
+  if (!course) return "—";
+  return locale === "ar" ? COURSE_TYPE_LABELS[course] : COURSE_TYPE_EN_LABELS[course];
+}
+
+export function formatLeadSource(source: LeadSource | null | undefined, locale: Locale = "ar"): string {
+  if (!source) return "—";
+  return locale === "ar" ? LEAD_SOURCE_LABELS[source] : LEAD_SOURCE_EN_LABELS[source];
+}
+
+
+==================== FILE :: src/stores/ui-store.ts ====================
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { type Locale } from "@/types/common.types";
+
+/**
+ * UI state management store
+ * Handles sidebar state, locale, and global UI preferences
+ * @author Abdelrahman
+ */
+
+interface UIState {
+  /** Sidebar expanded or collapsed */
+  sidebarOpen: boolean;
+  /** Mobile sidebar overlay visible */
+  mobileSidebarOpen: boolean;
+  /** Current locale */
+  locale: Locale;
+  /** Toggle sidebar */
+  toggleSidebar: () => void;
+  /** Set sidebar state */
+  setSidebarOpen: (open: boolean) => void;
+  /** Toggle mobile sidebar */
+  toggleMobileSidebar: () => void;
+  /** Set mobile sidebar state */
+  setMobileSidebarOpen: (open: boolean) => void;
+  /** Switch locale */
+  setLocale: (locale: Locale) => void;
+}
+
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      sidebarOpen: true,
+      mobileSidebarOpen: false,
+      locale: "ar",
+
+      toggleSideb

@@ -123,7 +123,7 @@ export type FollowUpType =
   | "re_engagement";
 
 /** Course type based on age placement logic */
-export type CourseType = "scratch" | "python" | "web" | "ai";
+export type CourseType = "scratch" | "app_inventor" | "robotics_basic" | "ai_intro" | "python" | "godot" | "robotics_iot" | "fastapi" | "html_css" | "javascript_tailwind" | "front_end" | "ai_ml" | "data_science" | "back_end" | "raspberry_pi" | "web" | "ai";
 
 /** Generic API response wrapper */
 export interface ApiResponse<T> {

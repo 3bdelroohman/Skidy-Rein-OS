@@ -1,0 +1,1307 @@
+nkedSessions.map((session) => session.course)),
+    manualRating: evaluation?.rating ?? null,
+    evaluationNotes: evaluation?.notes ?? null,
+    evaluationUpdatedAt: evaluation?.updatedAt ?? null,
+  };
+}
+
+=== src/services/follow-ups.service.ts ===
+import { createBrowserClient } from "@supabase/ssr";
+import type { CommChannel, FollowUpType, LeadStage, Priority } from "@/types/common.types";
+import type { Database } from "@/types/database.types";
+import type { CreateFollowUpInput, FollowUpItem, LeadActivityItem, LeadListItem } from "@/types/crm";
+import { MOCK_FOLLOW_UPS } from "@/lib/mock-data";
+import { isBrowser, readStorage, sortByDateAsc, sortByDateDesc, writeStorage } from "@/services/storage";
+
+const FOLLOW_UPS_KEY = "skidy.crm.follow-ups";
+const LEADS_KEY = "skidy.crm.leads";
+const ACTIVITIES_KEY = "skidy.crm.lead-activities";
+const VALID_TYPES: FollowUpType[] = [
+  "first_contact",
+  "qualification",
+  "trial_reminder",
+  "post_trial",
+  "no_show",
+  "closing",
+  "payment_reminder",
+  "re_engagement",
+];
+const VALID_CHANNELS: CommChannel[] = ["whatsapp", "email", "call", "sms"];
+const VALID_PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
+
+type FollowUpOpenStatus = Exclude<FollowUpItem["status"], "completed">;
+type FollowUpRow = Database["public"]["Tables"]["follow_ups"]["Row"];
+type LeadNameEntry = { childName: string; parentName: string };
+
+/* ------------------------------------------------------------------ */
+/*  Supabase helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !isBrowser()) return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+function isDemoModeEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
+}
+
+function shouldUseDemoFallback(): boolean {
+  return !getSupabaseClient() && isDemoModeEnabled();
+}
+
+function mockFollowUps(): FollowUpItem[] {
+  return MOCK_FOLLOW_UPS.map((item) => ({ ...item }));
+}
+
+/* ------------------------------------------------------------------ */
+/*  Value coercion helpers                                             */
+/* ------------------------------------------------------------------ */
+
+
+function asType(value: unknown): FollowUpType {
+  return VALID_TYPES.includes(value as FollowUpType) ? (value as FollowUpType) : "first_contact";
+}
+
+function asChannel(value: unknown): CommChannel {
+  return VALID_CHANNELS.includes(value as CommChannel) ? (value as CommChannel) : "whatsapp";
+}
+
+function asPriority(value: unknown): Priority {
+  return VALID_PRIORITIES.includes(value as Priority) ? (value as Priority) : "medium";
+}
+
+function resolveOpenStatus(scheduledAt: string): FollowUpOpenStatus {
+  const timestamp = new Date(scheduledAt).getTime();
+  return timestamp < Date.now() ? "overdue" : "pending";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Lead name resolution                                               */
+/*  follow_ups has NO lead_name / parent_name columns.                 */
+/*  We batch-fetch from leads to get child_name + parent_name.         */
+/* ------------------------------------------------------------------ */
+
+async function resolveLeadNames(
+  rows: FollowUpRow[],
+  supabase: ReturnType<typeof getSupabaseClient>,
+): Promise<Map<string, LeadNameEntry>> {
+  const map = new Map<string, LeadNameEntry>();
+  if (!supabase) return map;
+
+  const leadIds = [
+    ...new Set(rows.map((r) => r.lead_id).filter((id): id is string => Boolean(id))),
+  ];
+  if (leadIds.length === 0) return map;
+
+  try {
+    const { data } = await supabase
+      .from("leads")
+      .select("id, child_name, parent_name")
+      .in("id", leadIds);
+
+    if (data) {
+      for (const lead of data) {
+        map.set(lead.id, {
+          childName: lead.child_name ?? "",
+          parentName: lead.parent_name ?? "",
+        });
+      }
+    }
+  } catch {
+    // silent - mapRow will use fallbacks
+  }
+
+  return map;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Row mapping                                                        */
+/*  Derives status from is_completed (boolean) - NOT from a phantom    */
+/*  "status" column. Reads names from the resolved map.                */
+/* ------------------------------------------------------------------ */
+
+function mapRow(
+  row: FollowUpRow,
+  names?: Map<string, LeadNameEntry>,
+): FollowUpItem {
+  const scheduledAt = row.scheduled_at ?? new Date().toISOString();
+  const isCompleted = row.is_completed === true;
+  const leadEntry = row.lead_id ? names?.get(row.lead_id) : undefined;
+
+  return {
+    id: row.id ?? crypto.randomUUID(),
+    leadId: row.lead_id ?? null,
+    title: row.title || "\u0645\u062a\u0627\u0628\u0639\u0629",
+    leadName: leadEntry?.childName || "\u0639\u0645\u064a\u0644 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+    parentName: leadEntry?.parentName || "\u0648\u0644\u064a \u0623\u0645\u0631 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+    type: asType(row.type),
+    channel: asChannel(row.channel),
+    priority: asPriority(row.priority),
+    scheduledAt,
+    status: isCompleted ? "completed" : resolveOpenStatus(scheduledAt),
+    assignedTo: row.assigned_to ?? "\u063a\u064a\u0631 \u0645\u062e\u0635\u0635",
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Local storage helpers                                              */
+/* ------------------------------------------------------------------ */
+
+function getLocalFollowUps(): FollowUpItem[] {
+  const seed = shouldUseDemoFallback() ? mockFollowUps() : ([] as FollowUpItem[]);
+  return sortByDateAsc(readStorage(FOLLOW_UPS_KEY, seed), (item) => item.scheduledAt);
+}
+
+function saveLocalFollowUps(items: FollowUpItem[]): void {
+  writeStorage(FOLLOW_UPS_KEY, sortByDateAsc(items, (item) => item.scheduledAt));
+}
+
+function clearLocalFollowUps(): void {
+  writeStorage(FOLLOW_UPS_KEY, []);
+}
+
+function getLocalLeads(): LeadListItem[] {
+  return sortByDateDesc(readStorage(LEADS_KEY, [] as LeadListItem[]), (lead) => lead.createdAt);
+}
+
+function saveLocalLeads(leads: LeadListItem[]): void {
+  writeStorage(LEADS_KEY, sortByDateDesc(leads, (lead) => lead.createdAt));
+}
+
+function getLocalActivities(): LeadActivityItem[] {
+  return sortByDateDesc(readStorage(ACTIVITIES_KEY, [] as LeadActivityItem[]), (activity) => activity.date);
+}
+
+function saveLocalActivities(activities: LeadActivityItem[]): void {
+  writeStorage(ACTIVITIES_KEY, sortByDateDesc(activities, (activity) => activity.date));
+}
+
+/* ------------------------------------------------------------------ */
+/*  Activity helper                                                    */
+/*  lead_activities has NO "type" column - stored in metadata (jsonb)  */
+/*  created_at is auto-generated - do NOT send it                      */
+/* ------------------------------------------------------------------ */
+
+function createLeadActivity(
+  leadId: string | null | undefined,
+  action: string,
+  by: string,
+  type: LeadActivityItem["type"],
+): LeadActivityItem | null {
+  if (!leadId) return null;
+
+  const activity: LeadActivityItem = {
+    id: crypto.randomUUID(),
+    leadId,
+    action,
+    by,
+    type,
+    date: new Date().toISOString(),
+  };
+
+  saveLocalActivities([activity, ...getLocalActivities()]);
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    void supabase.from("lead_activities").insert({
+      lead_id: leadId,
+      action: activity.action,
+      metadata: { type: activity.type, actor_name: by },
+    });
+  }
+
+  return activity;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Lead sync helpers                                                  */
+/* ------------------------------------------------------------------ */
+
+function deriveNextFollowUpAt(leadId: string | null | undefined, items: FollowUpItem[]): string | null {
+  if (!leadId) return null;
+  const next = items
+    .filter((item) => item.leadId === leadId && item.status !== "completed")
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
+  return next?.scheduledAt ?? null;
+}
+
+async function syncLeadNextFollowUp(leadId: string | null | undefined, items: FollowUpItem[]): Promise<void> {
+  if (!leadId) return;
+
+  const leads = getLocalLeads();
+  const existing = leads.find((lead) => lead.id === leadId);
+  if (!existing) return;
+
+  const nextFollowUpAt = deriveNextFollowUpAt(leadId, items);
+  const updatedLead: LeadListItem = {
+    ...existing,
+    nextFollowUpAt,
+    lastContactAt: existing.lastContactAt ?? new Date().toISOString(),
+  };
+
+  saveLocalLeads(leads.map((lead) => (lead.id === leadId ? updatedLead : lead)));
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("leads")
+    .update({
+      next_follow_up_at: nextFollowUpAt,
+      last_contact_at: updatedLead.lastContactAt,
+    })
+    .eq("id", leadId);
+}
+
+/* ------------------------------------------------------------------ */
+/*  List all follow-ups                                                */
+/* ------------------------------------------------------------------ */
+
+export async function listFollowUps(): Promise<FollowUpItem[]> {
+  const demoFallback = shouldUseDemoFallback() ? getLocalFollowUps() : [];
+  const supabase = getSupabaseClient();
+  if (!supabase) return demoFallback;
+
+  try {
+    const { data, error } = await supabase
+      .from("follow_ups")
+      .select("*")
+      .order("scheduled_at", { ascending: true });
+
+    if (error) {
+      console.error("[follow-ups] failed to load from Supabase", error);
+      clearLocalFollowUps();
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      clearLocalFollowUps();
+      return [];
+    }
+
+    const names = await resolveLeadNames(data, supabase);
+    const mapped = data.map((row) => mapRow(row, names));
+    saveLocalFollowUps(mapped);
+    return mapped;
+  } catch (error) {
+    console.error("[follow-ups] unexpected load failure", error);
+    clearLocalFollowUps(
+
+...[TRUNCATED 41766 chars]...
+
+==================== MODIFIED FILE :: _dump3.txt ====================
+
+
+=== src/services/students.service.ts ===
+﻿import { createBrowserClient } from "@supabase/ssr";
+import type { StudentStatus } from "@/types/common.types";
+import type { Database } from "@/types/database.types";
+import type { CreateStudentInput, StudentListItem } from "@/types/crm";
+import { isBrowser, readStorage, sortByDateDesc, writeStorage } from "@/services/storage";
+
+const STUDENTS_KEY = "skidy.crm.students";
+const VALID_STATUSES: StudentStatus[] = ["trial", "active", "paused", "at_risk", "completed", "churned"];
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !isBrowser()) return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function asStatus(value: unknown): StudentStatus {
+  return VALID_STATUSES.includes(value as StudentStatus) ? (value as StudentStatus) : "trial";
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+
+function normalizeName(value: string | null | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+interface ParentLookup {
+  full_name: string;
+  phone: string;
+}
+
+function mapRow(
+  row: Database["public"]["Tables"]["students"]["Row"] | Record<string, unknown>,
+  parentLookup?: ParentLookup | null,
+): StudentListItem {
+  const record = row as Record<string, unknown>;
+  return {
+    id: asString(record.id, crypto.randomUUID()),
+    fullName: asString(record.full_name ?? record.fullName, "\u0637\u0627\u0644\u0628 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f"),
+    age: asNumber(record.age, 0),
+    parentId: asNullableString(record.parent_id ?? record.parentId),
+    parentName: asString(parentLookup?.full_name ?? record.parentName, "\u0648\u0644\u064a \u0623\u0645\u0631 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f"),
+    parentPhone: asString(parentLookup?.phone ?? record.parentPhone, "\u2013"),
+    status: asStatus(record.status),
+    currentCourse: (typeof (record.current_course ?? record.currentCourse) === "string"
+      ? (record.current_course ?? record.currentCourse)
+      : null) as StudentListItem["currentCourse"],
+    className: null,
+    enrollmentDate: asString(record.enrollment_date ?? record.enrollmentDate, new Date().toISOString()),
+    sessionsAttended: asNumber(record.sessions_attended ?? record.sessionsAttended, 0),
+    totalPaid: asNumber(record.total_paid ?? record.totalPaid, 0),
+  };
+}
+
+function getLocalStudents(): StudentListItem[] {
+  return sortByDateDesc(readStorage(STUDENTS_KEY, [] as StudentListItem[]), (student) => student.enrollmentDate);
+}
+
+function saveLocalStudents(students: StudentListItem[]): void {
+  writeStorage(STUDENTS_KEY, sortByDateDesc(students, (student) => student.enrollmentDate));
+}
+
+function clearLocalStudents(): void {
+  writeStorage(STUDENTS_KEY, []);
+}
+
+function findExistingStudent(items: StudentListItem[], input: CreateStudentInput): StudentListItem | null {
+  const studentName = normalizeName(input.fullName);
+  const parentId = input.parentId;
+
+  return (
+    items.find((student) => parentId && student.parentId === parentId && normalizeName(student.fullName) === studentName) ??
+    items.find((student) => normalizeName(student.fullName) === studentName && student.parentId === parentId) ??
+    null
+  );
+}
+
+export async function listStudents(): Promise<StudentListItem[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    clearLocalStudents();
+    return [];
+  }
+
+  try {
+    const [studentsRes, parentsRes] = await Promise.all([
+      supabase.from("students").select("*").order("enrollment_date", { ascending: false }),
+      supabase.from("parents").select("id, full_name, phone"),
+    ]);
+
+    if (studentsRes.error) {
+      console.error("[students] failed to load from Supabase", studentsRes.error);
+      clearLocalStudents();
+      return [];
+    }
+
+    if (!studentsRes.data || studentsRes.data.length === 0) {
+      clearLocalStudents();
+      return [];
+    }
+
+    const parentsMap = new Map<string, ParentLookup>();
+    (parentsRes.data ?? []).forEach((p) => parentsMap.set(p.id, { full_name: p.full_name, phone: p.phone }));
+
+    const mapped = studentsRes.data.map((row) => {
+      const parentInfo = row.parent_id ? parentsMap.get(row.parent_id) ?? null : null;
+      return mapRow(row, parentInfo);
+    });
+
+    saveLocalStudents(mapped);
+    return mapped;
+  } catch (error) {
+    console.error("[students] unexpected load failure", error);
+    clearLocalStudents();
+    return [];
+  }
+}
+
+export async function getStudentById(id: string): Promise<StudentListItem | null> {
+  const items = await listStudents();
+  return items.find((student) => student.id === id) ?? null;
+}
+
+export async function createStudent(input: CreateStudentInput): Promise<StudentListItem> {
+  const fullName = input.fullName.trim();
+
+  if (!fullName) {
+    throw new Error("\u0627\u0633\u0645 \u0627\u0644\u0637\u0627\u0644\u0628 \u0645\u0637\u0644\u0648\u0628.");
+  }
+
+  if (!input.parentId) {
+    throw new Error("\u064a\u062c\u0628 \u0631\u0628\u0637 \u0627\u0644\u0637\u0627\u0644\u0628 \u0628\u0648\u0644\u064a \u0623\u0645\u0631.");
+  }
+
+  if (!Number.isFinite(input.age) || input.age < 4 || input.age > 18) {
+    throw new Error("\u0639\u0645\u0631 \u0627\u0644\u0637\u0627\u0644\u0628 \u064a\u062c\u0628 \u0623\u0646 \u064a\u0643\u0648\u0646 \u0628\u064a\u0646 4 \u064818 \u0633\u0646\u0629.");
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.");
+  }
+
+  const existing = findExistingStudent(await listStudents(), input);
+  if (existing) {
+    return existing;
+  }
+
+  const payload: Database["public"]["Tables"]["students"]["Insert"] = {
+    full_name: fullName,
+    age: input.age,
+    parent_id: input.parentId,
+    status: input.status ?? "active",
+    current_course: input.currentCourse ?? null,
+    enrollment_date: input.enrollmentDate ?? new Date().toISOString().split("T")[0],
+    sessions_attended: input.sessionsAttended ?? 0,
+    total_paid: input.totalPaid ?? 0,
+  };
+
+  const { data, error } = await supabase
+    .from("students")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    console.error("[students] create failed", error);
+    throw new Error(error?.message || "\u062a\u0639\u0630\u0631 \u0625\u0646\u0634\u0627\u0621 \u0633\u062c\u0644 \u0627\u0644\u0637\u0627\u0644\u0628.");
+  }
+
+  const { data: parentData } = await supabase
+    .from("parents")
+    .select("full_name, phone")
+    .eq("id", input.parentId)
+    .maybeSingle();
+
+  const created = mapRow(data, parentData);
+  saveLocalStudents([created, ...getLocalStudents().filter((item) => item.id !== created.id)]);
+  return created;
+}
+
+
+/** Delete a student permanently */
+export async function deleteStudent(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client not available");
+
+  const { data: before } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!before) throw new Error("\u0627\u0644\u0637\u0627\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+
+  // Delete related enrollments
+  await supabase.from("class_enrollments").delete().eq("student_id", id);
+
+  // Delete related attendance
+  await supabase.from("attendance").delete().eq("student_id", id);
+
+  // Delete related payments
+  await supabase.from("payments").delete().eq("student_id", id);
+
+  // Delete related follow-ups
+  await supabase.from("follow_ups").delete().eq("student_id", id);
+
+  const { error } = await supabase.from("students").delete().eq("id", id);
+  if (error) throw new Error(error.message || "Failed to delete student");
+
+  saveLocalStudents(getLocalStudents().filter((s) => s.id !== id));
+  return true;
+}
+
+
+=== src/services/parents.service.ts ===
+﻿import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database.types";
+import type { CreateParentInput, ParentListItem } from "@/types/crm";
+import { isBrowser, readStorage, writeStorage } from "@/services/storage";
+
+const PARENTS_KEY = "skidy.crm.parents";
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !isBrowser()) return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+function sortParents(items: ParentListItem[]): ParentListItem[] {
+  return [...items].sort((a, b) => a.fullName.localeCompare(b.fullName, "ar"));
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+
+function normalizePhone(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "").replace(/^20/, "");
+}
+
+function normalizeName(value: string | null | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function mapRow(
+  row: Database["public"]["Tables"]["parents"]["Row"] | Record<string, unknown>,
+): ParentListItem {
+  const record = row as Record<string, unknown>;
+
+  return {
+    id: asString(record.id, crypto.randomUUID()),
+    fullName: asString(record.full_name ?? record.fullName, "ÙˆÙ„ÙŠ Ø£Ù…Ø± ØºÙŠØ± Ù…Ø­Ø¯Ø¯"),
+    phone: asString(record.phone, "â€”"),
+    whatsapp: asNullableString(record.whatsapp),
+    email: asNullableString(record.email),
+    city: asNullableString(record.city),
+    childrenCount: 0,
+    children: [],
+  };
+}
+
+function getLocalParents(): ParentListItem[] {
+  return sortParents(readStorage(PARENTS_KEY, [] as ParentListItem[]));
+}
+
+function saveLocalParents(items: ParentListItem[]): void {
+  writeStorage(PARENTS_KEY, sortParents(items));
+}
+
+function clearLocalParents(): void {
+  writeStorage(PARENTS_KEY, []);
+}
+
+function findExistingParent(items: ParentListItem[], input: CreateParentInput): ParentListItem | null {
+  const phone = normalizePhone(input.phone);
+  const whatsapp = normalizePhone(input.whatsapp);
+  const name = normalizeName(input.fullName);
+
+  return (
+    items.find((parent) => phone.length > 0 && normalizePhone(parent.phone) === phone) ??
+    items.find((parent) => whatsapp.length > 0 && normalizePhone(parent.whatsapp) === whatsapp) ??
+    items.find((parent) => name.length > 0 && normalizeName(parent.fullName) === name && phone.length > 0 && normalizePhone(parent.phone) === phone) ??
+    null
+  );
+}
+
+export async function listParents(): Promise<ParentListItem[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    clearLocalParents();
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("parents")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[parents] failed to load from Supabase", error);
+      clearLocalParents();
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      clearLocalParents();
+      return [];
+    }
+
+    const mapped = data.map((row: Database["public"]["Tables"]["parents"]["Row"]) => mapRow(row));
+    saveLocalParents(mapped);
+    return mapped;
+  } catch (error) {
+    console.error("[parents] unexpected load failure", error);
+    clearLocalParents();
+    return [];
+  }
+}
+
+export async function getParentById(id: string): Promise<ParentListItem | null> {
+  const items = await listParents();
+  return items.find((parent) => parent.id === id) ?? null;
+}
+
+export async function createParent(input: CreateParentInput): Promise<ParentListItem> {
+  const fullName = input.fullName.trim();
+  const phone = input.phone.trim();
+
+  if (!fullName || !phone) {
+    throw new Error("Ø§Ø³Ù… ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø± ÙˆØ±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†.");
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ØªØ£ÙƒØ¯ Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Supabase Ø«Ù… Ø£Ø¹Ø¯ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©.");
+  }
+
+  const existing = findExistingParent(await listParents(), input);
+  if (existing) {
+    return existing;
+  }
+
+  const payload: Database["public"]["Tables"]["parents"]["Insert"] = {
+    full_name: fullName,
+    phone,
+    whatsapp: input.whatsapp?.trim() || phone,
+    email: input.email?.trim() || null,
+    city: input.city?.trim() || null,
+        created_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("parents")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    console.error("[parents] create failed", error);
+    throw new Error(error?.message || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±.");
+  }
+
+  const created = mapRow(data);
+  saveLocalParents([created, ...getLocalParents().filter((item) => item.id !== created.id)]);
+  return created;
+}
+
+
+/** Delete a parent permanently */
+export async function deleteParent(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client not available");
+
+  const { data: before } = await supabase
+    .from("parents")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!before) throw new Error("Parent not found");
+
+  // Check for linked students
+  const { data: students } = await supabase
+    .from("students")
+    .select("id")
+    .eq("parent_id", id)
+    .limit(1);
+
+  if (students && students.length > 0) {
+    throw new Error("لا يمكن حذف ولي الأمر لأن لديه طلاب مرتبطين");
+  }
+
+  const { error } = await supabase.from("parents").delete().eq("id", id);
+  if (error) throw new Error(error.message || "Failed to delete parent");
+
+  const local = readStorage<{id:string}[]>(PARENTS_KEY, []);
+  writeStorage(PARENTS_KEY, local.filter((p) => p.id !== id));
+
+  return true;
+}
+
+
+=== src/types/crm.ts ===
+﻿import type {
+  CommChannel,
+  CourseType,
+  EmploymentType,
+  FollowUpType,
+  LeadSource,
+  LeadStage,
+  LeadTemperature,
+  LossReason,
+  PaymentMethod,
+  PaymentStatus,
+  Priority,
+  StudentStatus,
+  UserRole,
+} from "@/types/common.types";
+import type { DashboardTaskStatus, FollowUpStatus } from "@/config/status-meta";
+export type { CourseType, StudentStatus, EmploymentType, PaymentStatus, PaymentMethod, LeadSource, LeadStage, LeadTemperature, LossReason, Priority, FollowUpType, CommChannel, UserRole } from "@/types/common.types";
+
+
+export interface LeadListItem {
+  id: string;
+  parentName: string;
+  parentPhone: string;
+  childName: string;
+  childAge: number;
+  stage: LeadStage;
+  temperature: LeadTemperature;
+  source: LeadSource;
+  suggestedCourse: CourseType | null;
+  assignedTo: string;
+  assignedToName: string;
+  lastContactAt: string | null;
+  nextFollowUpAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  lossReason?: LossReason | null;
+}
+
+export interface LeadActivityItem {
+  id: string;
+  leadId: string;
+  action: string;
+  date: string;
+  by: string;
+  type: "create" | "contact" | "stage" | "note";
+}
+
+export interface FollowUpItem {
+  id: string;
+  title: string;
+  leadId?: string | null;
+  leadName: string;
+  parentName: string;
+  type: FollowUpType;
+  channel: CommChannel;
+  priority: Priority;
+  scheduledAt: string;
+  status: FollowUpStatus;
+  assignedTo: string;
+}
+
+export interface CreateFollowUpInput {
+  leadId?: string | null;
+  leadName: string;
+  parentName: string;
+  title: string;
+  type: FollowUpType;
+  channel: CommChannel;
+  priority: Priority;
+  scheduledAt: string;
+  assignedTo: string;
+}
+
+export interface StudentListItem {
+  id: string;
+  fullName: string;
+  age: number;
+  parentName: string;
+  parentPhone: string;
+  parentId?: string | null;
+  ownerId?: string | null;
+  ownerName?: string | null;
+  status: StudentStatus;
+  currentCourse: CourseType | null;
+  className: string | null;
+  enrollmentDate: string;
+  sessionsAttended: number;
+  totalPaid: number;
+}
+
+export interface ParentListItem {
+  id: string;
+  fullName: string;
+  phone: string;
+  whatsapp: string | null;
+  email: string | null;
+  city: string | null;
+  ownerId?: string | null;
+  ownerName?: string | null;
+  childrenCount: number;
+  children: string[];
+}
+
+export interface TeacherListItem {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  specialization: CourseType[];
+  employment: EmploymentType;
+  classesCount: number;
+  studentsCount: number;
+  isActive: boolean;
+}
+
+export interface PaymentItem {
+  id: string;
+  studentId: string | null;
+  studentName: string;
+  parentName: string;
+  parentId?: string | null;
+  amount: number;
+  status: PaymentStatus;
+  method: PaymentMethod | null;
+  dueDate: string;
+  paidAt: string | null;
+  notes?: string | null;
+  publicNote?: string | null;
+  sessionsCovered: number;
+  blockStartDate: string | null;
+  blockEndDate: string | null;
+  deferredUntil: string | null;
+  invoiceNumber: string | null;
+  invoiceIssuedAt: string | null;
+}
+
+export interface PaymentDetails extends PaymentItem {
+  student: StudentListItem | null;
+  parent: ParentListItem | null;
+  siblingPayments: PaymentItem[];
+  paymentHistory: PaymentItem[];
+}
+
+export interface CreatePaymentInput {
+  studentId: string;
+  amount: number;
+  status: PaymentStatus;
+  method: PaymentMethod | null;
+  dueDate: string;
+  sessionsCovered?: number;
+  blockStartDate?: string | null;
+  blockEndDate?: string | null;
+  deferredUntil?: string | null;
+  notes?: string | null;
+}
+
+export interface ScheduleSessionItem {
+  id: string;
+  classId?: string | null;
+  teacherId?: string | null;
+  day: number;
+  startTime: string;
+  endTime: string;
+  className: string;
+  teacher: string;
+  students: number;
+  course: CourseType;
+  sessionDate?: string | null;
+}
+
+export interface ScheduleSessionDetails extends ScheduleSessionItem {
+  teacherRecord: TeacherListItem | null;
+  linkedStudents: StudentListItem[];
+  linkedParentIds: string[];
+  linkedParents: ParentListItem[];
+  siblingSessions: ScheduleSessionItem[];
+}
+
+export interface StudentDetails extends StudentListItem {
+  parent: ParentListItem | null;
+  siblings: StudentListItem[];
+  relatedSessions: ScheduleSessionItem[];
+  teachers: TeacherListItem[];
+}
+
+export interface ParentDetails extends ParentListItem {
+  childrenRecords: StudentListItem[];
+  activeStudents: number;
+  totalPaid: number;
+  openLeads: LeadListItem[];
+}
+
+export interface TeacherDetails extends TeacherListItem {
+  manualRating?: number | null;
+  evaluationNotes?: string | null;
+  evaluationUpdatedAt?: string | null;
+  linkedSessions: ScheduleSessionItem[];
+  linkedStudents: StudentListItem[];
+  activeCourses: CourseType[];
+}
+
+export interface DashboardStatItem {
+  label: string;
+  value: string;
+  change?: string;
+  bg?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface DashboardAlertItem {
+  icon: string;
+  text: string;
+  type: "danger" | "warning" | "info" | "success";
+}
+
+export interface DashboardFunnelItem {
+  label: string;
+  value: number;
+  pct: string;
+  color: string;
+}
+
+export interface DashboardFollowUpItem {
+  id: string;
+  name: string;
+  reason: string;
+  assignee: string;
+  assigneeEn?: string;
+  dot: string;
+  time: string;
+  status: DashboardTaskStatus;
+}
+
+export interface DashboardOperationItem {
+  title: string;
+  value: string;
+  subtitle: string;
+  tone: "brand" | "success" | "warning" | "danger" | "info";
+}
+
+export interface DashboardActionItem {
+  title: string;
+  description: string;
+  href: string;
+  tone: "brand" | "success" | "warning" | "info";
+}
+
+export interface DashboardOverview {
+  managementStats: DashboardStatItem[];
+  secondaryStats: DashboardStatItem[];
+  alerts: DashboardAlertItem[];
+  funnel: DashboardFunnelItem[];
+  followUps: DashboardFollowUpItem[];
+  operations: DashboardOperationItem[];
+  quickActions: DashboardActionItem[];
+  recommendations: string[];
+}
+
+export interface ReportsCollectionSummary {
+  expected: number;
+  collected: number;
+  overdue: number;
+  rate: number;
+}
+
+export interface ReportsRecommendationItem {
+  title: string;
+  description: string;
+  href: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface ReportsVelocityItem {
+  stage: LeadStage;
+  days: number;
+}
+
+export interface ReportsSummaryItem {
+  title: string;
+  value: string;
+  subtitle: string;
+  tone: "brand" | "success" | "warning" | "danger" | "info";
+}
+
+export interface ReportsData {
+  kpis: Array<{
+    label: string;
+    value: string;
+    change: string;
+    up: boolean;
+    icon: "target" | "wallet" | "users" | "clock";
+  }>;
+  funnel: Array<{
+    stage: LeadStage;
+    count: number;
+    color: string;
+  }>;
+  lossReasons: Array<{
+    key: LossReason;
+    count: number;
+    pct: number;
+  }>;
+  salesPerformance: Array<{
+    name: string;
+    leads: number;
+    won: number;
+    rate: string;
+    revenue: number;
+  }>;
+  collection: ReportsCollectionSummary;
+  stageVelocity: ReportsVelocityItem[];
+  operationalSummary: ReportsSummaryItem[];
+  recommendations: ReportsRecommendationItem[];
+}
+
+export type ActionCenterItemCategory =
+  | "follow_up"
+  | "lead"
+  | "payment"
+  | "student"
+  | "schedule";
+
+export type ActionCenterItemPriority = "critical" | "high" | "medium" | "info";
+
+export interface ActionCenterItem {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  category: ActionCenterItemCategory;
+  priority: ActionCenterItemPriority;
+  owner?: string;
+  meta?: string;
+}
+
+export interface ActionCenterMetric {
+  label: string;
+  value: string;
+  tone: "danger" | "warning" | "success" | "info" | "brand";
+}
+
+export interface AppNotificationItem {
+  id: string;
+  title: string;
+  timeLabel: string;
+  readDefault?: boolean;
+  href: string;
+  type: "warning" | "info" | "success";
+}
+
+export interface ActionCenterData {
+  metrics: ActionCenterMetric[];
+  critical: ActionCenterItem[];
+  mediumPriority: ActionCenterItem[];
+  informational: ActionCenterItem[];
+  notifications: AppNotificationItem[];
+}
+
+export interface CreateLeadInput {
+  childName: string;
+  childAge: number;
+  parentName: string;
+  parentPhone: string;
+  parentWhatsapp?: string;
+  source: LeadSource;
+  temperature: LeadTemperature;
+  suggestedCourse: CourseType | null;
+  assignedTo: string;
+  assignedToName: string;
+  hasLaptop?: boolean;
+  hasPriorExperience?: boolean;
+  childInterests?: string;
+  notes?: string;
+}
+
+export interface CreateParentInput {
+  fullName: string;
+  phone: string;
+  whatsapp?: string;
+  email?: string;
+  city?: string;
+  childrenCount?: number;
+  firstStudentName?: string;
+  firstStudentAge?: number | null;
+  firstStudentCourse?: CourseType | null;
+  firstStudentClassName?: string | null;
+}
+
+export interface CreateStudentInput {
+  fullName: string;
+  age: number;
+  parentId?: string | null;
+  parentName: string;
+  parentPhone: string;
+  status?: StudentStatus;
+  currentCourse?: CourseType | null;
+  className?: string | null;
+  enrollmentDate?: string | null;
+  sessionsAttended?: number;
+  totalPaid?: number;
+}
+
+export interface UpdateLeadInput extends CreateLeadInput {
+  stage?: LeadStage;
+  lossReason?: LossReason | null;
+  nextFollowUpAt?: string | null;
+}
+
+export interface DashboardContext {
+  role: UserRole;
+  fullName: string;
+  fullNameAr: string;
+}
+
+export interface CreateScheduleEntryInput {
+  className: string;
+  teacherId: string;
+  course: CourseType;
+  day: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface CreateTeacherInput {
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  employment: EmploymentType;
+  specialization: CourseType[];
+  isActive?: boolean;
+}
+
+
+
+
+
+==================== MODIFIED FILE :: _fix10.js ====================
+
+﻿const fs = require('fs');
+const ALL_COURSES = '["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"]';
+const OLD = '["scratch", "python", "web", "ai"]';
+
+const files = [
+  'src/app/(dashboard)/teachers/[id]/page.tsx',
+  'src/components/schedule/schedule-entry-form.tsx',
+  'src/components/teachers/teacher-form.tsx',
+  'src/services/schedule.service.ts',
+  'src/services/teachers.service.ts',
+];
+
+let count = 0;
+for (const f of files) {
+  try {
+    let c = fs.readFileSync(f, 'utf8');
+    if (c.includes(OLD)) {
+      c = c.split(OLD).join(ALL_COURSES);
+      fs.writeFileSync(f, c, 'utf8');
+      count++;
+      console.log('Fixed: ' + f);
+    } else {
+      console.log('Skip (already done): ' + f);
+    }
+  } catch (e) {
+    console.log('Error: ' + f + ' - ' + e.message);
+  }
+}
+
+// Fix DEFAULT_SCHEDULE demo data (web -> html_css, ai -> ai_ml)
+const sf = 'src/services/schedule.service.ts';
+let sc = fs.readFileSync(sf, 'utf8');
+sc = sc.replace(/course: "ai"/g, 'course: "ai_ml"');
+sc = sc.replace(/course: "web"/g, 'course: "html_css"');
+fs.writeFileSync(sf, sc, 'utf8');
+console.log('Fixed demo data courses in schedule.service.ts');
+
+// Fix teacher finance TRACKS
+const tf = 'src/app/(dashboard)/teachers/[id]/page.tsx';
+let tc = fs.readFileSync(tf, 'utf8');
+tc = tc.replace(
+  /const TRACKS: CourseTypeconst{readdirSync:r,statSync:s,readFileSync:rf}=require('fs'),{join:j}=require('path');let hits=[];function walk(d){try{r(d).forEach(e=>{const p=j(d,e);if(s(p).isDirectory()&&!p.includes('node_modules')&&!p.includes('.next'))walk(p);else if(p.endsWith('.ts')||p.endsWith('.tsx')){const c=rf(p,'utf8');const lines=c.split('\n');lines.forEach((l,i)=>{if(l.match(/['\x22]web['\x22]/)&&(l.includes('course')||l.includes('Course')))hits.push(p+':'+(i+1)+': '+l.trim());if(l.match(/['\x22]ai['\x22]/)&&(l.includes('course')||l.includes('Course'))&&!l.includes('ai_'))hits.push(p+':'+(i+1)+': '+l.trim())})}})}catch(e){}}walk('src');require('child_process').spawn('clip').stdin.end(hits.join('\n'))const{readdirSync:r,statSync:s,readFileSync:rf}=require('fs'),{join:j}=require('path');let hits=[];function walk(d){try{r(d).forEach(e=>{const p=j(d,e);if(s(p).isDirectory()&&!p.includes('node_modules')&&!p.includes('.next'))walk(p);else if(p.endsWith('.ts')||p.endsWith('.tsx')){const c=rf(p,'utf8');const lines=c.split('\n');lines.forEach((l,i)=>{if(l.match(/['\x22]web['\x22]/)&&(l.includes('course')||l.includes('Course')))hits.push(p+':'+(i+1)+': '+l.trim());if(l.match(/['\x22]ai['\x22]/)&&(l.includes('course')||l.includes('Course'))&&!l.includes('ai_'))hits.push(p+':'+(i+1)+': '+l.trim())})}})}catch(e){}}walk('src');require('child_process').spawn('clip').stdin.end(hits.join('\n')) = const{readdirSync:r,statSync:s,readFileSync:rf}=require('fs'),{join:j}=require('path');let hits=[];function walk(d){try{r(d).forEach(e=>{const p=j(d,e);if(s(p).isDirectory()&&!p.includes('node_modules')&&!p.includes('.next'))walk(p);else if(p.endsWith('.ts')||p.endsWith('.tsx')){const c=rf(p,'utf8');const lines=c.split('\n');lines.forEach((l,i)=>{if(l.match(/['\x22]web['\x22]/)&&(l.includes('course')||l.includes('Course')))hits.push(p+':'+(i+1)+': '+l.trim());if(l.match(/['\x22]ai['\x22]/)&&(l.includes('course')||l.includes('Course'))&&!l.includes('ai_'))hits.push(p+':'+(i+1)+': '+l.trim())})}})}catch(e){}}walk('src');require('child_process').spawn('clip').stdin.end(hits.join('\n'))[^const{readdirSync:r,statSync:s,readFileSync:rf}=require('fs'),{join:j}=require('path');let hits=[];function walk(d){try{r(d).forEach(e=>{const p=j(d,e);if(s(p).isDirectory()&&!p.includes('node_modules')&&!p.includes('.next'))walk(p);else if(p.endsWith('.ts')||p.endsWith('.tsx')){const c=rf(p,'utf8');const lines=c.split('\n');lines.forEach((l,i)=>{if(l.match(/['\x22]web['\x22]/)&&(l.includes('course')||l.includes('Course')))hits.push(p+':'+(i+1)+': '+l.trim());if(l.match(/['\x22]ai['\x22]/)&&(l.includes('course')||l.includes('Course'))&&!l.includes('ai_'))hits.push(p+':'+(i+1)+': '+l.trim())})}})}catch(e){}}walk('src');require('child_process').spawn('clip').stdin.end(hits.join('\n'))]*\];/,
+  'const TRACKS: CourseType[] = ' + ALL_COURSES + ';'
+);
+fs.writeFileSync(tf, tc, 'utf8');
+console.log('Fixed TRACKS in teacher [id] page');
+
+// Fix teacher-finance.service.ts DEFAULT_TRACK
+const ff = 'src/services/teacher-finance.service.ts';
+try {
+  let fc = fs.readFileSync(ff, 'utf8');
+  fc = fc.replace(
+    /const DEFAULT_TRACK: Record<CourseType, number> = \{[^}]*\};/,
+    'const DEFAULT_TRACK: Record<CourseType, number> = {\n  scratch: 0,\n  app_inventor: 0,\n  robotics_basic: 0,\n  ai_intro: 20,\n  python: 20,\n  godot: 20,\n  robotics_iot: 20,\n  fastapi: 30,\n  html_css: 30,\n  javascript_tailwind: 30,\n  front_end: 30,\n  ai_ml: 40,\n  data_science: 40,\n  back_end: 40,\n  raspberry_pi: 40,\n};'
+  );
+  // Fix defaultConfig trackAdjustments
+  fc = fc.replace(
+    /trackAdjustments: \{ \.\.\.DEFAULT_TRACK \}/g,
+    'trackAdjustments: { ...DEFAULT_TRACK }'
+  );
+  // Fix all hardcoded track references in the service
+  fc = fc.replace(/scratch: safe\(cached\.trackAdjustments\?\.scratch[^}]*\}/,
+    '...Object.fromEntries(Object.keys(DEFAULT_TRACK).map(k => [k, safe((cached.trackAdjustments as any)?.[k], DEFAULT_TRACK[k as CourseType])])) as Record<CourseType, number>'
+  );
+  fs.writeFileSync(ff, fc, 'utf8');
+  console.log('Fixed: teacher-finance.service.ts');
+} catch(e) {
+  console.log('teacher-finance error: ' + e.message);
+}
+
+console.log('\nTotal files fixed: ' + count);
+console.log('Run: npm run build');
+
+
+==================== MODIFIED FILE :: _fix11.js ====================
+
+﻿const fs = require('fs');
+const ALL = '["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"]';
+const f = 'src/app/(dashboard)/teachers/[id]/page.tsx';
+let c = fs.readFileSync(f, 'utf8');
+const lines = c.split('\n');
+for (let i = 0; i < lines.length; i++) {
+  if (lines[i].includes('const TRACKS') && lines[i].includes('CourseType')) {
+    lines[i] = 'const TRACKS: CourseType[] = ' + ALL + ';';
+    console.log('Fixed line ' + (i+1));
+  }
+}
+fs.writeFileSync(f, lines.join('\n'), 'utf8');
+console.log('Done');
+
+
+==================== MODIFIED FILE :: _fix12.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/app/(dashboard)/teachers/[id]/page.tsx';
+let c = fs.readFileSync(f, 'utf8');
+
+// Fix trackAdjustments state init
+c = c.replace(
+  /useState<Record<CourseType, string>>\(\{ scratch: "0", python: "20", web: "30", ai: "40" \}\)/,
+  'useState<Record<CourseType, string>>({ scratch: "0", app_inventor: "0", robotics_basic: "0", ai_intro: "20", python: "20", godot: "20", robotics_iot: "20", fastapi: "30", html_css: "30", javascript_tailwind: "30", front_end: "30", ai_ml: "40", data_science: "40", back_end: "40", raspberry_pi: "40" })'
+);
+
+// Fix all setTrackAdjustments with old keys
+c = c.replace(
+  /scratch: String\(finance\.trackAdjustments\.scratch \?\? 0\),\s*python: String\(finance\.trackAdjustments\.python \?\? 20\),\s*web: String\(finance\.trackAdjustments\.web \?\? 30\),\s*ai: String\(finance\.trackAdjustments\.ai \?\? 40\),/g,
+  'scratch: String(finance.trackAdjustments.scratch ?? 0), app_inventor: String(finance.trackAdjustments.app_inventor ?? 0), robotics_basic: String(finance.trackAdjustments.robotics_basic ?? 0), ai_intro: String(finance.trackAdjustments.ai_intro ?? 20), python: String(finance.trackAdjustments.python ?? 20), godot: String(finance.trackAdjustments.godot ?? 20), robotics_iot: String(finance.trackAdjustments.robotics_iot ?? 20), fastapi: String(finance.trackAdjustments.fastapi ?? 30), html_css: String(finance.trackAdjustments.html_css ?? 30), javascript_tailwind: String(finance.trackAdjustments.javascript_tailwind ?? 30), front_end: String(finance.trackAdjustments.front_end ?? 30), ai_ml: String(finance.trackAdjustments.ai_ml ?? 40), data_science: String(finance.trackAdjustments.data_science ?? 40), back_end: String(finance.trackAdjustments.back_end ?? 40), raspberry_pi: String(finance.trackAdjustments.raspberry_pi ?? 40),'
+);
+
+// Fix handleSaveFinance trackAdjustments
+c = c.replace(
+  /scratch: Number\(trackAdjustments\.scratch\) \|\| 0,\s*python: Number\(trackAdjustments\.python\) \|\| 20,\s*web: Number\(trackAdjustments\.web\) \|\| 30,\s*ai: Number\(trackAdjustments\.ai\) \|\| 40,/g,
+  '...Object.fromEntries(Object.entries(trackAdjustments).map(([k, v]) => [k, Number(v) || 0])) as Record<CourseType, number>,'
+);
+
+// Fix computeTeacherFinanceSummary call trackAdjustments
+c = c.replace(
+  /trackAdjustments: \{\s*scratch: Number\(trackAdjustments\.scratch\) \|\| 0,\s*python: Number\(trackAdjustments\.python\) \|\| 20,\s*web: Number\(trackAdjustments\.web\) \|\| 30,\s*ai: Number\(trackAdjustments\.ai\) \|\| 40,\s*\}/g,
+  'trackAdjustments: Object.fromEntries(Object.entries(trackAdjustments).map(([k, v]) => [k, Number(v) || 0])) as Record<CourseType, number>'
+);
+
+fs.writeFileSync(f, c, 'utf8');
+
+// Verify no old keys remain
+const remaining = c.match(/\bweb\b.*track|track.*\bweb\b/gi) || [];
+const aiRemaining = c.match(/[^_]ai[^_].*track|track.*[^_]ai[^_]/gi) || [];
+console.log('Remaining web refs:', remaining.length);
+console.log('Remaining ai refs:', aiRemaining.length);
+console.log('Done');
+
+
+==================== MODIFIED FILE :: _fix13.js ====================
+
+﻿const fs = require('fs');
+const ALL = '["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", 

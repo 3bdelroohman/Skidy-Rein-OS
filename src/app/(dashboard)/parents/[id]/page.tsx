@@ -107,7 +107,7 @@ export default function ParentDetailsPage({ params }: { params: Promise<{ id: st
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{parent.fullName}</h1>
-            <p className="text-sm text-muted-foreground">{parent.phone}</p>
+            <p className="text-sm text-muted-foreground" dir="ltr">{parent.phone}</p>
           </div>
         <button onClick={handleDeleteParent} disabled={deleting} className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
           <Trash2 size={16} />

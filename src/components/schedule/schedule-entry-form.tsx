@@ -24,12 +24,25 @@ interface ScheduleEntryFormProps {
   };
 }
 
-const COURSE_OPTIONS: CourseType[] = ["scratch", "python", "web", "ai"];
+const COURSE_OPTIONS: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];
 
 function getCourseLabel(course: CourseType, locale: "ar" | "en") {
   const labels: Record<CourseType, { ar: string; en: string }> = {
+    app_inventor: { ar: "App Inventor", en: "App Inventor" },
+    robotics_basic: { ar: "روبوتكس", en: "Robotics Basic" },
+    ai_intro: { ar: "مقدمة AI", en: "AI Intro" },
+    godot: { ar: "Godot", en: "Godot" },
+    robotics_iot: { ar: "Robotics / IoT", en: "Robotics / IoT" },
+    fastapi: { ar: "FastAPI", en: "FastAPI" },
+    javascript_tailwind: { ar: "JavaScript / Tailwind", en: "JavaScript / Tailwind" },
+    front_end: { ar: "Front End", en: "Front End" },
+    data_science: { ar: "Data Science", en: "Data Science" },
+    back_end: { ar: "Back End", en: "Back End" },
+    raspberry_pi: { ar: "Raspberry Pi", en: "Raspberry Pi" },
     scratch: { ar: "Scratch", en: "Scratch" },
     python: { ar: "Python", en: "Python" },
+    html_css: { ar: "HTML / CSS", en: "HTML / CSS" },
+    ai_ml: { ar: "AI & Machine Learning", en: "AI & Machine Learning" },
     web: { ar: "Web", en: "Web" },
     ai: { ar: "AI", en: "AI" },
   };

@@ -10,12 +10,25 @@ import { getCourseLabel, getDayLabel, t } from "@/lib/locale";
 import type { CourseType } from "@/types/common.types";
 import type { ScheduleSessionItem } from "@/types/crm";
 
-const COURSE_COLORS = {
+const COURSE_COLORS: Record<CourseType, { bg: string; border: string; text: string }> = {
   scratch: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },
   python: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  html_css: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  ai_ml: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  ai_intro: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  app_inventor: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },
+  robotics_basic: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },
+  godot: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  robotics_iot: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },
+  fastapi: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  javascript_tailwind: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  front_end: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  data_science: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  back_end: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  raspberry_pi: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },
   web: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
   ai: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
-} as const;
+};
 
 export default function SchedulePage() {
   const locale = useUIStore((state) => state.locale);
@@ -91,11 +104,11 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
         <MiniMetric label={t(locale, "عدد الجلسات", "Sessions")} value={overview.sessionsCount} />
         <MiniMetric label={t(locale, "إجمالي المقاعد", "Total seats")} value={overview.totalStudents} />
         <MiniMetric label={t(locale, "عدد المدرسين", "Teachers")} value={overview.uniqueTeachers} />
-        <MiniMetric label={t(locale, "أكثر يوم ازدحامًا", "Busiest day")} value={`${getDayLabel(overview.busiestDay, locale)} • ${overview.busiestDayCount}`} />
+        <MiniMetric label={t(locale, "أكثر يوم ازدحامًا", "Busiest day")} value={getDayLabel(overview.busiestDay, locale) + " (" + overview.busiestDayCount + ")"} />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -120,8 +133,8 @@ export default function SchedulePage() {
           <option value="all">{t(locale, "كل المسارات", "All tracks")}</option>
           <option value="scratch">{getCourseLabel("scratch", locale)}</option>
           <option value="python">{getCourseLabel("python", locale)}</option>
-          <option value="web">{getCourseLabel("web", locale)}</option>
-          <option value="ai">{getCourseLabel("ai", locale)}</option>
+          <option value="html_css">{getCourseLabel("html_css", locale)}</option>
+          <option value="ai_ml">{getCourseLabel("ai_ml", locale)}</option>
         </select>
       </div>
 
@@ -152,7 +165,7 @@ export default function SchedulePage() {
                           </div>
                           <div className="mt-2 space-y-1 text-[10px] text-muted-foreground">
                             <div className="flex items-center gap-1.5"><Clock size={12} />{session.startTime} — {session.endTime}</div>
-                            <div className="flex items-center gap-1.5"><Users size={12} />{session.teacher} • {session.students} {t(locale, "طلاب", "students")}</div>
+                            <div className="flex items-center gap-1.5"><Users size={12} />{session.teacher} - {session.students} {t(locale, "طلاب", "students")}</div>
                           </div>
                         </Link>
                       );

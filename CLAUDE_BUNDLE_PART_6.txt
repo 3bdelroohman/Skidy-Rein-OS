@@ -1,0 +1,1128 @@
+red: existing.sessionsCovered,
+    blockStartDate: existing.blockStartDate,
+    blockEndDate: existing.blockEndDate,
+    deferredUntil: existing.deferredUntil,
+    invoiceNumber: existing.invoiceNumber,
+    invoiceIssuedAt: existing.invoiceIssuedAt,
+    archivedAt: null,
+    archivedBy: null,
+  });
+
+  const nextItem: PaymentItem = {
+    ...existing,
+    notes: nextNotes,
+  };
+
+  const supabase = assertSupabaseConfigured();
+  const { error } = await supabase.from("payments").update({ notes: nextNotes } satisfies PaymentUpdate).eq("id", id);
+
+  if (error) {
+    console.error("[payments] restore failed", error);
+    throw new Error(error.message || "Failed to restore payment");
+  }
+
+  return nextItem;
+}
+
+export async function deletePayment(id: string): Promise<boolean> {
+  const supabase = assertSupabaseConfigured();
+  const { error } = await supabase.from("payments").delete().eq("id", id);
+
+  if (error) {
+    console.error("[payments] delete failed", error);
+    throw new Error(error.message || "Failed to delete payment");
+  }
+
+  return true;
+}
+
+export function getPaymentArchiveState(payment: Pick<PaymentItem, "notes">): PaymentArchiveState {
+  return getArchiveStateFromNotes(payment.notes);
+}
+
+export function buildInvoiceShareMessage(payment: PaymentItem, locale: "ar" | "en" = "ar"): string {
+  const effectiveDueDate = getPaymentEffectiveDueDate(payment).slice(0, 10);
+
+  if (locale === "ar") {
+    return [
+      `ÙØ§ØªÙˆØ±Ø© ${payment.invoiceNumber ?? payment.id}`,
+      `Ø§Ù„Ø·Ø§Ù„Ø¨: ${payment.studentName}`,
+      `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${payment.parentName}`,
+      `Ø¹Ø¯Ø¯ Ø§Ù„Ø¬Ù„Ø³Ø§Øª: ${payment.sessionsCovered}`,
+      `Ø§Ù„Ù…Ø¨Ù„Øº: ${payment.amount} Ø¬.Ù…`,
+      `Ø§Ù„Ø§Ø³ØªØ­Ù‚Ø§Ù‚ Ø§Ù„ÙØ¹Ù„ÙŠ: ${effectiveDueDate}`,
+      payment.deferredUntil ? `Ù…Ø¤Ø¬Ù„ Ø­ØªÙ‰: ${payment.deferredUntil.slice(0, 10)}` : null,
+      `Ø´Ø±ÙƒØ© Skidy Rein`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return [
+    `Invoice ${payment.invoiceNumber ?? payment.id}`,
+    `Student: ${payment.studentName}`,
+    `Parent: ${payment.parentName}`,
+    `Sessions: ${payment.sessionsCovered}`,
+    `Amount: EGP ${payment.amount}`,
+    `Effective due date: ${effectiveDueDate}`,
+    payment.deferredUntil ? `Deferred until: ${payment.deferredUntil.slice(0, 10)}` : null,
+    `Skidy Rein`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export async function getPaymentsSummary() {
+  const payments = await listPayments();
+  const totalExpected = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalCollected = payments
+    .filter((payment) => payment.status === "paid" || payment.status === "partial")
+    .reduce((sum, payment) => sum + payment.amount, 0);
+  const totalOverdue = payments
+    .filter((payment) => payment.status === "overdue")
+    .reduce((sum, payment) => sum + payment.amount, 0);
+  const today = getTodayDateKey();
+  const dueToday = payments.filter((payment) => normalizeDateKey(getEffectiveDueDate(payment)) === today).length;
+  const deferredCount = payments.filter((payment) => isDeferredPayment(payment) && !isPastDate(getEffectiveDueDate(payment))).length;
+  const upcoming = sortByDateAsc(
+    payments.filter((payment) => {
+      if (payment.status !== "pending" && payment.status !== "overdue") return false;
+      const effectiveDue = normalizeDateKey(getEffectiveDueDate(payment));
+      return Boolean(effectiveDue && effectiveDue >= today);
+    }),
+    (payment) => getEffectiveDueDate(payment),
+  ).slice(0, 5);
+
+  return {
+    totalExpected,
+    totalCollected,
+    totalOverdue,
+    dueToday,
+    deferredCount,
+    collectionRate: totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0,
+    upcoming,
+  };
+}
+
+export function getPaymentDisplayState(payment: PaymentItem): "paid" | "pending" | "overdue" | "partial" | "refunded" | "deferred" {
+  if (isDeferredPayment(payment) && !isPastDate(getEffectiveDueDate(payment))) return "deferred";
+  return payment.status;
+}
+
+export function getPaymentEffectiveDueDate(payment: Pick<PaymentItem, "dueDate" | "deferredUntil">): string {
+  return getEffectiveDueDate({ dueDate: payment.dueDate, deferredUntil: payment.deferredUntil });
+}
+
+export function getBillingCycleText(
+  payment: Pick<PaymentItem, "sessionsCovered" | "blockStartDate" | "blockEndDate" | "deferredUntil">,
+  locale: "ar" | "en" = "ar",
+): string {
+  const sessions = normalizeSessionBlock(payment.sessionsCovered ?? DEFAULT_SESSION_BLOCK);
+
+  if (locale === "ar") {
+    const dateRange = payment.blockStartDate || payment.blockEndDate
+      ? ` â€” ${payment.blockStartDate?.slice(0, 10) ?? "..."} â†’ ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
+      : "";
+    const deferred = payment.deferredUntil ? ` â€” Ù…Ø¤Ø¬Ù„Ø© Ø­ØªÙ‰ ${payment.deferredUntil.slice(0, 10)}` : "";
+    return `Ø¨Ø§Ù‚Ø© ${sessions} Ø¬Ù„Ø³Ø§Øª${dateRange}${deferred}`;
+  }
+
+  const dateRange = payment.blockStartDate || payment.blockEndDate
+    ? ` â€” ${payment.blockStartDate?.slice(0, 10) ?? "..."} â†’ ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
+    : "";
+  const deferred = payment.deferredUntil ? ` â€” deferred until ${payment.deferredUntil.slice(0, 10)}` : "";
+  return `${sessions}-session billing block${dateRange}${deferred}`;
+}
+
+
+
+
+==================== FILE :: src/services/follow-ups.service.ts ====================
+
+import { createBrowserClient } from "@supabase/ssr";
+import type { CommChannel, FollowUpType, LeadStage, Priority } from "@/types/common.types";
+import type { Database } from "@/types/database.types";
+import type { CreateFollowUpInput, FollowUpItem, LeadActivityItem, LeadListItem } from "@/types/crm";
+import { MOCK_FOLLOW_UPS } from "@/lib/mock-data";
+import { isBrowser, readStorage, sortByDateAsc, sortByDateDesc, writeStorage } from "@/services/storage";
+
+const FOLLOW_UPS_KEY = "skidy.crm.follow-ups";
+const LEADS_KEY = "skidy.crm.leads";
+const ACTIVITIES_KEY = "skidy.crm.lead-activities";
+const VALID_TYPES: FollowUpType[] = [
+  "first_contact",
+  "qualification",
+  "trial_reminder",
+  "post_trial",
+  "no_show",
+  "closing",
+  "payment_reminder",
+  "re_engagement",
+];
+const VALID_CHANNELS: CommChannel[] = ["whatsapp", "email", "call", "sms"];
+const VALID_PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
+
+type FollowUpOpenStatus = Exclude<FollowUpItem["status"], "completed">;
+type FollowUpRow = Database["public"]["Tables"]["follow_ups"]["Row"];
+type LeadNameEntry = { childName: string; parentName: string };
+
+/* ------------------------------------------------------------------ */
+/*  Supabase helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !isBrowser()) return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+function isDemoModeEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
+}
+
+function shouldUseDemoFallback(): boolean {
+  return !getSupabaseClient() && isDemoModeEnabled();
+}
+
+function mockFollowUps(): FollowUpItem[] {
+  return MOCK_FOLLOW_UPS.map((item) => ({ ...item }));
+}
+
+/* ------------------------------------------------------------------ */
+/*  Value coercion helpers                                             */
+/* ------------------------------------------------------------------ */
+
+
+function asType(value: unknown): FollowUpType {
+  return VALID_TYPES.includes(value as FollowUpType) ? (value as FollowUpType) : "first_contact";
+}
+
+function asChannel(value: unknown): CommChannel {
+  return VALID_CHANNELS.includes(value as CommChannel) ? (value as CommChannel) : "whatsapp";
+}
+
+function asPriority(value: unknown): Priority {
+  return VALID_PRIORITIES.includes(value as Priority) ? (value as Priority) : "medium";
+}
+
+function resolveOpenStatus(scheduledAt: string): FollowUpOpenStatus {
+  const timestamp = new Date(scheduledAt).getTime();
+  return timestamp < Date.now() ? "overdue" : "pending";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Lead name resolution                                               */
+/*  follow_ups has NO lead_name / parent_name columns.                 */
+/*  We batch-fetch from leads to get child_name + parent_name.         */
+/* ------------------------------------------------------------------ */
+
+async function resolveLeadNames(
+  rows: FollowUpRow[],
+  supabase: ReturnType<typeof getSupabaseClient>,
+): Promise<Map<string, LeadNameEntry>> {
+  const map = new Map<string, LeadNameEntry>();
+  if (!supabase) return map;
+
+  const leadIds = [
+    ...new Set(rows.map((r) => r.lead_id).filter((id): id is string => Boolean(id))),
+  ];
+  if (leadIds.length === 0) return map;
+
+  try {
+    const { data } = await supabase
+      .from("leads")
+      .select("id, child_name, parent_name")
+      .in("id", leadIds);
+
+    if (data) {
+      for (const lead of data) {
+        map.set(lead.id, {
+          childName: lead.child_name ?? "",
+          parentName: lead.parent_name ?? "",
+        });
+      }
+    }
+  } catch {
+    // silent - mapRow will use fallbacks
+  }
+
+  return map;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Row mapping                                                        */
+/*  Derives status from is_completed (boolean) - NOT from a phantom    */
+/*  "status" column. Reads names from the resolved map.                */
+/* ------------------------------------------------------------------ */
+
+function mapRow(
+  row: FollowUpRow,
+  names?: Map<string, LeadNameEntry>,
+): FollowUpItem {
+  const scheduledAt = row.scheduled_at ?? new Date().toISOString();
+  const isCompleted = row.is_completed === true;
+  const leadEntry = row.lead_id ? names?.get(row.lead_id) : undefined;
+
+  return {
+    id: row.id ?? crypto.randomUUID(),
+    leadId: row.lead_id ?? null,
+    title: row.title || "\u0645\u062a\u0627\u0628\u0639\u0629",
+    leadName: leadEntry?.childName || "\u0639\u0645\u064a\u0644 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+    parentName: leadEntry?.parentName || "\u0648\u0644\u064a \u0623\u0645\u0631 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+    type: asType(row.type),
+    channel: asChannel(row.channel),
+    priority: asPriority(row.priority),
+    scheduledAt,
+    status: isCompleted ? "completed" : resolveOpenStatus(scheduledAt),
+    assignedTo: row.assigned_to ?? "\u063a\u064a\u0631 \u0645\u062e\u0635\u0635",
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Local storage helpers                                              */
+/* ------------------------------------------------------------------ */
+
+function getLocalFollowUps(): FollowUpItem[] {
+  const seed = shouldUseDemoFallback() ? mockFollowUps() : ([] as FollowUpItem[]);
+  return sortByDateAsc(readStorage(FOLLOW_UPS_KEY, seed), (item) => item.scheduledAt);
+}
+
+function saveLocalFollowUps(items: FollowUpItem[]): void {
+  writeStorage(FOLLOW_UPS_KEY, sortByDateAsc(items, (item) => item.scheduledAt));
+}
+
+function clearLocalFollowUps(): void {
+  writeStorage(FOLLOW_UPS_KEY, []);
+}
+
+function getLocalLeads(): LeadListItem[] {
+  return sortByDateDesc(readStorage(LEADS_KEY, [] as LeadListItem[]), (lead) => lead.createdAt);
+}
+
+function saveLocalLeads(leads: LeadListItem[]): void {
+  writeStorage(LEADS_KEY, sortByDateDesc(leads, (lead) => lead.createdAt));
+}
+
+function getLocalActivities(): LeadActivityItem[] {
+  return sortByDateDesc(readStorage(ACTIVITIES_KEY, [] as LeadActivityItem[]), (activity) => activity.date);
+}
+
+function saveLocalActivities(activities: LeadActivityItem[]): void {
+  writeStorage(ACTIVITIES_KEY, sortByDateDesc(activities, (activity) => activity.date));
+}
+
+/* ------------------------------------------------------------------ */
+/*  Activity helper                                                    */
+/*  lead_activities has NO "type" column - stored in metadata (jsonb)  */
+/*  created_at is auto-generated - do NOT send it                      */
+/* ------------------------------------------------------------------ */
+
+function createLeadActivity(
+  leadId: string | null | undefined,
+  action: string,
+  by: string,
+  type: LeadActivityItem["type"],
+): LeadActivityItem | null {
+  if (!leadId) return null;
+
+  const activity: LeadActivityItem = {
+    id: crypto.randomUUID(),
+    leadId,
+    action,
+    by,
+    type,
+    date: new Date().toISOString(),
+  };
+
+  saveLocalActivities([activity, ...getLocalActivities()]);
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    void supabase.from("lead_activities").insert({
+      lead_id: leadId,
+      action: activity.action,
+      metadata: { type: activity.type, actor_name: by },
+    });
+  }
+
+  return activity;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Lead sync helpers                                                  */
+/* ------------------------------------------------------------------ */
+
+function deriveNextFollowUpAt(leadId: string | null | undefined, items: FollowUpItem[]): string | null {
+  if (!leadId) return null;
+  const next = items
+    .filter((item) => item.leadId === leadId && item.status !== "completed")
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
+  return next?.scheduledAt ?? null;
+}
+
+async function syncLeadNextFollowUp(leadId: string | null | undefined, items: FollowUpItem[]): Promise<void> {
+  if (!leadId) return;
+
+  const leads = getLocalLeads();
+  const existing = leads.find((lead) => lead.id === leadId);
+  if (!existing) return;
+
+  const nextFollowUpAt = deriveNextFollowUpAt(leadId, items);
+  const updatedLead: LeadListItem = {
+    ...existing,
+    nextFollowUpAt,
+    lastContactAt: existing.lastContactAt ?? new Date().toISOString(),
+  };
+
+  saveLocalLeads(leads.map((lead) => (lead.id === leadId ? updatedLead : lead)));
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("leads")
+    .update({
+      next_follow_up_at: nextFollowUpAt,
+      last_contact_at: updatedLead.lastContactAt,
+    })
+    .eq("id", leadId);
+}
+
+/* ------------------------------------------------------------------ */
+/*  List all follow-ups                                                */
+/* ------------------------------------------------------------------ */
+
+export async function listFollowUps(): Promise<FollowUpItem[]> {
+  const demoFallback = shouldUseDemoFallback() ? getLocalFollowUps() : [];
+  const supabase = getSupabaseClient();
+  if (!supabase) return demoFallback;
+
+  try {
+    const { data, error } = await supabase
+      .from("follow_ups")
+      .select("*")
+      .order("scheduled_at", { ascending: true });
+
+    if (error) {
+      console.error("[follow-ups] failed to load from Supabase", error);
+      clearLocalFollowUps();
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      clearLocalFollowUps();
+      return [];
+    }
+
+    const names = await resolveLeadNames(data, supabase);
+    const mapped = data.map((row) => mapRow(row, names));
+    saveLocalFollowUps(mapped);
+    return mapped;
+  } catch (error) {
+    console.error("[follow-ups] unexpected load failure", error);
+    clearLocalFollowUps();
+    return [];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  List follow-ups by lead                                            */
+/* ------------------------------------------------------------------ */
+
+export async function listFollowUpsByLead(leadId: string): Promise<FollowUpItem[]> {
+  const demoFallback = shouldUseDemoFallback() ? getLocalFollowUps().filter((item) => item.leadId === leadId) : [];
+  const supabase = getSupabaseClient();
+  if (!supabase) return demoFallback;
+
+  try {
+    const { data, error } = await supabase
+      .from("follow_ups")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("scheduled_at", { ascending: true });
+
+    if (error) {
+      console.error("[follow-ups] failed to load lead follow-ups", error);
+      const rest = getLocalFollowUps().filter((item) => item.leadId !== leadId);
+      saveLocalFollowUps(rest);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      const rest = getLocalFollowUps().filter((item) => item.leadId !== leadId);
+      saveLocalFollowUps(rest);
+      return [];
+    }
+
+    const names = await resolveLeadNames(data, supabase);
+    const mapped = data.map((row) => mapRow(row, names));
+    const rest = getLocalFollowUps().filter((item) => item.leadId !== leadId);
+    saveLocalFollowUps([...rest, ...mapped]);
+    return mapped;
+  } catch (error) {
+    console.error("[follow-ups] unexpected lead follow-ups failure", error);
+    return [];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Create follow-up                                                   */
+/*  REMOVED ghost columns: lead_name, status                           */
+/*  ADDED: is_completed (real boolean column)                          */
+/* ------------------------------------------------------------------ */
+
+export async function createFollowUp(input: CreateFollowUpInput): Promise<FollowUpItem> {
+  const scheduledAt = input.scheduledAt;
+  const item: FollowUpItem = {
+    id: crypto.randomUUID(),
+    leadId: input.leadId ?? null,
+    leadName: input.leadName,
+    parentName: input.parentName,
+    title: input.title,
+    type: input.type,
+    channel: input.channel,
+    priority: input.priority,
+    scheduledAt,
+    status: resolveOpenStatus(scheduledAt),
+    assignedTo: input.assignedTo,
+  };
+
+  const current = getLocalFollowUps();
+  const next = [...current, item];
+  saveLocalFollowUps(next);
+
+  const typeLabel = item.type === "trial_reminder"
+    ? "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629"
+    : item.title;
+  createLeadActivity(
+    item.leadId,
+    "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u062c\u062f\u064a\u062f\u0629: " + typeLabel,
+    item.assignedTo,
+    "contact",
+  );
+  await syncLeadNextFollowUp(item.leadId, next);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    if (shouldUseDemoFallback()) return item;
+    throw new Error("Supabase client is not available");
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("follow_ups")
+      .insert({
+        lead_id: item.leadId,
+        title: item.title,
+        type: item.type,
+        channel: item.channel,
+        priority: item.priority,
+        scheduled_at: item.scheduledAt,
+        is_completed: false,
+        assigned_to: item.assignedTo,
+      })
+      .select("*")
+      .maybeSingle();
+
+    if (!error && data) {
+      const names = new Map<string, LeadNameEntry>();
+      if (data.lead_id) {
+        names.set(data.lead_id, {
+          childName: item.leadName,
+          parentName: item.parentName,
+        });
+      }
+      const synced = mapRow(data, names);
+      const merged = getLocalFollowUps().map((existing) =>
+        existing.id === item.id ? synced : existing,
+      );
+      saveLocalFollowUps(merged);
+      await syncLeadNextFollowUp(item.leadId, merged);
+      return synced;
+    }
+  } catch (error) {
+    console.error("[follow-ups] create failed", error);
+    if (shouldUseDemoFallback()) return item;
+    throw error instanceof Error ? error : new Error("Failed to create follow-up");
+  }
+
+  return item;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Update follow-up status                                            */
+/*  FIXED: uses is_completed + completed_at                            */
+/*  instead of ghost "status" column                                   */
+/* ------------------------------------------------------------------ */
+
+async function updateFollowUpStatus(
+  id: string,
+  status: FollowUpItem["status"],
+): Promise<FollowUpItem | null> {
+  const current = getLocalFollowUps();
+  const existing = current.find((item) => item.id === id);
+  if (!existing) return null;
+
+  const nextStatus = status === "completed" ? "completed" : resolveOpenStatus(existing.scheduledAt);
+  const updated: FollowUpItem = { ...existing, status: nextStatus };
+  const merged = current.map((item) => (item.id === id ? updated : item));
+  saveLocalFollowUps(merged);
+
+  if (updated.leadId) {
+    const action = nextStatus === "completed"
+      ? "\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title
+      : "\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title;
+    createLeadActivity(
+      updated.leadId,
+      action,
+      updated.assignedTo,
+      nextStatus === "completed" ? "contact" : "note",
+    );
+  }
+
+  await syncLeadNextFollowUp(updated.leadId, merged);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    if (shouldUseDemoFallback()) return updated;
+    throw new Error("Supabase client is not available");
+  }
+
+  try {
+    await supabase
+      .from("follow_ups")
+      .update({
+        is_completed: nextStatus === "completed",
+        completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
+      })
+      .eq("id", id);
+  } catch (error) {
+    console.error("[follow-ups] status update failed", error);
+    if (shouldUseDemoFallback()) return updated;
+    throw error instanceof Error ? error : new Error("Failed to update follow-up status");
+  }
+
+  return updated;
+}
+
+export async function markFollowUpCompleted(id: string): Promise<FollowUpItem | null> {
+  return updateFollowUpStatus(id, "completed");
+}
+
+export async function reopenFollowUp(id: string): Promise<FollowUpItem | null> {
+  return updateFollowUpStatus(id, "pending");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Stage-based suggestions                                            */
+/* ------------------------------------------------------------------ */
+
+export function suggestFollowUpTypeByStage(stage: LeadStage): FollowUpType {
+  switch (stage) {
+    case "new":
+      return "first_contact";
+    case "qualified":
+      return "qualification";
+    case "trial_proposed":
+    case "trial_booked":
+      return "trial_reminder";
+    case "trial_attended":
+      return "post_trial";
+    case "offer_sent":
+      return "closing";
+    case "lost":
+      return "re_engagement";
+    default:
+      return "payment_reminder";
+  }
+}
+
+export function suggestFollowUpTitle(stage: LeadStage, childName: string): string {
+  switch (stage) {
+    case "new":
+      return "\u0623\u0648\u0644 \u062a\u0648\u0627\u0635\u0644 \u2013 " + childName;
+    case "qualified":
+      return "\u0627\u0633\u062a\u0643\u0645\u0627\u0644 \u0627\u0644\u062a\u0623\u0647\u064a\u0644 \u2013 " + childName;
+    case "trial_proposed":
+      return "\u062a\u0623\u0643\u064a\u062f \u0645\u0648\u0639\u062f \u0627\u0644\u0633\u064a\u0634\u0646 \u2013 " + childName;
+    case "trial_booked":
+      return "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u2013 " + childName;
+    case "trial_attended":
+      return "\u0645\u062a\u0627\u0628\u0639\u0629 \u0628\u0639\u062f \u0627\u0644\u0633\u064a\u0634\u0646 \u2013 " + childName;
+    case "offer_sent":
+      return "\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0639\u0631\u0636 \u2013 " + childName;
+    case "lost":
+      return "\u0625\u0639\u0627\u062f\u0629 \u062a\u0648\u0627\u0635\u0644 \u2013 " + childName;
+    default:
+      return "\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u062f\u0641\u0639 \u2013 " + childName;
+  }
+}
+
+==================== FILE :: src/services/dashboard.service.ts ====================
+
+
+import { STAGE_CONFIGS } from "@/config/stages";
+import { DASHBOARD_TASK_STATUS_META, PRIORITY_META } from "@/config/status-meta";
+import { formatCurrencyEgp, formatTime } from "@/lib/formatters";
+import { getConversionTerm, t } from "@/lib/locale";
+import { listFollowUps } from "@/services/follow-ups.service";
+import { listLeads } from "@/services/leads.service";
+import { getPaymentsSummary, listPayments } from "@/services/payments.service";
+import { getScheduleOverview, listScheduleSessions } from "@/services/schedule.service";
+import { listStudents } from "@/services/students.service";
+import type { DashboardActionItem, DashboardContext, DashboardFollowUpItem, DashboardOverview, DashboardOperationItem } from "@/types/crm";
+import type { Locale } from "@/types/common.types";
+
+function isManagementRole(role: DashboardContext["role"]): boolean {
+  return role === "admin" || role === "owner";
+}
+
+function isOpsRole(role: DashboardContext["role"]): boolean {
+  return role === "ops";
+}
+
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function matchesAssignee(nameAr: string, ctx: DashboardContext): boolean {
+  const targets = [normalizeName(ctx.fullNameAr), normalizeName(ctx.fullName)];
+  return targets.includes(normalizeName(nameAr));
+}
+
+function getToneBg(tone: DashboardOperationItem["tone"]): string {
+  switch (tone) {
+    case "success":
+      return "#ECFDF5";
+    case "warning":
+      return "#FFFBEB";
+    case "danger":
+      return "#FEF2F2";
+    case "info":
+      return "#EFF6FF";
+    default:
+      return "#EEF2FF";
+  }
+}
+
+export async function getDashboardOverview(
+  context: DashboardContext,
+  locale: Locale = "ar",
+): Promise<DashboardOverview> {
+  const [leads, students, followUps, payments, paymentsSummary, scheduleOverview, sessions] = await Promise.all([
+    listLeads(),
+    listStudents(),
+    listFollowUps(),
+    listPayments(),
+    getPaymentsSummary(),
+    getScheduleOverview(),
+    listScheduleSessions(),
+  ]);
+
+  const isOps = isOpsRole(context.role);
+  const activeStudents = students.filter((student) => student.status === "active").length;
+  const recentLeads = leads.filter((lead) => {
+    const createdAt = new Date(lead.createdAt).getTime();
+    const threshold = Date.now() - 1000 * 60 * 60 * 24 * 7;
+    return createdAt >= threshold;
+  }).length;
+  const monthlyRevenue = students.reduce((sum, student) => sum + student.totalPaid, 0);
+  const atRiskStudents = students.filter((student) => student.status === "at_risk").length;
+  const trialStudents = students.filter((student) => student.status === "trial").length;
+  const bookedTrials = leads.filter((lead) => lead.stage === "trial_booked").length;
+  const attendedTrials = leads.filter((lead) => lead.stage === "trial_attended").length;
+  const overdueFollowUps = followUps.filter((item) => item.status === "overdue").length;
+  const conversionRate = leads.length > 0 ? Math.round((leads.filter((lead) => lead.stage === "won").length / leads.length) * 100) : 0;
+  const leadsMissingFollowUp = leads.filter((lead) => lead.stage !== "won" && lead.stage !== "lost" && !lead.nextFollowUpAt).length;
+  const trialNoShows = leads.filter((lead) => lead.stage === "trial_booked" && !lead.lastContactAt).length;
+  const overduePaymentsCount = payments.filter((payment) => payment.status === "overdue").length;
+  const pendingPaymentsCount = payments.filter((payment) => payment.status === "pending").length;
+
+  const allTasks: DashboardFollowUpItem[] = followUps.map((item) => ({
+    id: item.id,
+    name: item.leadName,
+    reason: item.title,
+    assignee: item.assignedTo,
+    dot: PRIORITY_META[item.priority].color,
+    time: formatTime(item.scheduledAt, locale),
+    status: item.status === "overdue" ? "urgent" : item.status === "completed" ? "completed" : "pending",
+  }));
+
+  const employeeTasks = isManagementRole(context.role)
+    ? allTasks
+    : isOps
+      ? []
+      : allTasks.filter((task) => matchesAssignee(task.assignee, context));
+
+  const alerts = [
+    !isOps && overdueFollowUps > 0
+      ? {
+          icon: "warning",
+          text: t(locale, `${overdueFollowUps} متابعات متأخرة تحتاج تدخل الآن`, `${overdueFollowUps} overdue follow-ups need immediate action`),
+          type: "danger" as const,
+        }
+      : null,
+    overduePaymentsCount > 0
+      ? {
+          icon: "wallet",
+          text: t(locale, `${overduePaymentsCount} دفعات متأخرة بقيمة ${formatCurrencyEgp(paymentsSummary.totalOverdue, locale)}`, `${overduePaymentsCount} overdue payments worth ${formatCurrencyEgp(paymentsSummary.totalOverdue, locale)}`),
+          type: "warning" as const,
+        }
+      : null,
+    atRiskStudents > 0
+      ? {
+          icon: "notification",
+          text: t(locale, `${atRiskStudents} طلاب بحاجة متابعة`, `${atRiskStudents} students need attention`),
+          type: "warning" as const,
+        }
+      : null,
+    !isOps && recentLeads > 0
+      ? {
+          icon: "success",
+          text: t(locale, `${recentLeads} عملاء جدد خلال آخر 7 أيام`, `${recentLeads} new leads over the last 7 days`),
+          type: "success" as const,
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  const salesFunnelBase = Math.max(1, leads.length);
+  const opsFunnelBase = Math.max(1, students.length);
+
+  const operations: DashboardOperationItem[] = isOps
+    ? [
+        {
+          title: t(locale, "جلسات هذا الأسبوع", "Sessions this week"),
+          value: scheduleOverview.sessionsCount.toLocaleString("en-US"),
+          subtitle: t(locale, `${scheduleOverview.uniqueTeachers} مدرسين • ${scheduleOverview.totalStudents} مقعد`, `${scheduleOverview.uniqueTeachers} teachers • ${scheduleOverview.totalStudents} seats`),
+          tone: "info",
+        },
+        {
+          title: t(locale, "طلاب بحاجة متابعة", "Students at risk"),
+          value: atRiskStudents.toLocaleString("en-US"),
+          subtitle: t(locale, "ملفات تحتاج تدخلًا تشغيليًا الآن", "Student files that need operational intervention"),
+          tone: atRiskStudents > 0 ? "warning" : "success",
+        },
+        {
+          title: t(locale, "الطلاب التجريبيون", "Trial students"),
+          value: trialStudents.toLocaleString("en-US"),
+          subtitle: t(locale, "راجع الحضور والتحويل إلى اشتراك", "Review attendance and conversion to enrollment"),
+          tone: trialStudents > 0 ? "brand" : "info",
+        },
+        {
+          title: t(locale, "تحصيل الشهر", "Collection this month"),
+          value: `${paymentsSummary.collectionRate}%`,
+          subtitle: t(locale, `${formatCurrencyEgp(paymentsSummary.totalCollected, locale)} من ${formatCurrencyEgp(paymentsSummary.totalExpected, locale)}`, `${formatCurrencyEgp(paymentsSummary.totalCollected, locale)} out of ${formatCurrencyEgp(paymentsSummary.totalExpected, locale)}`),
+          tone: paymentsSummary.collectionRate >= 80 ? "success" : paymentsSummary.collectionRate >= 60 ? "warning" : "danger",
+        },
+      ]
+    : [
+        {
+          title: t(locale, "تحصيل الشهر", "Collection this month"),
+          value: `${paymentsSummary.collectionRate}%`,
+          subtitle: t(locale, `${formatCurrencyEgp(paymentsSummary.totalCollected, locale)} من ${formatCurrencyEgp(paymentsSummary.totalExpected, locale)}`, `${formatCurrencyEgp(paymentsSummary.totalCollected, locale)} out of ${formatCurrencyEgp(paymentsSummary.totalExpected, locale)}`),
+          tone: paymentsSummary.collectionRate >= 80 ? "success" : paymentsSummary.collectionRate >= 60 ? "warning" : "danger",
+        },
+        {
+          title: t(locale, "جلسات هذا الأسبوع", "Sessions this week"),
+          value: scheduleOverview.sessionsCount.toLocaleString("en-US"),
+          subtitle: t(locale, `${scheduleOverview.uniqueTeachers} مدرسين • ${scheduleOverview.totalStudents} مقعد`, `${scheduleOverview.uniqueTeachers} teachers • ${scheduleOverview.totalStudents} seats`),
+          tone: "info",
+        },
+        {
+          title: t(locale, "عملاء بلا متابعة قادمة", "Leads without next follow-up"),
+          value: leadsMissingFollowUp.toLocaleString("en-US"),
+          subtitle: t(locale, "احتكاك تشغيلي يجب تنظيفه", "Operational friction that needs cleanup"),
+          tone: leadsMissingFollowUp > 0 ? "warning" : "success",
+        },
+        {
+          title: t(locale, "الحصص التجريبية المحجوزة", "Booked trial sessions"),
+          value: bookedTrials.toLocaleString("en-US"),
+          subtitle: t(locale, `${attendedTrials.toLocaleString("en-US")} حضروا بالفعل`, `${attendedTrials.toLocaleString("en-US")} already attended`),
+          tone: bookedTrials > attendedTrials ? "brand" : "success",
+        },
+      ];
+
+  const quickActions: DashboardActionItem[] = isManagementRole(context.role)
+    ? [
+        {
+          title: t(locale, "لوحة العملاء", "Leads board"),
+          description: t(locale, "راجع المراحل المتوقفة والعملاء الأقرب للاشتراك", "Review stalled stages and the leads closest to enrollment"),
+          href: "/leads",
+          tone: "brand",
+        },
+        {
+          title: t(locale, "مركز العمليات", "Action center"),
+          description: t(locale, "شاهد كل العناصر الحرجة والتنفيذية في مكان واحد", "See all critical and operational items in one place"),
+          href: "/action-center",
+          tone: "warning",
+        },
+        {
+          title: t(locale, "التحصيل والمدفوعات", "Collections & payments"),
+          description: t(locale, "أغلق المتأخرات وارفع معدل التحصيل", "Close overdue balances and improve collection rate"),
+          href: "/payments",
+          tone: "success",
+        },
+        {
+          title: t(locale, "التقارير التنفيذية", "Executive reports"),
+          description: t(locale, "راجع السرعة، القمع، والفرص الضائعة", "Review velocity, funnel, and missed opportunities"),
+          href: "/reports",
+          tone: "info",
+        },
+      ]
+    : isOps
+      ? [
+          {
+            title: t(locale, "مركز العمليات", "Action center"),
+            description: t(locale, "افتح المهام التشغيلية العاجلة في شاشة واحدة", "Open urgent operational tasks in one screen"),
+            href: "/action-center",
+            tone: "warning",
+          },
+          {
+            title: t(locale, "الطلاب", "Students"),
+            description: t(locale, "راجع الطلاب المعرضين للخطر والحالات التجريبية", "Review at-risk and trial students"),
+            href: "/students",
+            tone: "brand",
+          },
+          {
+            title: t(locale, "الجدول", "Schedule"),
+            description: t(locale, "راجع جلسات اليوم والمدرسين المرتبطين", "Review today's sessions and linked teachers"),
+            href: "/schedule",
+            tone: "info",
+          },
+          {
+            title: t(locale, "المدفوعات", "Payments"),
+            description: t(locale, "تابع الحالات المتأخرة والمستحقة اليوم", "Follow overdue and due-today payments"),
+            href: "/payments",
+            tone: "success",
+          },
+        ]
+      : [
+          {
+            title: t(locale, "العملاء المحتملون", "Leads"),
+            description: t(locale, "حدّث المراحل وسجّل آخر تواصل", "Update stages and capture the latest contact"),
+            href: "/leads",
+            tone: "brand",
+          },
+          {
+            title: t(locale, "المتابعات", "Follow-ups"),
+            description: t(locale, "أغلق المهام المفتوحة قبل نهاية اليوم", "Close open tasks before the day ends"),
+            href: "/follow-ups",
+            tone: "warning",
+          },
+          {
+            title: t(locale, "المدفوعات", "Payments"),
+            description: t(locale, "راجع الحالات المعلقة والمتأخرة", "Review pending and overdue payments"),
+            href: "/payments",
+            tone: "success",
+          },
+        ];
+
+  const recommendations = [
+    !isOps && overdueFollowUps > 0 ? t(locale, "ابدأ من مركز العمليات لإغلاق المتابعات المتأخرة أولاً", "Start from the action center to close overdue follow-ups first") : null,
+    overduePaymentsCount > 0 ? t(locale, "أرسل تذكيرات دفع مركزة للعائلات المتأخرة اليوم", "Send focused payment reminders to overdue families today") : null,
+    !isOps && trialNoShows > 0 ? t(locale, "راجع الحصص التجريبية غير المؤكدة لتقليل الـ no-show", "Review unconfirmed trial sessions to reduce no-shows") : null,
+    !isOps && leadsMissingFollowUp > 0 ? t(locale, "أضف مواعيد متابعة للعملاء المفتوحين حتى لا يتسربوا من القمع", "Add follow-up dates for open leads so they do not leak from the funnel") : null,
+    isOps && atRiskStudents > 0 ? t(locale, "ابدأ بالطلاب المعرضين للخطر لأنهم أقرب خسارة تشغيلية الآن", "Start with at-risk students because they are the nearest operational risk right now") : null,
+    isOps && scheduleOverview.sessionsCount > 0 ? t(locale, "راجع جدول اليوم وتأكد من اكتمال الربط بين المدرسين والطلاب", "Review today's schedule and confirm teacher-student assignment completeness") : null,
+    sessions.length === 0 ? t(locale, "لا توجد جلسات مسجلة حالياً، راجع ربط الجداول بالبيانات", "No sessions are registered right now, review schedule data mapping") : null,
+  ].filter((item): item is string => Boolean(item));
+
+  return {
+    managementStats: isOps
+      ? [
+          {
+            label: t(locale, "طلاب نشطون", "Active students"),
+            value: activeStudents.toLocaleString("en-US"),
+            change: trialStudents > 0 ? `+${trialStudents}` : "0",
+            bg: "#4F46E5",
+          },
+          {
+            label: t(locale, "جلسات الأسبوع", "Weekly sessions"),
+            value: scheduleOverview.sessionsCount.toLocaleString("en-US"),
+            change: scheduleOverview.uniqueTeachers > 0 ? `+${scheduleOverview.uniqueTeachers}` : "0",
+            bg: "#8B5CF6",
+          },
+          {
+            label: t(locale, "إيراد الشهر", "Monthly revenue"),
+            value: formatCurrencyEgp(monthlyRevenue, locale),
+            change: monthlyRevenue > 0 ? t(locale, "+محسوب", "+Calculated") : "0",
+            bg: "#10B981",
+          },
+          {
+            label: t(locale, "طلاب بحاجة متابعة", "Students at risk"),
+            value: atRiskStudents.toLocaleString("en-US"),
+            change: atRiskStudents > 0 ? t(locale, "+مهم", "+Important") : "0",
+            bg: "#0D9488",
+          },
+        ]
+      : [
+          {
+            label: t(locale, "طلاب نشطون", "Active students"),
+            value: activeStudents.toLocaleString("en-US"),
+            change: recentLeads > 0 ? `+${recentLeads}` : "0",
+            bg: "#4F46E5",
+          },
+          {
+            label: t(locale, "عملاء جدد", "New leads"),
+            value: recentLeads.toLocaleString("en-US"),
+            change: recentLeads > 0 ? t(locale, "+نشط", "+Active") : "0",
+            bg: "#8B5CF6",
+          },
+          {
+            label: t(locale, "إيراد الشهر", "Monthly revenue"),
+            value: formatCurrencyEgp(monthlyRevenue, locale),
+            change: monthlyRevenue > 0 ? t(locale, "+محسوب", "+Calculated") : "0",
+            bg: "#10B981",
+          },
+          {
+            label: getConversionTerm("conversionRate", locale),
+            value: `${conversionRate}%`,
+            change: conversionRate > 0 ? t(locale, "+محدث", "+Updated") : "0",
+            bg: "#0D9488",
+          },
+        ],
+    secondaryStats: isOps
+      ? [
+          { label: t(locale, "جلسات اليوم", "Today's sessions"), value: sessions.length.toLocaleString("en-US"), icon: "calendar", bg: "#EFF6FF", color: "#2563EB" },
+          { label: t(locale, "طلاب بحاجة متابعة", "Students at risk"), value: atRiskStudents.toLocaleString("en-US"), icon: "warning", bg: "#FEF2F2", color: "#DC2626" },
+          { label: t(locale, "طلاب تجريبيون", "Trial students"), value: trialStudents.toLocaleString("en-US"), icon: "clock", bg: "#FFFBEB", color: "#D97706" },
+          { label: t(locale, "مدفوعات معلقة", "Pending payments"), value: pendingPaymentsCount.toLocaleString("en-US"), icon: "wallet", bg: "#F5F3FF", color: "#7C3AED" },
+        ]
+      : [
+          { label: t(locale, "سيشن تجريبية", "Trial sessions"), value: bookedTrials.toLocaleString("en-US"), icon: "calendar", bg: "#EFF6FF", color: "#2563EB" },
+          { label: t(locale, "طلاب بحاجة متابعة", "Students at risk"), value: atRiskStudents.toLocaleString("en-US"), icon: "warning", bg: "#FEF2F2", color: "#DC2626" },
+          { label: t(locale, "متابعات متأخرة", "Overdue follow-ups"), value: overdueFollowUps.toLocaleString("en-US"), icon: "clock", bg: "#FFFBEB", color: "#D97706" },
+          { label: t(locale, "مدفوعات معلقة", "Pending payments"), value: pendingPaymentsCount.toLocaleString("en-US"), icon: "wallet", bg: "#F5F3FF", color: "#7C3AED" },
+        ],
+    alerts,
+    funnel: isOps
+      ? [
+          {
+            label: t(locale, "نشط", "Active"),
+            value: activeStudents,
+            pct: `${Math.round((activeStudents / opsFunnelBase) * 100)}%`,
+            color: "#4F46E5",
+          },
+          {
+            label: t(locale, "تجريبي", "Trial"),
+            value: trialStudents,
+            pct: `${Math.round((trialStudents / opsFunnelBase) * 100)}%`,
+            color: "#F59E0B",
+          },
+          {
+            label: t(locale, "بحاجة متابعة", "At risk"),
+            value: atRiskStudents,
+            pct: `${Math.round((atRiskStudents / opsFunnelBase) * 100)}%`,
+            color: "#EF4444",
+          },
+          {
+            label: t(locale, "مكتمل", "Completed"),
+            value: students.filter((student) => student.status === "completed").length,
+            pct: `${Math.round((students.filter((student) => student.status === "completed").length / opsFunnelBase) * 100)}%`,
+            color: "#10B981",
+          },
+        ]
+      : (["new", "qualified", "trial_proposed", "trial_booked", "trial_attended", "won"] as const).map((stage) => {
+          const count = leads.filter((lead) => lead.stage === stage).length;
+          return {
+            label: locale === "ar" ? STAGE_CONFIGS[stage].labelAr : STAGE_CONFIGS[stage].labelEn,
+            value: count,
+            pct: `${Math.round((count / salesFunnelBase) * 100)}%`,
+            color: STAGE_CONFIGS[stage].color,
+          };
+        }),
+    followUps: employeeTasks,
+    operations,
+    quickActions,
+    recommendations,
+  };
+}
+
+export function getDashboardTaskLabel(status: keyof typeof DASHBOARD_TASK_STATUS_META, locale: Locale): string {
+  const meta = DASHBOARD_TASK_STATUS_META[status];
+  return locale === "ar" ? meta.label : meta.labelEn;
+}
+
+export function getDashboardOperationToneStyles(tone: DashboardOperationItem["tone"]): { bg: string; color: string } {
+  return {
+    bg: getToneBg(tone),
+    color:
+      tone === "danger"
+        ? "#DC2626"
+        : tone === "warning"
+          ? "#D97706"
+          : tone === "success"
+            ? "#059669"
+            : tone === "info"
+              ? "#2563EB"
+              : "#4338CA",
+  };
+}
+
+
+==================== MODIFIED FILE :: _check.js ====================
+
+﻿const c = require('fs').readFileSync('src/components/teachers/teacher-form.tsx', 'utf8');
+console.log('Line 12:', c.split('\n')[11]);
+console.log('BOM:', c.charCodeAt(0));
+console.log('Has web:', c.includes('"web"'));
+
+
+==================== MODIFIED FILE :: _claude_bundle.js ====================
+
+﻿const fs = require("fs");
+const path = require("path");
+const cp = require("child_process");
+
+const ROOT = process.cwd();
+const OUT_BASE = "CLAUDE_BUNDLE";
+const MAX_CHARS = 45000;
+
+function rel(p) {
+  return p.replace(ROOT + path.sep, "");
+}
+
+function exists(p) {
+  return fs.existsSync(path.join(ROOT, p));
+}
+
+function readFileSafe(p, max = 30000) {
+  try {
+    const full = path.join(ROOT, p);
+    if (!fs.existsSync(full)) return `NOT FOUND: ${p}\n`;
+    const raw = fs.readFileSync(full, "utf8");
+    if (raw.length <= max) return raw;
+    return raw.slice(0, max) + `\n\n...[TRUNCATED ${raw.length - max} chars]...`;
+  } catch (e) {
+    return `ERROR READING ${p}: ${e.message}\n`;
+  }
+}
+
+function run(cmd) {
+  try {
+    return cp.execSync(cmd, {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 20 * 1024 * 1024,
+      shell: true,
+    });
+  } catch (e) {
+    const stdout = e.stdout ? String(e.stdout) : "";
+    const stderr = e.stderr ? String(e.stderr) : "";
+    return (stdout + "\n" + stderr).trim() || e.message;
+  }
+}
+
+function section(title, content) {
+  return `\n==================== ${title} ====================\n\n${content || "(empty)"}\n`;
+}
+
+function listFilesRecursive(baseDir, filterFn) {
+  const result = [];
+  const base = path.join(ROOT, baseDir);
+  if (!fs.existsSync(base)) return result;
+
+  function walk(dir) {
+    for (const entry of fs.readdir

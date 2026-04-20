@@ -124,8 +124,8 @@ export default function TeachersPage() {
               </div>
 
               <div className="mt-3 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2"><Phone size={14} />{teacher.phone}</div>
-                <div className="flex items-center gap-2"><Mail size={14} />{teacher.email ?? t(locale, "غير متوفر", "N/A")}</div>
+                <div className="flex items-center gap-2"><Phone size={14} /><span dir="ltr">{teacher.phone}</span></div>
+                <div className="flex items-center gap-2"><Mail size={14} /><span dir="ltr">{teacher.email ?? t(locale, "غير متوفر", "N/A")}</span></div>
               </div>
             </Link>
           ))}

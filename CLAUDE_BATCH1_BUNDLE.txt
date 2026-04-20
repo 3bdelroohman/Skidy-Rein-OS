@@ -1,0 +1,2274 @@
+
+==================== PURPOSE ====================
+
+Batch 1 only.
+Goal: restore clean build by completing CourseType migration.
+Ignore broad redesign, future batches, and helper noise.
+Use only the files in this bundle as source of truth for Batch 1.
+
+==================== WORKDIR ====================
+
+C:\Users\3bdel\Documents\skidy-rein-crm
+
+==================== GIT STATUS ====================
+
+ M src/app/(dashboard)/parents/[id]/page.tsx
+ M src/app/(dashboard)/schedule/page.tsx
+ M src/app/(dashboard)/teachers/[id]/page.tsx
+ M src/app/(dashboard)/teachers/page.tsx
+ M src/components/schedule/schedule-entry-form.tsx
+ M src/components/teachers/teacher-form.tsx
+ M src/services/schedule.service.ts
+ M src/types/common.types.ts
+?? CLAUDE_BUNDLE_PART_1.txt
+?? CLAUDE_BUNDLE_PART_10.txt
+?? CLAUDE_BUNDLE_PART_2.txt
+?? CLAUDE_BUNDLE_PART_3.txt
+?? CLAUDE_BUNDLE_PART_4.txt
+?? CLAUDE_BUNDLE_PART_5.txt
+?? CLAUDE_BUNDLE_PART_6.txt
+?? CLAUDE_BUNDLE_PART_7.txt
+?? CLAUDE_BUNDLE_PART_8.txt
+?? CLAUDE_BUNDLE_PART_9.txt
+?? PROJECT_CONTEXT.md
+?? _check.js
+?? _claude_batch1_bundle.js
+?? _claude_bundle.js
+?? _dump.txt
+?? _dump2.txt
+?? _dump3.txt
+?? _fix10.js
+?? _fix11.js
+?? _fix12.js
+?? _fix13.js
+?? _fix15.js
+?? _fix17.js
+?? _fix3.js
+?? _fix4.js
+?? _fix5.js
+?? _fix6.js
+?? _fix7.js
+?? _fix8.js
+?? _fix9.js
+?? _fix_all.js
+?? _project_snapshot.txt
+
+
+==================== BUILD OUTPUT ====================
+
+> skidy-rein-crm@1.0.0 build
+> next build
+
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 8.9s
+  Running TypeScript ...
+
+Failed to type check.
+
+./src/components/teachers/teacher-form.tsx:18:5
+Type error: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, { ar: string; en: string; }>'.
+
+  [90m16 |[0m     scratch: { ar: [32m"Scratch"[0m, en: [32m"Scratch"[0m },
+  [90m17 |[0m     python: { ar: [32m"Python"[0m, en: [32m"Python"[0m },
+[31m[1m>[0m [90m18 |[0m     web: { ar: [32m"Web"[0m, en: [32m"Web"[0m },
+  [90m   |[0m     [31m[1m^[0m
+  [90m19 |[0m     ai: { ar: [32m"AI"[0m, en: [32m"AI"[0m },
+  [90m20 |[0m   };
+  [90m21 |[0m   [36mreturn[0m locale === [32m"ar"[0m ? labels[course].ar : labels[course].en;
+Next.js build worker exited with code: 1 and signal: null
+
+==================== LINT OUTPUT ====================
+
+> skidy-rein-crm@1.0.0 lint
+> eslint .
+
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_check.js
+  1:11  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_claude_batch1_bundle.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_claude_bundle.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix10.js
+  42:400  error  Parsing error: Invalid character
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix11.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix12.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix13.js
+   1:12  error    A `require()` style import is forbidden   @typescript-eslint/no-require-imports
+   3:7   warning  'OLD' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  28:11  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  62:9   warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix15.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix17.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix3.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix4.js
+   1:12  error    A `require()` style import is forbidden     @typescript-eslint/no-require-imports
+  18:10  warning  'cleanClassName' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix5.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix6.js
+  12:11  error  Parsing error: ',' expected
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix7.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix8.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix9.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\3bdel\Documents\skidy-rein-crm\_fix_all.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 25 problems (21 errors, 4 warnings)
+
+==================== TSC OUTPUT ====================
+
+src/components/teachers/teacher-form.tsx(18,5): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, { ar: string; en: string; }>'.
+src/config/course-roadmap.ts(56,5): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(67,5): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(88,21): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(89,32): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(90,22): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(91,18): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(92,25): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(93,21): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(94,25): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(141,46): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(142,31): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/config/course-roadmap.ts(142,38): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/config/labels.ts(165,3): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, string>'.
+src/config/labels.ts(172,3): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, string>'.
+src/lib/mock-data.ts(239,118): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/lib/mock-data.ts(240,120): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/services/schedule.service.ts(12,59): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/services/schedule.service.ts(12,66): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/services/schedule.service.ts(18,157): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+src/services/schedule.service.ts(19,161): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/services/teacher-finance.service.ts(53,3): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(84,7): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(142,9): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(142,44): error TS2339: Property 'web' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(142,71): error TS2339: Property 'web' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(143,43): error TS2339: Property 'ai' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(143,69): error TS2339: Property 'ai' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(172,7): error TS2353: Object literal may only specify known properties, and 'web' does not exist in type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(172,40): error TS2339: Property 'web' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(173,39): error TS2339: Property 'ai' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(194,44): error TS2339: Property 'web' does not exist on type 'Record<CourseType, number>'.
+src/services/teacher-finance.service.ts(195,43): error TS2339: Property 'ai' does not exist on type 'Record<CourseType, number>'.
+src/services/teachers.service.ts(10,59): error TS2322: Type '"web"' is not assignable to type 'CourseType'.
+src/services/teachers.service.ts(10,66): error TS2322: Type '"ai"' is not assignable to type 'CourseType'.
+
+==================== FILE :: package.json ====================
+
+{
+  "name": "skidy-rein-crm",
+  "version": "1.0.0",
+  "description": "Academy management system for Skidy Rein — Kids coding education platform",
+  "author": "Abdelrahman",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "date-fns-jalali": "^4.1.0-0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
+    "next": "16.2.2",
+    "next-intl": "^4.9.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.72.0",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.1.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+==================== FILE :: tsconfig.json ====================
+
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+==================== FILE :: PROJECT_CONTEXT.md ====================
+
+﻿# Skidy Rein CRM — Full Context for New Chat
+
+## Tech
+Next.js 16 + TypeScript strict + Supabase + Tailwind + Zustand
+Repo: 3bdelroohman/Skidy-Rein-CRM
+
+## DB Tables (Supabase)
+app_settings, attendance, audit_log, class_enrollments, classes,
+courses, follow_ups, lead_activities, leads, notifications,
+parents, payments, profiles, referrals, sessions, students,
+teacher_finance_config, teachers, trials
+
+IMPORTANT: schedule table = "sessions" (NOT schedule_sessions)
+IMPORTANT: courses table has 4 rows: scratch, python, web, ai
+
+## Data
+leads: 96 (85 won, 11 new) | parents: 71 | students: 85
+teachers: 10 | sessions: 32 | courses: 4
+
+## Auth Users (all role=admin now)
+alaa@skidyrain.com, 3bdelroohman@gmail.com, samar@skidyrain.com,
+hagar@skidyrain.com, khaled@skidyrain.com
+
+## Routes: src/app/(dashboard)/...
+leads, parents, students, teachers, schedule, payments, reports,
+follow-ups, action-center, settings
+teachers/finance, teachers/[id], students/[id]/report
+
+## Course Options (from student-form dropdown)
+scratch, app_inventor, robotics_basic, ai_intro, python, godot,
+robotics_iot, fastapi, html_css, javascript_tailwind, front_end,
+ai_ml, data_science, back_end, raspberry_pi
+
+## Completed
+- Build clean 22/22 pages
+- CRUD all entities
+- RLS 30 policies + 19 temp_read policies + Audit 24 triggers
+- Teacher finance in Supabase (teacher_finance_config table)
+- Duplicate prevention + Auto-enrollment (lead won -> parent+student)
+- Pre-push quality gate
+
+## Current Issues (TODO)
+1. Schedule: times show HH:MM:SS instead of HH:MM
+2. Schedule: class names include dates like "JavaScript(Sun 6:30 PM)"
+3. Schedule: cards overflow their boxes
+4. Teacher finance: needs duration dropdown + course dropdown (from DB) + editable price
+5. Payments/new: student names show in dropdown (WORKING) but need verify
+
+## Rules
+1. No schema assumptions - ask first
+2. Node.js scripts for Arabic files (not PowerShell)
+3. SQL runs in Supabase SQL Editor only (NOT PowerShell)
+4. Every fix must keep npm run build clean
+5. Big batches not line-by-line
+6. PowerShell breaks Arabic UTF-8 - use Node scripts
+7. [id] in paths breaks PowerShell - use Node scripts
+
+## How to get any file
+node -e "require('child_process').spawn('clip').stdin.end(require('fs').readFileSync('FILE_PATH','utf8'))"
+
+## How to get multiple files
+node -e "let o='';['file1','file2'].forEach(f=>{o+='\n=== '+f+' ===\n';try{o+=require('fs').readFileSync(f,'utf8')}catch(e){o+='NOT FOUND'}});require('child_process').spawn('clip').stdin.end(o)"
+
+## How to list all pages
+node -e "const{readdirSync:r,statSync:s}=require('fs'),{join:j}=require('path');function walk(d,f=[]){try{r(d).forEach(e=>{const p=j(d,e);s(p).isDirectory()?walk(p,f):e==='page.tsx'&&f.push(p)})}catch(e){}return f}console.log(walk('src').join('\n'))"
+
+
+==================== FILE :: src/config/course-roadmap.ts ====================
+
+import type { CourseType, Locale } from "@/types/common.types";
+
+export interface CourseRoadmapOption {
+  value: CourseType;
+  shortLabelAr: string;
+  shortLabelEn: string;
+  formLabelAr: string;
+  formLabelEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  tracksAr: string[];
+  tracksEn: string[];
+}
+
+export interface CourseTrackOption {
+  id: string;
+  family: CourseType;
+  labelAr: string;
+  labelEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+}
+
+
+export interface CourseTrackGroup {
+  family: CourseType;
+  label: string;
+  description: string;
+  options: Array<{ value: string; label: string; description: string }>
+}
+
+export const COURSE_ROADMAP_OPTIONS: CourseRoadmapOption[] = [
+  {
+    value: "scratch",
+    shortLabelAr: "Scratch",
+    shortLabelEn: "Scratch",
+    formLabelAr: "مرحلة التأسيس الإبداعي",
+    formLabelEn: "Creative foundations",
+    descriptionAr: "مدخل مناسب للمبتدئين قبل المسارات البرمجية الأعمق.",
+    descriptionEn: "Best starting family for beginners before deeper programming tracks.",
+    tracksAr: ["Scratch", "App Inventor", "روبوتكس أساسي", "مقدمة في الذكاء الاصطناعي"],
+    tracksEn: ["Scratch", "App Inventor", "Basic Robotics", "Intro to AI"],
+  },
+  {
+    value: "python",
+    shortLabelAr: "Python",
+    shortLabelEn: "Python",
+    formLabelAr: "مرحلة البرمجة العملية",
+    formLabelEn: "Practical programming",
+    descriptionAr: "عائلة تطوير منطق البرمجة وبناء المشاريع العملية والمتوسطة.",
+    descriptionEn: "Programming-logic family for practical and intermediate projects.",
+    tracksAr: ["Python", "Godot", "Robotics / IoT", "FastAPI"],
+    tracksEn: ["Python", "Godot", "Robotics / IoT", "FastAPI"],
+  },
+  {
+    value: "web",
+    shortLabelAr: "Front-End",
+    shortLabelEn: "Front-End",
+    formLabelAr: "مرحلة التطبيقات والويب",
+    formLabelEn: "Apps and web",
+    descriptionAr: "عائلة الويب والتطبيقات والواجهات للمستوى المتوسط إلى المتقدم.",
+    descriptionEn: "Web, apps, and interface-building family for intermediate to advanced learners.",
+    tracksAr: ["HTML / CSS", "JavaScript / Tailwind", "Front End"],
+    tracksEn: ["HTML / CSS", "JavaScript / Tailwind", "Front End"],
+  },
+  {
+    value: "ai",
+    shortLabelAr: "AI / Data",
+    shortLabelEn: "AI / Data",
+    formLabelAr: "مرحلة الذكاء الاصطناعي والبيانات",
+    formLabelEn: "AI and data",
+    descriptionAr: "عائلة المسارات المتقدمة للذكاء الاصطناعي والبيانات والباك إند.",
+    descriptionEn: "Advanced family for AI, data, and back-end oriented tracks.",
+    tracksAr: ["AI & Machine Learning", "Data Science", "Back End", "Raspberry Pi"],
+    tracksEn: ["AI & Machine Learning", "Data Science", "Back End", "Raspberry Pi"],
+  },
+];
+
+export const COURSE_TRACK_OPTIONS: CourseTrackOption[] = [
+  { id: "scratch", family: "scratch", labelAr: "Scratch", labelEn: "Scratch", descriptionAr: "بداية مناسبة للأطفال في البرمجة المرئية.", descriptionEn: "A visual coding starting point for kids." },
+  { id: "app_inventor", family: "scratch", labelAr: "App Inventor", labelEn: "App Inventor", descriptionAr: "بناء تطبيقات بسيطة للمبتدئين.", descriptionEn: "Build simple beginner-friendly apps." },
+  { id: "robotics_basic", family: "scratch", labelAr: "روبوتكس أساسي", labelEn: "Basic Robotics", descriptionAr: "مدخل عملي للهاردوير والمنطق الحركي.", descriptionEn: "A practical introduction to hardware and motion logic." },
+  { id: "ai_intro", family: "scratch", labelAr: "مقدمة في الذكاء الاصطناعي", labelEn: "Intro to AI", descriptionAr: "تعريف مبسط بمفاهيم الذكاء الاصطناعي.", descriptionEn: "A simplified introduction to AI concepts." },
+  { id: "python", family: "python", labelAr: "Python", labelEn: "Python", descriptionAr: "المسار الأساسي للبرمجة النصية والمنطق.", descriptionEn: "Core text-based programming and logic track." },
+  { id: "godot", family: "python", labelAr: "Godot", labelEn: "Godot", descriptionAr: "مدخل لتطوير الألعاب والمشاهد التفاعلية.", descriptionEn: "An introduction to game development and interactive scenes." },
+  { id: "robotics_iot", family: "python", labelAr: "Robotics / IoT", labelEn: "Robotics / IoT", descriptionAr: "مشاريع تجمع بين البرمجة والهاردوير والاتصال.", descriptionEn: "Projects that combine code, hardware, and connectivity." },
+  { id: "fastapi", family: "python", labelAr: "FastAPI", labelEn: "FastAPI", descriptionAr: "خطوة أولى في بناء واجهات back-end بسيطة.", descriptionEn: "A first step into simple back-end API building." },
+  { id: "html_css", family: "web", labelAr: "HTML / CSS", labelEn: "HTML / CSS", descriptionAr: "أساس تصميم صفحات الويب.", descriptionEn: "The foundation of web page design." },
+  { id: "javascript_tailwind", family: "web", labelAr: "JavaScript / Tailwind", labelEn: "JavaScript / Tailwind", descriptionAr: "التفاعل والواجهات الحديثة على الويب.", descriptionEn: "Interactivity and modern web interfaces." },
+  { id: "front_end", family: "web", labelAr: "Front End", labelEn: "Front End", descriptionAr: "المسار المتكامل لبناء الواجهات الأمامية.", descriptionEn: "A complete front-end engineering path." },
+  { id: "ai_ml", family: "ai", labelAr: "AI & Machine Learning", labelEn: "AI & Machine Learning", descriptionAr: "المسار المتقدم لبناء نماذج وتطبيقات ذكية.", descriptionEn: "An advanced path for intelligent models and apps." },
+  { id: "data_science", family: "ai", labelAr: "Data Science", labelEn: "Data Science", descriptionAr: "تحليل البيانات وبناء قصص وقراءات منها.", descriptionEn: "Analyze data and turn it into insights." },
+  { id: "back_end", family: "ai", labelAr: "Back End", labelEn: "Back End", descriptionAr: "بناء المنطق الخلفي وربط الخدمات.", descriptionEn: "Build back-end logic and connect services." },
+  { id: "raspberry_pi", family: "ai", labelAr: "Raspberry Pi", labelEn: "Raspberry Pi", descriptionAr: "مشاريع واقعية تربط البرمجة بالأجهزة.", descriptionEn: "Real-world projects linking code with devices." },
+];
+
+export function getCourseRoadmapOption(value: CourseType | null | undefined): CourseRoadmapOption | null {
+  if (!value) return null;
+  return COURSE_ROADMAP_OPTIONS.find((item) => item.value === value) ?? null;
+}
+
+export function getCourseFormLabel(value: CourseType, locale: Locale = "ar"): string {
+  const option = getCourseRoadmapOption(value);
+  if (!option) return value;
+  return locale === "ar" ? option.formLabelAr : option.formLabelEn;
+}
+
+export function getCourseTracks(value: CourseType, locale: Locale = "ar"): string[] {
+  const option = getCourseRoadmapOption(value);
+  if (!option) return [];
+  return locale === "ar" ? option.tracksAr : option.tracksEn;
+}
+
+export function getCourseTrackOptions(locale: Locale = "ar"): Array<{ value: string; label: string; family: CourseType; description: string }> {
+  return COURSE_TRACK_OPTIONS.map((item) => ({
+    value: item.id,
+    family: item.family,
+    label: locale === "ar" ? item.labelAr : item.labelEn,
+    description: locale === "ar" ? item.descriptionAr : item.descriptionEn,
+  }));
+}
+
+export function getCourseFamilyFromTrack(trackId: string | null | undefined): CourseType | null {
+  if (!trackId) return null;
+  return COURSE_TRACK_OPTIONS.find((item) => item.id === trackId)?.family ?? null;
+}
+
+export function getDefaultTrackIdForFamily(family: CourseType | null | undefined): string {
+  return COURSE_TRACK_OPTIONS.find((item) => item.family === family)?.id ?? "";
+}
+
+export function getCourseTrackLabel(trackId: string | null | undefined, locale: Locale = "ar"): string {
+  const track = COURSE_TRACK_OPTIONS.find((item) => item.id === trackId);
+  if (!track) return "";
+  return locale === "ar" ? track.labelAr : track.labelEn;
+}
+
+export function suggestCourseByAge(age: number, hasPriorExperience = false): CourseType {
+  if (age <= 11) return "scratch";
+  if (age <= 14) return hasPriorExperience ? "python" : "scratch";
+  if (age <= 16) return hasPriorExperience ? "web" : "python";
+  return hasPriorExperience ? "ai" : "web";
+}
+
+
+export function getCourseTrackGroups(locale: Locale = "ar"): CourseTrackGroup[] {
+  return COURSE_ROADMAP_OPTIONS.map((family) => ({
+    family: family.value,
+    label: locale === "ar" ? family.formLabelAr : family.formLabelEn,
+    description: locale === "ar" ? family.descriptionAr : family.descriptionEn,
+    options: COURSE_TRACK_OPTIONS.filter((item) => item.family === family.value).map((item) => ({
+      value: item.id,
+      label: locale === "ar" ? item.labelAr : item.labelEn,
+      description: locale === "ar" ? item.descriptionAr : item.descriptionEn,
+    })),
+  }));
+}
+
+export function getCourseTrackMeta(trackId: string | null | undefined): CourseTrackOption | null {
+  if (!trackId) return null;
+  return COURSE_TRACK_OPTIONS.find((item) => item.id === trackId) ?? null;
+}
+
+
+==================== FILE :: src/config/labels.ts ====================
+
+import type {
+  CommChannel,
+  CourseType,
+  EmploymentType,
+  FollowUpType,
+  LeadSource,
+  LeadStage,
+  LeadTemperature,
+  LossReason,
+  PaymentMethod,
+  PaymentStatus,
+  Priority,
+  StudentStatus,
+} from "@/types/common.types";
+
+export const TEMPERATURE_LABELS: Record<LeadTemperature, string> = {
+  hot: "مهتم جداً",
+  warm: "مهتم",
+  cold: "غير جاهز حالياً",
+};
+
+export const TEMPERATURE_EN_LABELS: Record<LeadTemperature, string> = {
+  hot: "Very interested",
+  warm: "Interested",
+  cold: "Not ready yet",
+};
+
+export const STAGE_LABELS: Record<LeadStage, string> = {
+  new: "جديد",
+  qualified: "مهتم",
+  trial_proposed: "عُرض عليه سيشن تجريبية",
+  trial_booked: "حجز سيشن تجريبية",
+  trial_attended: "حضر السيشن التجريبية",
+  offer_sent: "تم إرسال العرض",
+  won: "مشترك",
+  lost: "لم يشترك",
+};
+
+export const STAGE_EN_LABELS: Record<LeadStage, string> = {
+  new: "New",
+  qualified: "Interested",
+  trial_proposed: "Trial proposed",
+  trial_booked: "Trial booked",
+  trial_attended: "Trial attended",
+  offer_sent: "Offer sent",
+  won: "Enrolled",
+  lost: "Did not enroll",
+};
+
+export const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
+  trial: "في حصة تجريبية",
+  active: "نشط",
+  paused: "متوقف مؤقتاً",
+  at_risk: "بحاجة متابعة",
+  completed: "أنهى الدورة",
+  churned: "انسحب",
+};
+
+export const STUDENT_STATUS_EN_LABELS: Record<StudentStatus, string> = {
+  trial: "In trial class",
+  active: "Active",
+  paused: "Paused",
+  at_risk: "Needs attention",
+  completed: "Completed",
+  churned: "Dropped",
+};
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  urgent: "عاجل جداً",
+  high: "عاجل",
+  medium: "مهم",
+  low: "غير مستعجل",
+};
+
+export const PRIORITY_EN_LABELS: Record<Priority, string> = {
+  urgent: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export const LOSS_REASON_LABELS: Record<LossReason, string> = {
+  price: "السعر غير مناسب",
+  wants_offline: "يفضّل كورس حضوري",
+  no_laptop: "لا يوجد جهاز مناسب",
+  age_mismatch: "العمر غير مناسب للكورس",
+  no_response: "لا يرد على التواصل",
+  exams_deferred: "مؤجّل إلى بعد الامتحانات",
+  not_convinced_online: "غير مقتنع بالتعلّم أونلاين",
+  chose_competitor: "انضم لمركز/أكاديمية أخرى",
+  other: "سبب آخر",
+};
+
+export const LOSS_REASON_EN_LABELS: Record<LossReason, string> = {
+  price: "Price is not suitable",
+  wants_offline: "Prefers offline course",
+  no_laptop: "No suitable device",
+  age_mismatch: "Age does not fit the course",
+  no_response: "Not responding",
+  exams_deferred: "Postponed until after exams",
+  not_convinced_online: "Not convinced by online learning",
+  chose_competitor: "Joined another academy",
+  other: "Other reason",
+};
+
+export const FOLLOW_UP_TYPE_LABELS: Record<FollowUpType, string> = {
+  first_contact: "أول تواصل",
+  qualification: "تأهيل العميل",
+  trial_reminder: "تذكير بالسيشن التجريبية",
+  post_trial: "متابعة بعد السيشن التجريبية",
+  no_show: "متابعة عدم الحضور",
+  closing: "إغلاق الاشتراك",
+  payment_reminder: "تذكير بالدفع",
+  re_engagement: "إعادة تواصل",
+};
+
+export const FOLLOW_UP_TYPE_EN_LABELS: Record<FollowUpType, string> = {
+  first_contact: "First contact",
+  qualification: "Qualification",
+  trial_reminder: "Trial reminder",
+  post_trial: "Post-trial follow-up",
+  no_show: "No-show follow-up",
+  closing: "Closing",
+  payment_reminder: "Payment reminder",
+  re_engagement: "Re-engagement",
+};
+
+export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
+  facebook_ad: "إعلان فيسبوك",
+  instagram_ad: "إعلان إنستجرام",
+  group: "جروب",
+  referral: "ترشيح",
+  direct: "مباشر",
+  website: "الموقع",
+  other: "أخرى",
+};
+
+export const LEAD_SOURCE_EN_LABELS: Record<LeadSource, string> = {
+  facebook_ad: "Facebook ad",
+  instagram_ad: "Instagram ad",
+  group: "Group",
+  referral: "Referral",
+  direct: "Direct",
+  website: "Website",
+  other: "Other",
+};
+
+export const COMM_CHANNEL_LABELS: Record<CommChannel, string> = {
+  whatsapp: "واتساب",
+  email: "بريد إلكتروني",
+  call: "مكالمة",
+  sms: "رسالة نصية",
+};
+
+export const COMM_CHANNEL_EN_LABELS: Record<CommChannel, string> = {
+  whatsapp: "WhatsApp",
+  email: "Email",
+  call: "Call",
+  sms: "SMS",
+};
+
+export const COURSE_TYPE_LABELS: Record<CourseType, string> = {
+  scratch: "Scratch",
+  python: "Python",
+  web: "Web Development",
+  ai: "AI & Machine Learning",
+};
+
+export const COURSE_TYPE_EN_LABELS: Record<CourseType, string> = {
+  scratch: "Scratch",
+  python: "Python",
+  web: "Web Development",
+  ai: "AI & Machine Learning",
+};
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  paid: "مدفوع",
+  pending: "قيد الانتظار",
+  overdue: "متأخر",
+  refunded: "مسترد",
+  partial: "مدفوع جزئيًا",
+};
+
+export const PAYMENT_STATUS_EN_LABELS: Record<PaymentStatus, string> = {
+  paid: "Paid",
+  pending: "Pending",
+  overdue: "Overdue",
+  refunded: "Refunded",
+  partial: "Partially paid",
+};
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  bank_transfer: "تحويل بنكي",
+  card: "بطاقة",
+  wallet: "محفظة إلكترونية",
+  cash: "نقدي",
+  instapay: "إنستاباي",
+};
+
+export const PAYMENT_METHOD_EN_LABELS: Record<PaymentMethod, string> = {
+  bank_transfer: "Bank transfer",
+  card: "Card",
+  wallet: "Wallet",
+  cash: "Cash",
+  instapay: "Instapay",
+};
+
+export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  full_time: "دوام كامل",
+  part_time: "دوام جزئي",
+  freelance: "تعاقد حر",
+};
+
+export const EMPLOYMENT_TYPE_EN_LABELS: Record<EmploymentType, string> = {
+  full_time: "Full time",
+  part_time: "Part time",
+  freelance: "Freelance",
+};
+
+export const FILTER_LABELS = {
+  allStages: "كل المراحل",
+  allTemperatures: "كل التصنيفات",
+  allStudentStatuses: "كل الحالات",
+  allPriorities: "كل الأولويات",
+} as const;
+
+export const FILTER_EN_LABELS = {
+  allStages: "All stages",
+  allTemperatures: "All temperatures",
+  allStudentStatuses: "All statuses",
+  allPriorities: "All priorities",
+} as const;
+
+export const DAY_LABELS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"] as const;
+export const DAY_EN_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+
+export const CONVERSION_TERMS = {
+  conversionRate: "معدل الاشتراك",
+  successfulConversion: "اشتراك ناجح",
+  averageConversionTime: "متوسط وقت قرار الاشتراك",
+} as const;
+
+export const CONVERSION_EN_TERMS = {
+  conversionRate: "Enrollment rate",
+  successfulConversion: "Successful enrollment",
+  averageConversionTime: "Average enrollment decision time",
+} as const;
+
+
+==================== FILE :: src/lib/mock-data.ts ====================
+
+import type {
+  CourseType,
+  LeadSource,
+  LeadStage,
+  LeadTemperature,
+  StudentStatus,
+} from "@/types/common.types";
+import type { FollowUpItem, LeadActivityItem } from "@/types/crm";
+
+export interface MockLead {
+  id: string;
+  parentName: string;
+  parentPhone: string;
+  childName: string;
+  childAge: number;
+  stage: LeadStage;
+  temperature: LeadTemperature;
+  source: LeadSource;
+  suggestedCourse: CourseType | null;
+  assignedTo: string;
+  assignedToName: string;
+  lastContactAt: string | null;
+  nextFollowUpAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  lossReason?: null | "price";
+}
+
+export const MOCK_LEADS: MockLead[] = [
+  {
+    id: "1",
+    parentName: "أحمد محمد",
+    parentPhone: "01012345678",
+    childName: "يوسف",
+    childAge: 10,
+    stage: "new",
+    temperature: "hot",
+    source: "facebook_ad",
+    suggestedCourse: "scratch",
+    assignedTo: "1",
+    assignedToName: "الاء",
+    lastContactAt: null,
+    nextFollowUpAt: "2026-04-06T10:00:00",
+    notes: "مهتم جداً — سأل عن المواعيد",
+    createdAt: "2026-04-05T08:00:00",
+    lossReason: null,
+  },
+  {
+    id: "2",
+    parentName: "سارة أحمد",
+    parentPhone: "01098765432",
+    childName: "ملك",
+    childAge: 14,
+    stage: "qualified",
+    temperature: "hot",
+    source: "instagram_ad",
+    suggestedCourse: "python",
+    assignedTo: "2",
+    assignedToName: "سمر",
+    lastContactAt: "2026-04-04T14:00:00",
+    nextFollowUpAt: "2026-04-06T14:00:00",
+    notes: "عندها لابتوب — مهتمة بالـ AI",
+    createdAt: "2026-04-03T10:00:00",
+    lossReason: null,
+  },
+  {
+    id: "3",
+    parentName: "محمد علي",
+    parentPhone: "01155544433",
+    childName: "عمر",
+    childAge: 8,
+    stage: "trial_proposed",
+    temperature: "warm",
+    source: "referral",
+    suggestedCourse: "scratch",
+    assignedTo: "1",
+    assignedToName: "الاء",
+    lastContactAt: "2026-04-04T11:00:00",
+    nextFollowUpAt: "2026-04-07T10:00:00",
+    notes: "صاحب أحمد محمد — referral",
+    createdAt: "2026-04-02T09:00:00",
+    lossReason: null,
+  },
+  {
+    id: "4",
+    parentName: "فاطمة حسن",
+    parentPhone: "01234567890",
+    childName: "زين",
+    childAge: 11,
+    stage: "trial_booked",
+    temperature: "hot",
+    source: "facebook_ad",
+    suggestedCourse: "scratch",
+    assignedTo: "2",
+    assignedToName: "سمر",
+    lastContactAt: "2026-04-05T09:00:00",
+    nextFollowUpAt: "2026-04-08T16:00:00",
+    notes: "السيشن التجريبية يوم الثلاثاء 4 مساءً",
+    createdAt: "2026-04-01T12:00:00",
+    lossReason: null,
+  },
+  {
+    id: "5",
+    parentName: "هدى إبراهيم",
+    parentPhone: "01122334455",
+    childName: "ليلى",
+    childAge: 13,
+    stage: "trial_attended",
+    temperature: "hot",
+    source: "website",
+    suggestedCourse: "python",
+    assignedTo: "1",
+    assignedToName: "الاء",
+    lastContactAt: "2026-04-05T17:00:00",
+    nextFollowUpAt: "2026-04-06T12:00:00",
+    notes: "حضرت السيشن التجريبية — المدرس أعجبها جداً",
+    createdAt: "2026-03-28T08:00:00",
+    lossReason: null,
+  },
+  {
+    id: "6",
+    parentName: "خالد عبدالله",
+    parentPhone: "01066778899",
+    childName: "آدم",
+    childAge: 7,
+    stage: "offer_sent",
+    temperature: "warm",
+    source: "group",
+    suggestedCourse: "scratch",
+    assignedTo: "2",
+    assignedToName: "سمر",
+    lastContactAt: "2026-04-05T10:00:00",
+    nextFollowUpAt: "2026-04-06T18:00:00",
+    notes: "أرسلنا العرض — ينتظر رد الأب",
+    createdAt: "2026-03-25T14:00:00",
+    lossReason: null,
+  },
+  {
+    id: "7",
+    parentName: "نورا سعيد",
+    parentPhone: "01199887766",
+    childName: "كريم",
+    childAge: 9,
+    stage: "won",
+    temperature: "hot",
+    source: "facebook_ad",
+    suggestedCourse: "scratch",
+    assignedTo: "1",
+    assignedToName: "الاء",
+    lastContactAt: "2026-04-04T16:00:00",
+    nextFollowUpAt: null,
+    notes: "تم الاشتراك — بدأ الكلاس",
+    createdAt: "2026-03-20T10:00:00",
+    lossReason: null,
+  },
+  {
+    id: "8",
+    parentName: "ريم محمود",
+    parentPhone: "01033445566",
+    childName: "سلمى",
+    childAge: 6,
+    stage: "lost",
+    temperature: "cold",
+    source: "instagram_ad",
+    suggestedCourse: "scratch",
+    assignedTo: "2",
+    assignedToName: "سمر",
+    lastContactAt: "2026-04-02T13:00:00",
+    nextFollowUpAt: null,
+    notes: "السعر عالي — مؤجل للشهر الجاي",
+    createdAt: "2026-03-15T11:00:00",
+    lossReason: "price",
+  },
+];
+
+export const MOCK_TEAM = [
+  { id: "1", name: "الاء", role: "sales" as const },
+  { id: "2", name: "سمر", role: "sales" as const },
+  { id: "3", name: "هاجر", role: "ops" as const },
+];
+
+export interface MockStudent {
+  id: string;
+  fullName: string;
+  age: number;
+  parentName: string;
+  parentPhone: string;
+  status: StudentStatus;
+  currentCourse: CourseType | null;
+  className: string | null;
+  enrollmentDate: string;
+  sessionsAttended: number;
+  totalPaid: number;
+}
+
+export interface MockParent {
+  id: string;
+  fullName: string;
+  phone: string;
+  whatsapp: string | null;
+  email: string | null;
+  city: string | null;
+  childrenCount: number;
+  children: string[];
+}
+
+export interface MockTeacher {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  specialization: CourseType[];
+  employment: "full_time" | "part_time" | "freelance";
+  classesCount: number;
+  studentsCount: number;
+  isActive: boolean;
+}
+
+export const MOCK_STUDENTS: MockStudent[] = [
+  { id: "1", fullName: "يوسف أحمد", age: 10, parentName: "أحمد محمد", parentPhone: "01012345678", status: "active", currentCourse: "scratch", className: "Scratch A", enrollmentDate: "2026-03-01", sessionsAttended: 12, totalPaid: 1500 },
+  { id: "2", fullName: "ملك سارة", age: 14, parentName: "سارة أحمد", parentPhone: "01098765432", status: "active", currentCourse: "python", className: "Python B", enrollmentDate: "2026-02-15", sessionsAttended: 18, totalPaid: 2250 },
+  { id: "3", fullName: "كريم نورا", age: 9, parentName: "نورا سعيد", parentPhone: "01199887766", status: "trial", currentCourse: "scratch", className: null, enrollmentDate: "2026-04-01", sessionsAttended: 1, totalPaid: 0 },
+  { id: "4", fullName: "سلمى خالد", age: 11, parentName: "خالد عبدالله", parentPhone: "01066778899", status: "at_risk", currentCourse: "scratch", className: "Scratch A", enrollmentDate: "2026-01-10", sessionsAttended: 8, totalPaid: 750 },
+  { id: "5", fullName: "عمر محمد", age: 8, parentName: "محمد علي", parentPhone: "01155544433", status: "paused", currentCourse: "scratch", className: "Scratch B", enrollmentDate: "2026-02-01", sessionsAttended: 6, totalPaid: 750 },
+  { id: "6", fullName: "ليلى هدى", age: 13, parentName: "هدى إبراهيم", parentPhone: "01122334455", status: "active", currentCourse: "python", className: "Python A", enrollmentDate: "2026-03-15", sessionsAttended: 8, totalPaid: 1500 },
+];
+
+export const MOCK_PARENTS: MockParent[] = [
+  { id: "1", fullName: "أحمد محمد", phone: "01012345678", whatsapp: "01012345678", email: "ahmed@gmail.com", city: "القاهرة", childrenCount: 1, children: ["يوسف"] },
+  { id: "2", fullName: "سارة أحمد", phone: "01098765432", whatsapp: "01098765432", email: "sara@gmail.com", city: "الإسكندرية", childrenCount: 1, children: ["ملك"] },
+  { id: "3", fullName: "نورا سعيد", phone: "01199887766", whatsapp: null, email: null, city: "القاهرة", childrenCount: 1, children: ["كريم"] },
+  { id: "4", fullName: "خالد عبدالله", phone: "01066778899", whatsapp: "01066778899", email: "khaled@gmail.com", city: "المنصورة", childrenCount: 1, children: ["سلمى"] },
+  { id: "5", fullName: "محمد علي", phone: "01155544433", whatsapp: "01155544433", email: null, city: "القاهرة", childrenCount: 1, children: ["عمر"] },
+  { id: "6", fullName: "هدى إبراهيم", phone: "01122334455", whatsapp: "01122334455", email: "huda@gmail.com", city: "طنطا", childrenCount: 1, children: ["ليلى"] },
+];
+
+export const MOCK_TEACHERS: MockTeacher[] = [
+  { id: "1", fullName: "أ. محمود حسن", phone: "01011112222", email: "mahmoud@skidyrein.com", specialization: ["scratch"], employment: "part_time", classesCount: 3, studentsCount: 15, isActive: true },
+  { id: "2", fullName: "أ. دينا سمير", phone: "01033334444", email: "dina@skidyrein.com", specialization: ["python", "ai"], employment: "full_time", classesCount: 4, studentsCount: 20, isActive: true },
+  { id: "3", fullName: "أ. كريم فتحي", phone: "01055556666", email: "karim@skidyrein.com", specialization: ["scratch", "web"], employment: "freelance", classesCount: 2, studentsCount: 8, isActive: true },
+];
+
+export const MOCK_FOLLOW_UPS: FollowUpItem[] = [
+  { id: "1", title: "متابعة يوسف — أول تواصل", leadId: "1", leadName: "يوسف أحمد", parentName: "أحمد محمد", type: "first_contact", channel: "whatsapp", priority: "high", scheduledAt: "2026-04-06T10:00:00", status: "pending", assignedTo: "الاء" },
+  { id: "2", title: "تذكير بالسيشن التجريبية — زين", leadId: "4", leadName: "زين فاطمة", parentName: "فاطمة حسن", type: "trial_reminder", channel: "whatsapp", priority: "urgent", scheduledAt: "2026-04-06T14:00:00", status: "pending", assignedTo: "سمر" },
+  { id: "3", title: "متابعة بعد السيشن — ليلى", leadId: "5", leadName: "ليلى هدى", parentName: "هدى إبراهيم", type: "post_trial", channel: "call", priority: "high", scheduledAt: "2026-04-06T12:00:00", status: "pending", assignedTo: "الاء" },
+  { id: "4", title: "إعادة تواصل — عمر", leadId: "3", leadName: "عمر محمد", parentName: "محمد علي", type: "re_engagement", channel: "whatsapp", priority: "medium", scheduledAt: "2026-04-07T10:00:00", status: "pending", assignedTo: "الاء" },
+  { id: "5", title: "متابعة الدفع — آدم", leadId: "6", leadName: "آدم خالد", parentName: "خالد عبدالله", type: "closing", channel: "whatsapp", priority: "high", scheduledAt: "2026-04-06T18:00:00", status: "pending", assignedTo: "سمر" },
+  { id: "6", title: "أول تواصل — Lead جديد", leadId: null, leadName: "حسن أيمن", parentName: "أيمن حسن", type: "first_contact", channel: "whatsapp", priority: "medium", scheduledAt: "2026-04-05T09:00:00", status: "overdue", assignedTo: "سمر" },
+  { id: "7", title: "متابعة ملك — تأكيد الدفع", leadId: "2", leadName: "ملك سارة", parentName: "سارة أحمد", type: "payment_reminder", channel: "call", priority: "medium", scheduledAt: "2026-04-04T15:00:00", status: "completed", assignedTo: "سمر" },
+];
+
+export const MOCK_LEAD_ACTIVITIES: LeadActivityItem[] = [
+  { id: "1", leadId: "1", action: "تم إنشاء العميل المحتمل", date: "2026-04-05T08:00:00", by: "الاء", type: "create" },
+  { id: "2", leadId: "1", action: "أول تواصل عبر واتساب", date: "2026-04-05T09:30:00", by: "الاء", type: "contact" },
+  { id: "3", leadId: "1", action: "تم التأهيل — سن مناسب + لابتوب", date: "2026-04-05T09:45:00", by: "الاء", type: "stage" },
+  { id: "4", leadId: "1", action: "عُرضت السيشن التجريبية", date: "2026-04-05T10:00:00", by: "الاء", type: "stage" },
+  { id: "5", leadId: "5", action: "حضرت السيشن التجريبية بنجاح", date: "2026-04-05T17:00:00", by: "الاء", type: "stage" },
+  { id: "6", leadId: "6", action: "تم إرسال العرض السعري", date: "2026-04-05T10:00:00", by: "سمر", type: "stage" },
+];
+
+
+==================== FILE :: src/services/teachers.service.ts ====================
+
+﻿import { createBrowserClient } from "@supabase/ssr";
+import type { CourseType, EmploymentType } from "@/types/common.types";
+import type { CreateTeacherInput, TeacherListItem } from "@/types/crm";
+import type { Database } from "@/types/database.types";
+import { MOCK_TEACHERS } from "@/lib/mock-data";
+import { isBrowser, readStorage, writeStorage } from "@/services/storage";
+
+const TEACHERS_KEY = "skidy.crm.teachers";
+const VALID_EMPLOYMENTS: EmploymentType[] = ["full_time", "part_time", "freelance"];
+const VALID_COURSES: CourseType[] = ["scratch", "python", "web", "ai"];
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !isBrowser()) return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+function sortTeachers(items: TeacherListItem[]): TeacherListItem[] {
+  return [...items].sort((a, b) => a.fullName.localeCompare(b.fullName, "ar"));
+}
+
+function mockTeachers(): TeacherListItem[] {
+  return MOCK_TEACHERS.map((teacher) => ({ ...teacher }));
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+
+function asEmployment(value: unknown): EmploymentType {
+  return VALID_EMPLOYMENTS.includes(value as EmploymentType) ? (value as EmploymentType) : "part_time";
+}
+
+function asSpecialization(value: unknown, fallback: CourseType[] = []): CourseType[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is CourseType => VALID_COURSES.includes(item as CourseType));
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item): item is CourseType => VALID_COURSES.includes(item as CourseType));
+  }
+  return fallback;
+}
+
+function normalizeName(value: string | null | undefined): string {
+  return (value ?? "").toLowerCase().replace(/[\u064B-\u065F]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function normalizePhone(value: string | null | undefined): string {
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (digits.startsWith("20") && digits.length > 11) return digits.slice(2);
+  if (digits.startsWith("2") && digits.length === 12) return digits.slice(1);
+  return digits;
+}
+
+function mapRow(row: Record<string, unknown>): TeacherListItem {
+  const fallback = MOCK_TEACHERS.find(
+    (teacher) => teacher.fullName === asString(row.full_name) || teacher.email === asString(row.email),
+  );
+
+  return {
+    id: asString(row.id, crypto.randomUUID()),
+    fullName: asString(row.full_name ?? row.fullName, "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯"),
+    phone: asString(row.phone, fallback?.phone ?? "â€”"),
+    email: asString(row.email, fallback?.email ?? "") || null,
+    specialization: asSpecialization(row.specialization, fallback?.specialization ?? []),
+    employment: asEmployment(row.employment ?? fallback?.employment),
+    classesCount: 0,
+    studentsCount: 0,
+    isActive: Boolean(row.is_active ?? row.isActive ?? fallback?.isActive ?? true),
+  };
+}
+
+function getLocalTeachers(): TeacherListItem[] {
+  return sortTeachers(readStorage(TEACHERS_KEY, mockTeachers()));
+}
+
+function saveLocalTeachers(items: TeacherListItem[]): void {
+  writeStorage(TEACHERS_KEY, sortTeachers(items));
+}
+
+export async function listTeachers(): Promise<TeacherListItem[]> {
+  const fallback = getLocalTeachers();
+  const supabase = getSupabaseClient();
+  if (!supabase) return fallback;
+
+  try {
+    const { data, error } = await supabase.from("teachers").select("*").order("created_at", { ascending: false });
+    if (error || !data || data.length === 0) return fallback;
+    const mapped = data.map((row) => mapRow(row as Record<string, unknown>));
+    saveLocalTeachers(mapped);
+    return mapped;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getTeacherById(id: string): Promise<TeacherListItem | null> {
+  const items = await listTeachers();
+  return items.find((teacher) => teacher.id === id) ?? null;
+}
+
+export async function createTeacher(input: CreateTeacherInput): Promise<TeacherListItem> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. Ø£Ø¹Ø¯ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ø¨Ø¹Ø¯ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£Ùˆ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª.");
+  }
+
+  const existing = await listTeachers();
+  const duplicate = existing.find((teacher) => {
+    const samePhone = normalizePhone(teacher.phone) === normalizePhone(input.phone);
+    const inputEmail = (input.email ?? "").trim().toLowerCase();
+    const teacherEmail = (teacher.email ?? "").trim().toLowerCase();
+    const sameEmail = teacherEmail.length > 0 && inputEmail.length > 0 && teacherEmail === inputEmail;
+    const sameName = normalizeName(teacher.fullName) === normalizeName(input.fullName);
+    return samePhone || sameEmail || (sameName && samePhone);
+  });
+
+  if (duplicate) {
+    throw new Error("ÙŠÙˆØ¬Ø¯ Ù…Ø¯Ø±Ø³ Ù…Ø³Ø¬Ù„ Ø¨Ø§Ù„ÙØ¹Ù„ Ø¨Ù†ÙØ³ Ø§Ù„Ø§Ø³Ù… Ø£Ùˆ Ø§Ù„Ù‡Ø§ØªÙ Ø£Ùˆ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.");
+  }
+
+  const payload: Database["public"]["Tables"]["teachers"]["Insert"] = {
+    full_name: input.fullName,
+    phone: input.phone,
+    email: input.email?.trim() || null,
+    employment: input.employment,
+    specialization: input.specialization,
+    is_active: input.isActive ?? true,
+    created_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase.from("teachers").insert(payload).select("*").single();
+  if (error || !data) {
+    throw new Error(error?.message || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ Ø§Ù„Ù…Ø¯Ø±Ø³");
+  }
+
+  const created = mapRow(data as Record<string, unknown>);
+  saveLocalTeachers([created, ...getLocalTeachers().filter((teacher) => teacher.id !== created.id)]);
+  return created;
+}
+
+
+
+export async function deleteTeacher(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.");
+  }
+
+  // Check for linked classes first
+  const { data: linkedClasses } = await supabase
+    .from("classes")
+    .select("id")
+    .eq("teacher_id", id)
+    .eq("is_active", true)
+    .limit(1);
+
+  if (linkedClasses && linkedClasses.length > 0) {
+    throw new Error("\u0644\u0627 \u064a\u0645\u0643\u0646 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 \u0644\u0623\u0646 \u0644\u062f\u064a\u0647 \u0641\u0635\u0648\u0644 \u0646\u0634\u0637\u0629. \u0623\u0644\u063a\u0650 \u0627\u0644\u0641\u0635\u0648\u0644 \u0623\u0648\u0644\u0627\u064b.");
+  }
+
+  // Verify teacher exists before delete
+  const { data: before } = await supabase
+    .from("teachers")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!before) {
+    // Teacher only in local/demo data - remove locally
+    saveLocalTeachers(getLocalTeachers().filter((t) => t.id !== id));
+    return true;
+  }
+
+  const { error } = await supabase.from("teachers").delete().eq("id", id);
+  if (error) {
+    throw new Error(error.message || "\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633.");
+  }
+
+  // Verify deletion actually happened
+  const { data: after } = await supabase
+    .from("teachers")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (after) {
+    throw new Error("\u0641\u0634\u0644 \u0627\u0644\u062d\u0630\u0641: \u0627\u0644\u0645\u062f\u0631\u0633 \u0644\u0627 \u064a\u0632\u0627\u0644 \u0645\u0648\u062c\u0648\u062f\u0627\u064b. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0635\u0644\u0627\u062d\u064a\u0627\u062a RLS.");
+  }
+
+  saveLocalTeachers(getLocalTeachers().filter((teacher) => teacher.id !== id));
+  return true;
+}
+
+
+==================== FILE :: src/components/teachers/teacher-form.tsx ====================
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, BookOpen, Save } from "lucide-react";
+import { toast } from "sonner";
+import { t, getEmploymentTypeLabel } from "@/lib/locale";
+import { useUIStore } from "@/stores/ui-store";
+import type { CourseType, EmploymentType } from "@/types/common.types";
+import type { CreateTeacherInput } from "@/types/crm";
+
+const COURSE_OPTIONS: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];
+
+function getCourseLabel(course: CourseType, locale: "ar" | "en") {
+  const labels: Record<CourseType, { ar: string; en: string }> = {
+    scratch: { ar: "Scratch", en: "Scratch" },
+    python: { ar: "Python", en: "Python" },
+    web: { ar: "Web", en: "Web" },
+    ai: { ar: "AI", en: "AI" },
+  };
+  return locale === "ar" ? labels[course].ar : labels[course].en;
+}
+
+interface TeacherFormProps {
+  title: string;
+  description: string;
+  submitLabel: string;
+  successMessage: string;
+  onSubmit: (payload: CreateTeacherInput) => Promise<void>;
+  cancelHref?: string;
+}
+
+export function TeacherForm({ title, description, submitLabel, successMessage, onSubmit, cancelHref = "/teachers" }: TeacherFormProps) {
+  const router = useRouter();
+  const locale = useUIStore((state) => state.locale);
+  const isAr = locale === "ar";
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    phone: "",
+    employment: "part_time" as EmploymentType,
+    specialization: ["scratch"] as CourseType[],
+  });
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.fullName.trim() || !form.phone.trim()) {
+      toast.error(t(locale, "اسم المدرس والهاتف مطلوبان", "Teacher name and phone are required"));
+      return;
+    }
+    if (form.specialization.length === 0) {
+      toast.error(t(locale, "اختر مسارًا واحدًا على الأقل", "Choose at least one specialization"));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit({
+        fullName: form.fullName.trim(),
+        phone: form.phone.trim(),
+        employment: form.employment,
+        specialization: form.specialization,
+      });
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر إنشاء المدرس", "Could not create teacher"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCourse = (course: CourseType) => {
+    setForm((prev) => {
+      const exists = prev.specialization.includes(course);
+      const next = exists ? prev.specialization.filter((item) => item !== course) : [...prev.specialization, course];
+      return { ...prev, specialization: next };
+    });
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={() => router.push(cancelHref)} className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">
+          {isAr ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
+        </button>
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><BookOpen size={28} className="text-brand-600" />{title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label={t(locale, "اسم المدرس *", "Teacher name *")} value={form.fullName} onChange={(value) => setForm((prev) => ({ ...prev, fullName: value }))} />
+            <Field label={t(locale, "الهاتف *", "Phone *")} value={form.phone} onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))} type="tel" />
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "نوع التعاقد", "Employment type")}</label>
+              <select value={form.employment} onChange={(event) => setForm((prev) => ({ ...prev, employment: event.target.value as EmploymentType }))} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
+                {(["full_time", "part_time", "freelance"] as EmploymentType[]).map((item) => (
+                  <option key={item} value={item}>{getEmploymentTypeLabel(item, locale)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-foreground">{t(locale, "المسارات التي يدرّسها", "Taught tracks")}</label>
+              <div className="flex flex-wrap gap-2">
+                {COURSE_OPTIONS.map((course) => {
+                  const active = form.specialization.includes(course);
+                  return (
+                    <button key={course} type="button" onClick={() => toggleCourse(course)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${active ? "border-brand-600 bg-brand-600 text-white" : "border-border bg-card text-foreground hover:bg-muted"}`}>
+                      {getCourseLabel(course, locale)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
+          <button type="button" onClick={() => router.push(cancelHref)} className="rounded-xl px-6 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted">{t(locale, "إلغاء", "Cancel")}</button>
+          <button type="submit" disabled={loading} className="flex items-center gap-2 rounded-xl bg-brand-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+            {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <><Save size={18} />{submitLabel}</>}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
+    </div>
+  );
+}
+
+
+==================== FILE :: src/services/schedule.service.ts ====================
+
+import { createBrowserClient } from "@supabase/ssr";
+import type { CourseType } from "@/types/common.types";
+import type { Database } from "@/types/database.types";
+import type { CreateScheduleEntryInput, ParentListItem, ScheduleSessionDetails, ScheduleSessionItem, StudentListItem, TeacherListItem } from "@/types/crm";
+import { isBrowser, readStorage, writeStorage } from "@/services/storage";
+import { listParents } from "@/services/parents.service";
+import { listStudents } from "@/services/students.service";
+import { listTeachers } from "@/services/teachers.service";
+
+const SCHEDULE_KEY = "skidy.crm.schedule";
+const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
+const VALID_COURSES: CourseType[] = ["scratch", "python", "web", "ai"];
+
+const DEFAULT_SCHEDULE: ScheduleSessionItem[] = [
+  { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTime: "17:00", className: "Scratch A", teacher: "Ø£. Ù…Ø­Ù…ÙˆØ¯", students: 5, course: "scratch", sessionDate: null },
+  { id: "2", classId: "class-2", teacherId: "2", day: 0, startTime: "17:30", endTime: "18:30", className: "Python A", teacher: "Ø£. Ø¯ÙŠÙ†Ø§", students: 4, course: "python", sessionDate: null },
+  { id: "3", classId: "class-3", teacherId: "3", day: 1, startTime: "16:00", endTime: "17:00", className: "Scratch B", teacher: "Ø£. ÙƒØ±ÙŠÙ…", students: 6, course: "scratch", sessionDate: null },
+  { id: "4", classId: "class-4", teacherId: "2", day: 2, startTime: "18:00", endTime: "19:00", className: "AI Intro", teacher: "Ø£. Ø¯ÙŠÙ†Ø§", students: 3, course: "ai", sessionDate: null },
+  { id: "5", classId: "class-5", teacherId: "3", day: 3, startTime: "17:00", endTime: "18:00", className: "Web Starters", teacher: "Ø£. ÙƒØ±ÙŠÙ…", students: 4, course: "web", sessionDate: null },
+  { id: "6", classId: "class-6", teacherId: "1", day: 4, startTime: "16:30", endTime: "17:30", className: "Scratch Trial", teacher: "Ø£. Ù…Ø­Ù…ÙˆØ¯", students: 5, course: "scratch", sessionDate: null },
+];
+
+type RawClassRow = {
+  id?: string | null;
+  teacher_id?: string | null;
+  name?: string | null;
+  course_id?: string | null;
+  max_students?: number | null;
+  current_students?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active?: boolean | null;
+  meeting_link?: string | null;
+  schedule_notes?: string | null;
+};
+
+type RawSessionRow = {
+  id?: string | null;
+  class_id?: string | null;
+  teacher_id?: string | null;
+  session_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  topic?: string | null;
+  notes?: string | null;
+  meeting_link?: string | null;
+  is_cancelled?: boolean | null;
+};
+
+type RawEnrollmentRow = {
+  class_id?: string | null;
+  is_active?: boolean | null;
+};
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || !isBrowser()) return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+function sortSessions(items: ScheduleSessionItem[]): ScheduleSessionItem[] {
+  return [...items].sort((a, b) => {
+    if (a.day !== b.day) return a.day - b.day;
+    return a.startTime.localeCompare(b.startTime);
+  });
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+
+function asCourse(value: unknown, fallback: CourseType = "scratch"): CourseType {
+  return VALID_COURSES.includes(value as CourseType) ? (value as CourseType) : fallback;
+}
+
+function normalizeName(value: string | null | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/Ø£\.?\s*/g, "")
+    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getLocalSchedule(): ScheduleSessionItem[] {
+  return sortSessions(readStorage(SCHEDULE_KEY, ALLOW_DEMO ? DEFAULT_SCHEDULE : []));
+}
+
+function saveLocalSchedule(items: ScheduleSessionItem[]): void {
+  writeStorage(SCHEDULE_KEY, sortSessions(items));
+}
+
+function clearLocalSchedule(): void {
+  writeStorage(SCHEDULE_KEY, []);
+}
+
+function inferTeacher(
+  teacherId: string | null,
+  rawTeacher: unknown,
+  teachers: TeacherListItem[],
+): TeacherListItem | null {
+  if (teacherId) {
+    const direct = teachers.find((teacher) => teacher.id === teacherId);
+    if (direct) return direct;
+  }
+
+  const byName = asString(rawTeacher);
+  if (!byName) return null;
+  const target = normalizeName(byName);
+  return teachers.find((teacher) => {
+    const name = normalizeName(teacher.fullName);
+    return name.includes(target) || target.includes(name);
+  }) ?? null;
+}
+
+
+
+function trimTime(v: string): string {
+  const p = v.split(":");
+  return p.length >= 2 ? p[0] + ":" + p[1] : v;
+}
+
+function cleanClassName(v: string): string {
+  return v.replace(/\s*\([^)]*\)\s*/g, "").trim() || v;
+}
+function mapSessionFromClass(
+  row: RawClassRow,
+  teachers: TeacherListItem[],
+  enrollmentCount: number,
+  courseMap: Map<string, CourseType>,
+): ScheduleSessionItem {
+  const teacher = inferTeacher(asNullableString(row.teacher_id), null, teachers);
+  const id = asString(row.id, `class-${Math.random().toString(36).slice(2, 8)}`);
+
+  return {
+    id,
+    classId: asNullableString(row.id),
+    teacherId: asNullableString(row.teacher_id),
+    day: row.start_date ? new Date(row.start_date).getDay() : 0,
+    startTime: "16:00",
+    endTime: "17:00",
+    className: cleanClassName(asString(row.name, "Class")),
+    teacher: teacher?.fullName ?? "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    students: enrollmentCount,
+    course: asCourse(row.course_id ? courseMap.get(row.course_id) : null),
+    sessionDate: null,
+  } satisfies ScheduleSessionItem;
+}
+
+function mapSessionFromSession(
+  row: RawSessionRow,
+  classMap: Map<string, RawClassRow>,
+  teachers: TeacherListItem[],
+  studentsCount: number,
+  courseMap: Map<string, CourseType>,
+): ScheduleSessionItem {
+  const classRow = row.class_id ? classMap.get(row.class_id) ?? null : null;
+  const teacher = inferTeacher(asNullableString(row.teacher_id ?? classRow?.teacher_id), null, teachers);
+  const id = asString(row.id, `session-${Math.random().toString(36).slice(2, 8)}`);
+
+  return {
+    id,
+    classId: asNullableString(row.class_id),
+    teacherId: asNullableString(row.teacher_id ?? classRow?.teacher_id),
+    day: row.session_date ? new Date(row.session_date).getDay() : 0,
+    startTime: trimTime(asString(row.start_time, "16:00")),
+    endTime: trimTime(asString(row.end_time, "17:00")),
+    className: cleanClassName(asString(classRow?.name ?? row.topic, "Session")),
+    teacher: teacher?.fullName ?? "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    students: studentsCount,
+    course: asCourse(classRow?.course_id ? courseMap.get(classRow.course_id) : null),
+    sessionDate: asNullableString(row.session_date),
+  } satisfies ScheduleSessionItem;
+}
+
+async function buildStudentsTeachersParents(): Promise<{
+  students: StudentListItem[];
+  teachers: TeacherListItem[];
+  parents: ParentListItem[];
+}> {
+  const [students, teachers, parents] = await Promise.all([listStudents(), listTeachers(), listParents()]);
+  return { students, teachers, parents };
+}
+
+export async function listScheduleSessions(): Promise<ScheduleSessionItem[]> {
+  const local = getLocalSchedule();
+  const supabase = getSupabaseClient();
+  if (!supabase) return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
+
+  try {
+    const [{ students, teachers }, classesResponse, sessionsResponse, coursesResponse, enrollmentsResponse] = await Promise.all([
+      buildStudentsTeachersParents(),
+      supabase.from("classes").select("*"),
+      supabase.from("sessions").select("*").order("session_date", { ascending: false }),
+      supabase.from("courses").select("id, type"),
+      supabase.from("class_enrollments").select("*"),
+    ]);
+
+    const classesRows = ((classesResponse.data ?? []) as RawClassRow[]);
+    const sessionRows = ((sessionsResponse.data ?? []) as RawSessionRow[]);
+    const enrollmentRows = ((enrollmentsResponse.data ?? []) as RawEnrollmentRow[]);
+
+    if (classesResponse.error || sessionsResponse.error || enrollmentsResponse.error || (coursesResponse as { error: unknown }).error) {
+      console.error("[schedule] failed to load from Supabase", classesResponse.error || sessionsResponse.error || enrollmentsResponse.error || (coursesResponse as { error: unknown }).error);
+      clearLocalSchedule();
+      return ALLOW_DEMO && local.length === 0 ? DEFAULT_SCHEDULE : [];
+    }
+
+    const courseMap = new Map<string, CourseType>();
+    ((coursesResponse as { data: { id: string; type: string }[] | null }).data ?? []).forEach((c) => courseMap.set(c.id, c.type as CourseType));
+
+    if (classesRows.length === 0 && sessionRows.length === 0) {
+      clearLocalSchedule();
+      return ALLOW_DEMO && local.length === 0 ? DEFAULT_SCHEDULE : [];
+    }
+
+    const enrollmentCountByClassId = new Map<string, number>();
+    enrollmentRows.forEach((row) => {
+      if (!row.class_id) return;
+      const isActive = row.is_active ?? true;
+      if (!isActive) return;
+      enrollmentCountByClassId.set(row.class_id, (enrollmentCountByClassId.get(row.class_id) ?? 0) + 1);
+    });
+
+    const classMap = new Map(
+      classesRows
+        .map((row) => [asString(row.id), row] as const)
+        .filter(([id]) => id.length > 0),
+    );
+
+    const classIdsWithSessions = new Set(
+      sessionRows.map((row) => row.class_id).filter((id): id is string => typeof id === "string" && id.length > 0),
+    );
+
+    const mappedFromSessions = sessionRows.map((row) => {
+      const studentsCount = row.class_id ? (enrollmentCountByClassId.get(row.class_id) ?? 0) : 0;
+      return mapSessionFromSession(row, classMap, teachers, studentsCount, courseMap);
+    });
+
+    const mappedStandaloneClasses = classesRows
+      .filter((row) => {
+        const id = asString(row.id);
+        return !id || !classIdsWithSessions.has(id);
+      })
+      .map((row) => {
+        const id = asString(row.id);
+        const fallbackStudents = students.filter((student) => student.className === row.name).length;
+        return mapSessionFromClass(row, teachers, enrollmentCountByClassId.get(id) ?? fallbackStudents, courseMap);
+      });
+
+    const merged = sortSessions([...mappedFromSessions, ...mappedStandaloneClasses]);
+    saveLocalSchedule(merged);
+    return merged;
+  } catch (error) {
+    console.error("[schedule] unexpected failure", error);
+    clearLocalSchedule();
+    return ALLOW_DEMO && local.length === 0 ? DEFAULT_SCHEDULE : [];
+  }
+}
+
+export async function getScheduleSessionById(id: string): Promise<ScheduleSessionItem | null> {
+  const items = await listScheduleSessions();
+  return items.find((session) => session.id === id) ?? null;
+}
+
+export async function getScheduleSessionDetails(id: string): Promise<ScheduleSessionDetails | null> {
+  const [session, students, teachers, parents, allSessions] = await Promise.all([
+    getScheduleSessionById(id),
+    listStudents(),
+    listTeachers(),
+    listParents(),
+    listScheduleSessions(),
+  ]);
+
+  if (!session) return null;
+
+  const teacherRecord = session.teacherId
+    ? teachers.find((teacher) => teacher.id === session.teacherId) ?? null
+    : teachers.find((teacher) => normalizeName(teacher.fullName) === normalizeName(session.teacher)) ?? null;
+
+  const linkedStudents = students.filter((student) => {
+    const classMatch = student.className ? normalizeName(student.className) === normalizeName(session.className) : false;
+    const courseMatch = student.currentCourse === session.course;
+    return classMatch || courseMatch;
+  });
+
+  const linkedParentIds = Array.from(new Set(linkedStudents.map((student) => student.parentId).filter((value): value is string => Boolean(value))));
+  const linkedParents = parents.filter((parent) => linkedParentIds.includes(parent.id));
+  const siblingSessions = allSessions.filter(
+    (item) => item.id !== session.id && ((session.classId && item.classId === session.classId) || normalizeName(item.className) === normalizeName(session.className)),
+  );
+
+  return {
+    ...session,
+    teacherRecord,
+    linkedStudents,
+    linkedParentIds,
+    linkedParents,
+    siblingSessions,
+  };
+}
+
+export async function getScheduleOverview(): Promise<{
+  sessionsCount: number;
+  totalStudents: number;
+  uniqueTeachers: number;
+  busiestDay: number;
+  busiestDayCount: number;
+}> {
+  const sessions = await listScheduleSessions();
+  const totalStudents = sessions.reduce((sum, session) => sum + session.students, 0);
+  const uniqueTeachers = new Set(sessions.map((session) => session.teacherId ?? session.teacher)).size;
+  const busiestDay = sessions.reduce<Record<number, number>>((acc, session) => {
+    acc[session.day] = (acc[session.day] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const busiestDayEntry = Object.entries(busiestDay).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+
+  return {
+    sessionsCount: sessions.length,
+    totalStudents,
+    uniqueTeachers,
+    busiestDay: busiestDayEntry ? Number(busiestDayEntry[0]) : 0,
+    busiestDayCount: busiestDayEntry ? Number(busiestDayEntry[1]) : 0,
+  };
+}
+
+
+export async function createScheduleEntry(input: CreateScheduleEntryInput): Promise<ScheduleSessionItem> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client not available. Login first.");
+  }
+
+  const teachers = await listTeachers();
+  const teacher = teachers.find((item) => item.id === input.teacherId) ?? null;
+  if (!teacher) {
+    throw new Error("Select a valid teacher before saving.");
+  }
+
+  const existing = await listScheduleSessions();
+  const clash = existing.find((session) => {
+    if ((session.teacherId ?? "") !== input.teacherId) return false;
+    if (session.day !== input.day) return false;
+    const startsInside = input.startTime >= session.startTime && input.startTime < session.endTime;
+    const endsInside = input.endTime > session.startTime && input.endTime <= session.endTime;
+    const wraps = input.startTime <= session.startTime && input.endTime >= session.endTime;
+    return startsInside || endsInside || wraps;
+  });
+
+  if (clash) {
+    throw new Error("Schedule conflict with " + clash.className + " for the same teacher.");
+  }
+
+  // Look up course_id from courses table using course type
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id")
+    .eq("type", input.course)
+    .eq("is_active", true)
+    .limit(1);
+  const courseId = courses?.[0]?.id ?? null;
+  if (!courseId) {
+    throw new Error("Course type not found in courses table. Make sure it exists.");
+  }
+
+  // Calculate session_date from day-of-week number
+  const today = new Date();
+  const currentDay = today.getDay();
+  const targetDay = input.day;
+  const daysUntil = (targetDay - currentDay + 7) % 7;
+  const sessionDate = new Date(today);
+  sessionDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
+  const sessionDateStr = sessionDate.toISOString().split("T")[0];
+
+  // Step 1: Create class (NO time fields - those belong to sessions)
+  const { data: classData, error: classError } = await supabase
+    .from("classes")
+    .insert({
+      name: input.className,
+      course_id: courseId,
+      teacher_id: input.teacherId,
+      max_students: 10,
+      current_students: 0,
+      start_date: sessionDateStr,
+      is_active: true,
+    })
+    .select("*")
+    .single();
+
+  if (classError || !classData) {
+    throw new Error(classError?.message || "Failed to create class");
+  }
+
+  // Step 2: Create session WITH time fields
+  const { data: sessionData, error: sessionError } = await supabase
+    .from("sessions")
+    .insert({
+      class_id: classData.id,
+      teacher_id: input.teacherId,
+      session_date: sessionDateStr,
+      start_time: input.startTime,
+      end_time: input.endTime,
+    })
+    .select("*")
+    .single();
+
+  if (sessionError || !sessionData) {
+    // Rollback: delete the class we just created
+    await supabase.from("classes").delete().eq("id", classData.id);
+    throw new Error(sessionError?.message || "Failed to create session");
+  }
+
+  const created: ScheduleSessionItem = {
+    id: sessionData.id,
+    classId: classData.id,
+    teacherId: input.teacherId,
+    day: input.day,
+    startTime: input.startTime,
+    endTime: input.endTime,
+    className: input.className,
+    teacher: teacher.fullName,
+    students: 0,
+    course: input.course,
+    sessionDate: sessionDateStr,
+  };
+
+  saveLocalSchedule([created, ...getLocalSchedule().filter((item) => item.id !== created.id)]);
+  return created;
+}
+
+
+/** Delete a schedule session permanently */
+export async function deleteScheduleEntry(id: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client not available");
+
+  // Try deleting from sessions first
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, class_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (session) {
+    // Delete attendance for this session
+    await supabase.from("attendance").delete().eq("session_id", id);
+
+    // Delete the session
+    const { error } = await supabase.from("sessions").delete().eq("id", id);
+    if (error) throw new Error(error.message || "Failed to delete session");
+
+    // Check if class has other sessions
+    if (session.class_id) {
+      const { data: remaining } = await supabase
+        .from("sessions")
+        .select("id")
+        .eq("class_id", session.class_id)
+        .limit(1);
+
+      // If no more sessions, delete the class too
+      if (!remaining || remaining.length === 0) {
+        await supabase.from("class_enrollments").delete().eq("class_id", session.class_id);
+        await supabase.from("classes").delete().eq("id", session.class_id);
+      }
+    }
+  } else {
+    // Maybe it's a class ID directly
+    await supabase.from("sessions").delete().eq("class_id", id);
+    await supabase.from("class_enrollments").delete().eq("class_id", id);
+    const { error } = await supabase.from("classes").delete().eq("id", id);
+    if (error) throw new Error(error.message || "Failed to delete class");
+  }
+
+  saveLocalSchedule(getLocalSchedule().filter((s) => s.id !== id));
+  return true;
+}
+
+
+
+==================== FILE :: src/services/teacher-finance.service.ts ====================
+
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database.types";
+import type { CourseType, ScheduleSessionItem } from "@/types/crm";
+import { readStorage, writeStorage } from "@/services/storage";
+
+/* ------------------------------------------------------------------ */
+/*  Supabase client                                                    */
+/* ------------------------------------------------------------------ */
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || typeof window === "undefined") return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+export interface TeacherFinanceConfig {
+  teacherId: string;
+  sessionRate60: number;
+  sessionRate90: number;
+  sessionRate120: number;
+  trackAdjustments: Record<CourseType, number>;
+  notes: string | null;
+  updatedAt: string | null;
+}
+
+export interface TeacherFinanceLineItem {
+  sessionId: string;
+  className: string;
+  course: CourseType;
+  minutes: number;
+  payout: number;
+}
+
+export interface TeacherFinanceSummary {
+  linkedSessions: number;
+  weeklyEstimated: number;
+  monthlyEstimated: number;
+  averagePerSession: number;
+  lines: TeacherFinanceLineItem[];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Defaults + helpers                                                 */
+/* ------------------------------------------------------------------ */
+const LOCAL_KEY = "skidy.crm.teacher-finance";
+
+const DEFAULT_TRACK: Record<CourseType, number> = {
+  scratch: 0,
+  python: 20,
+  web: 30,
+  ai: 40,
+};
+
+function defaultConfig(teacherId: string): TeacherFinanceConfig {
+  return {
+    teacherId,
+    sessionRate60: 120,
+    sessionRate90: 180,
+    sessionRate120: 240,
+    trackAdjustments: { ...DEFAULT_TRACK },
+    notes: null,
+    updatedAt: null,
+  };
+}
+
+function safe(value: number | null | undefined, fallback: number): number {
+  return Number.isFinite(value) ? Number(value) : fallback;
+}
+
+type DbRow = Database["public"]["Tables"]["teacher_finance_config"]["Row"];
+
+function rowToConfig(teacherId: string, row: DbRow): TeacherFinanceConfig {
+  return {
+    teacherId,
+    sessionRate60: safe(row.session_rate_60, 120),
+    sessionRate90: safe(row.session_rate_90, 180),
+    sessionRate120: safe(row.session_rate_120, 240),
+    trackAdjustments: {
+      scratch: safe(row.adj_scratch, 0),
+      python: safe(row.adj_python, 20),
+      web: safe(row.adj_web, 30),
+      ai: safe(row.adj_ai, 40),
+    },
+    notes: row.notes ?? null,
+    updatedAt: row.updated_at ?? null,
+  };
+}
+
+/* localStorage cache (fallback + fast first paint) */
+function readLocal(teacherId: string): TeacherFinanceConfig | null {
+  const all = readStorage<Record<string, TeacherFinanceConfig>>(LOCAL_KEY, {});
+  return all[teacherId] ?? null;
+}
+
+function writeLocal(config: TeacherFinanceConfig): void {
+  const all = readStorage<Record<string, TeacherFinanceConfig>>(LOCAL_KEY, {});
+  all[config.teacherId] = config;
+  writeStorage(LOCAL_KEY, all);
+}
+
+/* ------------------------------------------------------------------ */
+/*  GET config (async � Supabase first, localStorage fallback)         */
+/* ------------------------------------------------------------------ */
+export async function getTeacherFinanceConfig(
+  teacherId: string,
+): Promise<TeacherFinanceConfig> {
+  const base = defaultConfig(teacherId);
+  const supabase = getSupabaseClient();
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("teacher_finance_config")
+        .select("*")
+        .eq("teacher_id", teacherId)
+        .maybeSingle();
+
+      if (!error && data) {
+        const config = rowToConfig(teacherId, data);
+        writeLocal(config);
+        return config;
+      }
+    } catch (err) {
+      console.warn("[teacher-finance] Supabase read failed, using cache", err);
+    }
+  }
+
+  // Fallback: localStorage
+  const cached = readLocal(teacherId);
+  if (cached) {
+    return {
+      ...base,
+      sessionRate60: safe(cached.sessionRate60, base.sessionRate60),
+      sessionRate90: safe(cached.sessionRate90, base.sessionRate90),
+      sessionRate120: safe(cached.sessionRate120, base.sessionRate120),
+      trackAdjustments: {
+        scratch: safe(cached.trackAdjustments?.scratch, base.trackAdjustments.scratch),
+        python: safe(cached.trackAdjustments?.python, base.trackAdjustments.python),
+        web: safe(cached.trackAdjustments?.web, base.trackAdjustments.web),
+        ai: safe(cached.trackAdjustments?.ai, base.trackAdjustments.ai),
+      },
+      notes: cached.notes ?? null,
+      updatedAt: cached.updatedAt ?? null,
+    };
+  }
+
+  return base;
+}
+
+/* ------------------------------------------------------------------ */
+/*  SAVE config (async � Supabase upsert + localStorage cache)         */
+/* ------------------------------------------------------------------ */
+export async function saveTeacherFinanceConfig(input: {
+  teacherId: string;
+  sessionRate60: number;
+  sessionRate90: number;
+  sessionRate120: number;
+  trackAdjustments: Record<CourseType, number>;
+  notes?: string | null;
+}): Promise<TeacherFinanceConfig> {
+  const config: TeacherFinanceConfig = {
+    teacherId: input.teacherId,
+    sessionRate60: safe(input.sessionRate60, 120),
+    sessionRate90: safe(input.sessionRate90, 180),
+    sessionRate120: safe(input.sessionRate120, 240),
+    trackAdjustments: {
+      scratch: safe(input.trackAdjustments.scratch, 0),
+      python: safe(input.trackAdjustments.python, 20),
+      web: safe(input.trackAdjustments.web, 30),
+      ai: safe(input.trackAdjustments.ai, 40),
+    },
+    notes: input.notes?.trim() || null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Always cache locally
+  writeLocal(config);
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const { error } = await supabase
+      .from("teacher_finance_config")
+      .upsert(
+        {
+          teacher_id: input.teacherId,
+          session_rate_60: config.sessionRate60,
+          session_rate_90: config.sessionRate90,
+          session_rate_120: config.sessionRate120,
+          adj_scratch: config.trackAdjustments.scratch,
+          adj_python: config.trackAdjustments.python,
+          adj_web: config.trackAdjustments.web,
+          adj_ai: config.trackAdjustments.ai,
+          notes: config.notes,
+        },
+        { onConflict: "teacher_id" },
+      );
+
+    if (error) {
+      console.error("[teacher-finance] Supabase save failed", error);
+      throw new Error(error.message);
+    }
+  }
+
+  return config;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Compute summary (sync � pure computation, no DB)                   */
+/* ------------------------------------------------------------------ */
+function toMinutes(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  if ([sh, sm, eh, em].some((v) => !Number.isFinite(v))) return 60;
+  const start = sh * 60 + sm;
+  let end = eh * 60 + em;
+  if (end <= start) end += 1440;
+  return Math.max(30, end - start);
+}
+
+function getBaseRate(minutes: number, config: TeacherFinanceConfig): number {
+  if (minutes <= 60) return config.sessionRate60;
+  if (minutes <= 90) return config.sessionRate90;
+  if (minutes <= 120) return config.sessionRate120;
+  const extra = minutes - 120;
+  return config.sessionRate120 + Math.ceil(extra / 30) * (config.sessionRate60 / 2);
+}
+
+export function computeTeacherFinanceSummary(
+  sessions: ScheduleSessionItem[],
+  config: TeacherFinanceConfig,
+): TeacherFinanceSummary {
+  const lines = sessions.map((s) => {
+    const minutes = toMinutes(s.startTime, s.endTime);
+    const payout = getBaseRate(minutes, config) + (config.trackAdjustments[s.course] ?? 0);
+    return { sessionId: s.id, className: s.className, course: s.course, minutes, payout };
+  });
+
+  const weeklyEstimated = lines.reduce((sum, l) => sum + l.payout, 0);
+  const monthlyEstimated = Math.round(weeklyEstimated * 4.33);
+
+  return {
+    linkedSessions: lines.length,
+    weeklyEstimated,
+    monthlyEstimated,
+    averagePerSession: lines.length > 0 ? Math.round(weeklyEstimated / lines.length) : 0,
+    lines,
+  };
+}
+
+
+==================== FILE :: src/types/common.types.ts ====================
+
+/**
+ * Common TypeScript types used across the application
+ * Updated to reflect simplified sales system (8-stage pipeline)
+ * @author Abdelrahman
+ */
+
+/** Supported UI languages */
+export type Locale = "ar" | "en";
+
+/** Application user role */
+export type UserRole = "admin" | "sales" | "ops" | "owner";
+
+/**
+ * Lead pipeline stage — 8 stages (simplified from 12)
+ * Decision: simpler pipeline = higher team compliance
+ */
+export type LeadStage =
+  | "new"
+  | "qualified"
+  | "trial_proposed"
+  | "trial_booked"
+  | "trial_attended"
+  | "offer_sent"
+  | "won"
+  | "lost";
+
+/** Lead temperature — simplified scoring (3 levels) */
+export type LeadTemperature = "hot" | "warm" | "cold";
+
+/**
+ * Loss reason — Dropdown (not free text)
+ * Critical for diagnosing: pricing? ads? objections?
+ */
+export type LossReason =
+  | "price"
+  | "wants_offline"
+  | "no_laptop"
+  | "age_mismatch"
+  | "no_response"
+  | "exams_deferred"
+  | "not_convinced_online"
+  | "chose_competitor"
+  | "other";
+
+/** Trial session status */
+export type TrialStatus =
+  | "scheduled"
+  | "reminded"
+  | "attended"
+  | "no_show"
+  | "rescheduled"
+  | "cancelled";
+
+/** Student enrollment status */
+export type StudentStatus =
+  | "trial"
+  | "active"
+  | "paused"
+  | "at_risk"
+  | "completed"
+  | "churned";
+
+/** Payment status */
+export type PaymentStatus =
+  | "paid"
+  | "pending"
+  | "overdue"
+  | "refunded"
+  | "partial";
+
+/** Teacher employment type */
+export type EmploymentType = "full_time" | "part_time" | "freelance";
+
+/** Communication channel */
+export type CommChannel = "whatsapp" | "email" | "call" | "sms";
+
+/** Lead source */
+export type LeadSource =
+  | "facebook_ad"
+  | "instagram_ad"
+  | "group"
+  | "referral"
+  | "direct"
+  | "website"
+  | "other";
+
+/** Objection type from sales system */
+export type ObjectionType =
+  | "price"
+  | "timing"
+  | "online"
+  | "uncertain"
+  | "hyperactive_child"
+  | "certificate"
+  | "other";
+
+/** Attendance status */
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+/** Payment method */
+export type PaymentMethod =
+  | "bank_transfer"
+  | "card"
+  | "wallet"
+  | "cash"
+  | "instapay";
+
+/** Feedback type */
+export type FeedbackType = "complaint" | "suggestion" | "praise" | "general";
+
+/** Priority levels */
+export type Priority = "low" | "medium" | "high" | "urgent";
+
+/** Follow-up type */
+export type FollowUpType =
+  | "first_contact"
+  | "qualification"
+  | "trial_reminder"
+  | "post_trial"
+  | "no_show"
+  | "closing"
+  | "payment_reminder"
+  | "re_engagement";
+
+/** Course type based on age placement logic */
+export type CourseType = "scratch" | "app_inventor" | "robotics_basic" | "ai_intro" | "python" | "godot" | "robotics_iot" | "fastapi" | "html_css" | "javascript_tailwind" | "front_end" | "ai_ml" | "data_science" | "back_end" | "raspberry_pi";
+
+/** Generic API response wrapper */
+export interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
+  success: boolean;
+}
+
+/** Pagination parameters */
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Filter and sort options for data tables */
+export interface DataTableParams {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  filters?: Record<string, string | string[]>;
+}

@@ -1,0 +1,1233 @@
+"robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"]';
+const OLD = '["scratch", "python", "web", "ai"]';
+
+// Find ALL files still using old course array
+const files = [
+  'src/components/schedule/schedule-entry-form.tsx',
+  'src/components/teachers/teacher-form.tsx',
+  'src/services/teachers.service.ts',
+  'src/services/schedule.service.ts',
+];
+
+for (const f of files) {
+  try {
+    let c = fs.readFileSync(f, 'utf8');
+    const lines = c.split('\n');
+    let changed = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('"web"') || lines[i].includes('"ai"')) {
+        if (lines[i].includes('CourseType[]') || lines[i].includes('COURSE_OPTIONS') || lines[i].includes('VALID_COURSES')) {
+          lines[i] = lines[i].replace(/clip[^clip]*\]/, ALL);
+          changed = true;
+          console.log(f + ' line ' + (i+1) + ': fixed');
+        }
+      }
+    }
+    if (changed) fs.writeFileSync(f, lines.join('\n'), 'utf8');
+  } catch(e) { console.log('Skip ' + f); }
+}
+
+// Also fix getCourseLabel inside schedule-entry-form if it has inline labels
+const sef = 'src/components/schedule/schedule-entry-form.tsx';
+try {
+  let c = fs.readFileSync(sef, 'utf8');
+  // Check if there's an inline labels object with web/ai keys
+  if (c.includes('web: {') && c.includes('ai: {')) {
+    c = c.replace(/web: \{ ar: "[^"]*", en: "[^"]*" \},?/g, 'html_css: { ar: "HTML / CSS", en: "HTML / CSS" },');
+    c = c.replace(/ai: \{ ar: "[^"]*", en: "[^"]*" \},?/g, 'ai_ml: { ar: "AI & Machine Learning", en: "AI & Machine Learning" },');
+    // Add missing courses
+    if (!c.includes('app_inventor:')) {
+      c = c.replace(
+        /const labels: Record<CourseType, \{ ar: string; en: string \}> = \{/,
+        'const labels: Record<CourseType, { ar: string; en: string }> = {\n    app_inventor: { ar: "App Inventor", en: "App Inventor" },\n    robotics_basic: { ar: "\u0631\u0648\u0628\u0648\u062A\u0643\u0633", en: "Robotics Basic" },\n    ai_intro: { ar: "\u0645\u0642\u062F\u0645\u0629 AI", en: "AI Intro" },\n    godot: { ar: "Godot", en: "Godot" },\n    robotics_iot: { ar: "Robotics / IoT", en: "Robotics / IoT" },\n    fastapi: { ar: "FastAPI", en: "FastAPI" },\n    javascript_tailwind: { ar: "JavaScript / Tailwind", en: "JavaScript / Tailwind" },\n    front_end: { ar: "Front End", en: "Front End" },\n    data_science: { ar: "Data Science", en: "Data Science" },\n    back_end: { ar: "Back End", en: "Back End" },\n    raspberry_pi: { ar: "Raspberry Pi", en: "Raspberry Pi" },'
+      );
+    }
+    fs.writeFileSync(sef, c, 'utf8');
+    console.log('Fixed inline labels in schedule-entry-form');
+  }
+} catch(e) { console.log('schedule-entry-form labels: ' + e.message); }
+
+// Same for teacher-form
+const tff = 'src/components/teachers/teacher-form.tsx';
+try {
+  let c = fs.readFileSync(tff, 'utf8');
+  if (c.includes('web: {') || c.includes('"web"')) {
+    // Just show what needs fixing
+    c.split('\n').forEach((l,i) => {
+      if (l.includes('web') || (l.includes('"ai"') && !l.includes('ai_')))
+        console.log(tff + ':' + (i+1) + ': ' + l.trim());
+    });
+  }
+} catch(e) {}
+
+console.log('\nDone. Run: npm run build');
+
+
+==================== MODIFIED FILE :: _fix15.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/components/schedule/schedule-entry-form.tsx';
+const c = fs.readFileSync(f, 'utf8');
+const lines = c.split('\n');
+lines[26] = 'const COURSE_OPTIONS: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];';
+fs.writeFileSync(f, lines.join('\n'), 'utf8');
+console.log('Line 27 is now: ' + lines[26].trim().slice(0, 60) + '...');
+
+
+==================== MODIFIED FILE :: _fix17.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/components/teachers/teacher-form.tsx';
+let c = fs.readFileSync(f, 'utf8');
+const oldLine = 'const COURSE_OPTIONS: CourseType[] = ["scratch", "python", "web", "ai"];';
+const newLine = 'const COURSE_OPTIONS: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];';
+
+if (c.includes(oldLine)) {
+  c = c.replace(oldLine, newLine);
+  fs.writeFileSync(f, c, 'utf8');
+  console.log('REPLACED in teacher-form.tsx');
+} else {
+  console.log('NOT FOUND - trying char by char');
+  // Force replace on line containing COURSE_OPTIONS
+  const lines = c.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('COURSE_OPTIONS') && lines[i].includes('web')) {
+      lines[i] = newLine;
+      console.log('Force fixed line ' + (i+1));
+    }
+  }
+  fs.writeFileSync(f, lines.join('\n'), 'utf8');
+}
+
+// Verify
+const v = fs.readFileSync(f, 'utf8');
+console.log('Verify has web:', v.includes('"web"'));
+console.log('Verify has html_css:', v.includes('"html_css"'));
+
+
+==================== MODIFIED FILE :: _fix3.js ====================
+
+﻿const fs = require('fs');
+
+// FIX schedule
+const f1 = 'src/app/(dashboard)/schedule/page.tsx';
+const c1 = fs.readFileSync(f1, 'utf8').split('\n');
+for (let i = 0; i < c1.length; i++) {
+  if (c1[i].includes('Busiest day') && c1[i].includes('MiniMetric')) {
+    c1[i] = '        <MiniMetric label={t(locale, "\u0623\u0643\u062b\u0631 \u064a\u0648\u0645 \u0627\u0632\u062f\u062d\u0627\u0645\u064b\u0627", "Busiest day")} value={getDayLabel(overview.busiestDay, locale) + " (" + overview.busiestDayCount + ")"} />';
+    console.log('schedule fixed line ' + (i + 1));
+  }
+}
+fs.writeFileSync(f1, c1.join('\n'), 'utf8');
+
+// FIX teachers
+const f2 = 'src/app/(dashboard)/teachers/page.tsx';
+const c2 = fs.readFileSync(f2, 'utf8').split('\n');
+for (let i = 0; i < c2.length; i++) {
+  if (c2[i].includes('Mail') && c2[i].includes('teacher.email')) {
+    c2[i] = '                <div className="flex items-center gap-2"><Mail size={14} /><span dir="ltr">{teacher.email ?? t(locale, "\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631", "N/A")}</span></div>';
+    console.log('teachers fixed line ' + (i + 1));
+  }
+}
+fs.writeFileSync(f2, c2.join('\n'), 'utf8');
+
+console.log('All done');
+
+
+==================== MODIFIED FILE :: _fix4.js ====================
+
+﻿const fs = require('fs');
+
+// ============================================
+// FIX 1: Schedule - trim time HH:MM:SS to HH:MM
+// ============================================
+const f1 = 'src/services/schedule.service.ts';
+let c1 = fs.readFileSync(f1, 'utf8');
+
+// Add trimTime helper after asCourse function
+const trimTimeFn = 
+function trimTime(value: string): string {
+  // "10:00:00" -> "10:00"
+  const parts = value.split(':');
+  if (parts.length >= 2) return parts[0] + ':' + parts[1];
+  return value;
+}
+
+function cleanClassName(value: string): string {
+  // "JavaScript(Sun 6:30 PM)" -> "JavaScript"
+  return value.replace(/\s*\([^)]*\)\s*/g, '').trim() || value;
+}
+;
+
+// Insert after asCourse function
+c1 = c1.replace(
+  /function asCourse\([^}]+\}/,
+  (match) => match + '\n' + trimTimeFn
+);
+
+// Apply trimTime to mapSessionFromSession
+c1 = c1.replace(
+  /startTime: asString\(row\.start_time, "16:00"\)/g,
+  'startTime: trimTime(asString(row.start_time, "16:00"))'
+);
+c1 = c1.replace(
+  /endTime: asString\(row\.end_time, "17:00"\)/g,
+  'endTime: trimTime(asString(row.end_time, "17:00"))'
+);
+
+// Apply cleanClassName
+c1 = c1.replace(
+  /className: asString\(classRow\?\.name \?\? row\.topic, "Session"\)/g,
+  'className: cleanClassName(asString(classRow?.name ?? row.topic, "Session"))'
+);
+c1 = c1.replace(
+  /className: asString\(row\.name, "Class"\)/g,
+  'className: cleanClassName(asString(row.name, "Class"))'
+);
+
+fs.writeFileSync(f1, c1, 'utf8');
+console.log('Fixed: schedule.service.ts (time + className)');
+
+// ============================================
+// FIX 2: Schedule page - remove bullet from session card
+// ============================================
+const f2 = 'src/app/(dashboard)/schedule/page.tsx';
+let c2 = fs.readFileSync(f2, 'utf8');
+
+// Replace all remaining bullet-like separators with " | "
+c2 = c2.replace(/ - /g, ' | ');
+
+// Fix any remaining encoded bullets
+c2 = c2.replace(/\u2022/g, '|');
+c2 = c2.replace(/\u2219/g, '|');
+
+fs.writeFileSync(f2, c2, 'utf8');
+console.log('Fixed: schedule/page.tsx (separators)');
+
+// ============================================
+// FIX 3: Teachers page phone dir=ltr (re-check)
+// ============================================
+const f3 = 'src/app/(dashboard)/teachers/page.tsx';
+let c3 = fs.readFileSync(f3, 'utf8');
+
+// Find the Phone line and check its current state
+const phoneLines = c3.split('\n').filter(l => l.includes('teacher.phone') && l.includes('Phone'));
+console.log('Phone lines:', phoneLines.map(l => l.trim()));
+
+const mailLines = c3.split('\n').filter(l => l.includes('teacher.email') && l.includes('Mail'));
+console.log('Mail lines:', mailLines.map(l => l.trim()));
+
+console.log('\nAll done. Run: npm run build');
+
+
+==================== MODIFIED FILE :: _fix5.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/services/schedule.service.ts';
+let c = fs.readFileSync(f, 'utf8');
+
+// Check if trimTime already exists
+if (c.includes('function trimTime')) {
+  console.log('trimTime already exists - skipping insert');
+} else {
+  // Add helpers BEFORE mapSessionFromClass function
+  const marker = 'function mapSessionFromClass(';
+  const helpers = [
+    '',
+    'function trimTime(v: string): string {',
+    '  const p = v.split(":");',
+    '  return p.length >= 2 ? p[0] + ":" + p[1] : v;',
+    '}',
+    '',
+    'function cleanClassName(v: string): string {',
+    '  return v.replace(/\\s*\\([^)]*\\)\\s*/g, "").trim() || v;',
+    '}',
+    '',
+  ].join('\n');
+
+  const idx = c.indexOf(marker);
+  if (idx > 0) {
+    c = c.slice(0, idx) + helpers + c.slice(idx);
+    console.log('Inserted trimTime + cleanClassName helpers');
+  } else {
+    console.log('ERROR: could not find mapSessionFromClass marker');
+  }
+}
+
+// Now apply trimTime and cleanClassName in mapSessionFromSession
+// Find: startTime: asString(row.start_time, "16:00"),
+// Replace: startTime: trimTime(asString(row.start_time, "16:00")),
+const replacements = [
+  ['asString(row.start_time, "16:00")', 'trimTime(asString(row.start_time, "16:00"))'],
+  ['asString(row.end_time, "17:00")', 'trimTime(asString(row.end_time, "17:00"))'],
+  ['asString(classRow?.name ?? row.topic, "Session")', 'cleanClassName(asString(classRow?.name ?? row.topic, "Session"))'],
+  ['asString(row.name, "Class")', 'cleanClassName(asString(row.name, "Class"))'],
+];
+
+let count = 0;
+for (const [from, to] of replacements) {
+  // Don't double-wrap
+  if (c.includes(to)) {
+    console.log('Already applied: ' + to.slice(0, 40) + '...');
+    continue;
+  }
+  if (c.includes(from)) {
+    c = c.split(from).join(to);
+    count++;
+    console.log('Replaced: ' + from.slice(0, 40) + '...');
+  } else {
+    console.log('Not found: ' + from.slice(0, 40) + '...');
+  }
+}
+
+fs.writeFileSync(f, c, 'utf8');
+console.log('Done. ' + count + ' replacements made.');
+
+
+==================== MODIFIED FILE :: _fix6.js ====================
+
+﻿const fs = require('fs');
+
+// ============================================
+// FIX 1: Schedule service - 12-hour time format
+// ============================================
+const f1 = 'src/services/schedule.service.ts';
+let c1 = fs.readFileSync(f1, 'utf8');
+
+// Replace trimTime with 12-hour format version
+c1 = c1.replace(
+  /function trimTime\(v: string\): string \{[^}]*\}/,
+  unction trimTime(v: string): string {
+  const p = v.split(':');
+  if (p.length < 2) return v;
+  let h = parseInt(p[0], 10);
+  const m = p[1].padStart(2, '0');
+  if (isNaN(h)) return v;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + m + ' ' + ampm;
+}
+);
+
+fs.writeFileSync(f1, c1, 'utf8');
+console.log('FIX 1: schedule service - 12h time');
+
+// ============================================
+// FIX 2: Schedule page - fix card overflow + layout
+// ============================================
+const f2 = 'src/app/(dashboard)/schedule/page.tsx';
+let c2 = fs.readFileSync(f2, 'utf8');
+
+// Fix desktop grid card - add overflow-hidden and min-height
+c2 = c2.replace(
+  'className="rounded-2xl border border-border bg-card p-2.5">',
+  'className="rounded-2xl border border-border bg-card p-2.5 min-h-[120px]">'
+);
+
+// Fix session card - add overflow-hidden and word-break
+c2 = c2.replace(
+  /block rounded-xl border p-2\.5 transition-all hover:-translate-y-0\.5 hover:shadow-sm/g,
+  'block rounded-xl border p-2 transition-all hover:-translate-y-0.5 hover:shadow-sm overflow-hidden'
+);
+
+// Fix class name text - limit lines
+c2 = c2.replace(
+  /text-clip13pxclip font-bold leading-5/g,
+  'text-[12px] font-bold leading-4 line-clamp-2'
+);
+
+// Fix time badge - smaller
+c2 = c2.replace(
+  'rounded-lg bg-white/70 px-2 py-1 text-[10px]',
+  'rounded-md bg-white/70 px-1.5 py-0.5 text-[9px] shrink-0'
+);
+
+// Fix the details text inside card - truncate
+c2 = c2.replace(
+  /text-clip10pxclip text-muted-foreground">\{getCourseLabel/g,
+  'text-[9px] text-muted-foreground truncate">{getCourseLabel'
+);
+
+// Fix teacher+students line - truncate
+c2 = c2.replace(
+  /<div className="flex items-center gap-1\.5"><Users size=\{12\} \/>/g,
+  '<div className="flex items-center gap-1 truncate"><Users size={10} />'
+);
+
+c2 = c2.replace(
+  /<div className="flex items-center gap-1\.5"><Clock size=\{12\} \/>/g,
+  '<div className="flex items-center gap-1 truncate"><Clock size={10} />'
+);
+
+// Fix the time separator
+c2 = c2.replace(/\?\s/g, '- ');
+
+fs.writeFileSync(f2, c2, 'utf8');
+console.log('FIX 2: schedule page - card overflow + 12h');
+
+// ============================================
+// FIX 3: Update COURSE_TYPE_LABELS to match full course list
+// ============================================
+const f3 = 'src/config/labels.ts';
+let c3 = fs.readFileSync(f3, 'utf8');
+
+// Replace COURSE_TYPE_LABELS with full list
+c3 = c3.replace(
+  /export const COURSE_TYPE_LABELS: Record<CourseType, string> = \{[^}]*\};/,
+  export const COURSE_TYPE_LABELS: Record<CourseType, string> = {
+  scratch: "Scratch",
+  app_inventor: "App Inventor",
+  robotics_basic: "\u0631\u0648\u0628\u0648\u062A\u0643\u0633 \u0623\u0633\u0627\u0633\u064A",
+  ai_intro: "\u0645\u0642\u062F\u0645\u0629 \u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A",
+  python: "Python",
+  godot: "Godot",
+  robotics_iot: "Robotics / IoT",
+  fastapi: "FastAPI",
+  html_css: "HTML / CSS",
+  javascript_tailwind: "JavaScript / Tailwind",
+  front_end: "Front End",
+  ai_ml: "AI & Machine Learning",
+  data_science: "Data Science",
+  back_end: "Back End",
+  raspberry_pi: "Raspberry Pi",
+};
+);
+
+c3 = c3.replace(
+  /export const COURSE_TYPE_EN_LABELS: Record<CourseType, string> = \{[^}]*\};/,
+  export const COURSE_TYPE_EN_LABELS: Record<CourseType, string> = {
+  scratch: "Scratch",
+  app_inventor: "App Inventor",
+  robotics_basic: "Robotics Basic",
+  ai_intro: "AI Intro",
+  python: "Python",
+  godot: "Godot",
+  robotics_iot: "Robotics / IoT",
+  fastapi: "FastAPI",
+  html_css: "HTML / CSS",
+  javascript_tailwind: "JavaScript / Tailwind",
+  front_end: "Front End",
+  ai_ml: "AI & Machine Learning",
+  data_science: "Data Science",
+  back_end: "Back End",
+  raspberry_pi: "Raspberry Pi",
+};
+);
+
+fs.writeFileSync(f3, c3, 'utf8');
+console.log('FIX 3: labels - full course list');
+
+console.log('\nAll fixes done. Run: npm run build');
+
+
+==================== MODIFIED FILE :: _fix7.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/types/common.types.ts';
+let c = fs.readFileSync(f, 'utf8');
+
+// Find and replace CourseType
+const oldPattern = /export type CourseType\s*=\s*[^;]+;/;
+const newType = 'export type CourseType = "scratch" | "app_inventor" | "robotics_basic" | "ai_intro" | "python" | "godot" | "robotics_iot" | "fastapi" | "html_css" | "javascript_tailwind" | "front_end" | "ai_ml" | "data_science" | "back_end" | "raspberry_pi";';
+
+if (oldPattern.test(c)) {
+  c = c.replace(oldPattern, newType);
+  console.log('Updated CourseType in common.types.ts');
+} else {
+  console.log('CourseType not found - check manually');
+  // Show what exists
+  c.split('\n').forEach((l, i) => {
+    if (l.includes('CourseType')) console.log((i+1) + ': ' + l.trim());
+  });
+}
+
+fs.writeFileSync(f, c, 'utf8');
+
+
+==================== MODIFIED FILE :: _fix8.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/services/schedule.service.ts';
+let c = fs.readFileSync(f, 'utf8');
+
+c = c.replace(
+  /const VALID_COURSES: CourseType_fix7.js_fix7.js = _fix7.js[^_fix7.js]*\];/,
+  'const VALID_COURSES: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi"];'
+);
+
+fs.writeFileSync(f, c, 'utf8');
+console.log('Updated VALID_COURSES in schedule.service.ts');
+
+
+==================== MODIFIED FILE :: _fix9.js ====================
+
+﻿const fs = require('fs');
+const f = 'src/app/(dashboard)/schedule/page.tsx';
+let c = fs.readFileSync(f, 'utf8');
+
+// Fix course filter options to match new CourseType
+c = c.replace(
+  '<option value="web">{getCourseLabel("web", locale)}</option>',
+  '<option value="html_css">{getCourseLabel("html_css", locale)}</option>'
+);
+c = c.replace(
+  '<option value="ai">{getCourseLabel("ai", locale)}</option>',
+  '<option value="ai_ml">{getCourseLabel("ai_ml", locale)}</option>'
+);
+
+// Fix COURSE_COLORS to use new keys
+c = c.replace(
+  /web:\s*\{[^}]*\}/,
+  'html_css: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" }'
+);
+c = c.replace(
+  /ai:\s*\{[^}]*\}/,
+  'ai_ml: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" }'
+);
+
+// Also need to handle any remaining "web" or "ai" course references
+// Add fallback entries for old course names
+if (!c.includes('// fallback course colors')) {
+  c = c.replace(
+    '} as const;',
+    '  ai_intro: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },\n  app_inventor: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },\n  robotics_basic: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },\n  godot: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },\n  robotics_iot: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },\n  fastapi: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },\n  javascript_tailwind: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },\n  front_end: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },\n  data_science: { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },\n  back_end: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },\n  raspberry_pi: { bg: "bg-brand-50", border: "border-brand-200", text: "text-brand-700" },\n  // fallback course colors\n} as const;'
+  );
+}
+
+fs.writeFileSync(f, c, 'utf8');
+console.log('Fixed schedule page course types');
+
+
+==================== MODIFIED FILE :: _fix_all.js ====================
+
+const fs = require('fs');
+
+// ============================================
+// Fix 1: Phone dir=ltr in teachers list
+// ============================================
+function fixTeachersPage() {
+  const f = 'src/app/(dashboard)/teachers/page.tsx';
+  let c = fs.readFileSync(f, 'utf8');
+
+  // Wrap phone in dir=ltr span
+  c = c.replace(
+    '<Phone size={14} />{teacher.phone}',
+    '<Phone size={14} /><span dir="ltr">{teacher.phone}</span>'
+  );
+
+  // Wrap email similarly
+  c = c.replace(
+    '<Mail size={14} />{teacher.email',
+    '<Mail size={14} /><span dir="ltr">{teacher.email}</span'
+  );
+
+  fs.writeFileSync(f, c, 'utf8');
+  console.log('Fixed: teachers/page.tsx');
+}
+
+// ============================================
+// Fix 2: Phone dir=ltr in teacher [id] page
+// ============================================
+function fixTeacherDetails() {
+  const f = 'src/app/(dashboard)/teachers/[id]/page.tsx';
+  let c = fs.readFileSync(f, 'utf8');
+
+  // Replace Info component to support ltr prop
+  c = c.replace(
+    'function Info({ icon: Icon, label, value, href }: { icon: typeof Phone; label: string; value: string; href?: string }) {',
+    'function Info({ icon: Icon, label, value, href, ltr }: { icon: typeof Phone; label: string; value: string; href?: string; ltr?: boolean }) {'
+  );
+
+  // Add dir to value paragraph
+  c = c.replace(
+    '<p className="mt-1 font-semibold text-foreground">{value}</p>',
+    '<p className="mt-1 font-semibold text-foreground" dir={ltr ? "ltr" : undefined}>{value}</p>'
+  );
+
+  // Add ltr to Phone Info calls
+  c = c.replace(
+    '<Info icon={Phone} label={t(locale, "\u0627\u0644\u0647\u0627\u062A\u0641", "Phone")} value={teacher.phone} href={`tel:${teacher.phone}`} />',
+    '<Info icon={Phone} label={t(locale, "\u0627\u0644\u0647\u0627\u062A\u0641", "Phone")} value={teacher.phone} href={`tel:${teacher.phone}`} ltr />'
+  );
+
+  // Add ltr to Mail Info calls
+  c = c.replace(
+    '<Info icon={Mail} label={t(locale, "\u0627\u0644\u0628\u0631\u064A\u062F", "Email")} value={teacher.email ?? t(locale, "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D", "N/A")} href={teacher.email ? `mailto:${teacher.email}` : undefined} />',
+    '<Info icon={Mail} label={t(locale, "\u0627\u0644\u0628\u0631\u064A\u062F", "Email")} value={teacher.email ?? t(locale, "\u063A\u064A\u0631 \u0645\u062A\u0627\u062D", "N/A")} href={teacher.email ? `mailto:${teacher.email}` : undefined} ltr />'
+  );
+
+  fs.writeFileSync(f, c, 'utf8');
+  console.log('Fixed: teachers/[id]/page.tsx');
+}
+
+// ============================================
+// Fix 3: Phone dir=ltr in parent [id] page
+// ============================================
+function fixParentDetails() {
+  const f = 'src/app/(dashboard)/parents/[id]/page.tsx';
+  let c = fs.readFileSync(f, 'utf8');
+
+  // Fix subtitle phone
+  c = c.replace(
+    '<p className="text-sm text-muted-foreground">{parent.phone}</p>',
+    '<p className="text-sm text-muted-foreground" dir="ltr">{parent.phone}</p>'
+  );
+
+  fs.writeFileSync(f, c, 'utf8');
+  console.log('Fixed: parents/[id]/page.tsx');
+}
+
+// ============================================
+// Fix 4: Schedule - split busiest day metric
+// ============================================
+function fixSchedule() {
+  const f = 'src/app/(dashboard)/schedule/page.tsx';
+  let c = fs.readFileSync(f, 'utf8');
+
+  // Remove any remaining bullet characters
+  c = c.replace(/\u2022/g, '-');
+
+  // Change grid to 5 cols (already done but let's make sure)
+  c = c.replace('xl:grid-cols-4', 'xl:grid-cols-5');
+
+  // Find the busiest day MiniMetric and fix it
+  // Look for the pattern with getDayLabel and busiestDayCount together
+  const busiestPattern = /(<MiniMetric\s+label=\{t\(locale,\s*"[^"]*",\s*"Busiest day"\)\}\s+value=\{)[^}]*(busiestDayCount)[^}]*(\}\s*\/>)/;
+  
+  if (busiestPattern.test(c)) {
+    c = c.replace(busiestPattern, 
+      '\$1getDayLabel(overview.busiestDay, locale)\$3\n        <MiniMetric label={t(locale, "\u0639\u062F\u062F \u0627\u0644\u062D\u0635\u0635", "Sessions")} value={overview.busiestDayCount} />'
+    );
+  } else {
+    // Try simpler approach - find the line with busiestDay value
+    const lines = c.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('Busiest day') && lines[i].includes('MiniMetric')) {
+        // Found the busiest day metric line, check next lines too
+        let block = '';
+        let j = i;
+        while (j < lines.length && !lines[j].includes('/>')) {
+          block += lines[j] + '\n';
+          j++;
+        }
+        block += lines[j];
+        
+        // Check if the value has busiestDayCount mixed in
+        if (block.includes('busiestDayCount') || block.includes('getDayLabel')) {
+          console.log('Found busiest day block at line ' + (i+1));
+        }
+      }
+    }
+  }
+
+  fs.writeFileSync(f, c, 'utf8');
+  console.log('Fixed: schedule/page.tsx');
+}
+
+// Run
+try { fixTeachersPage(); } catch(e) { console.log('Skip teachers: ' + e.message); }
+try { fixTeacherDetails(); } catch(e) { console.log('Skip teacher details: ' + e.message); }
+try { fixParentDetails(); } catch(e) { console.log('Skip parent details: ' + e.message); }
+try { fixSchedule(); } catch(e) { console.log('Skip schedule: ' + e.message); }
+
+console.log('\nDone! Run: npm run build');
+
+==================== MODIFIED FILE :: _project_snapshot.txt ====================
+
+PROJECT SNAPSHOT GENERATED AT: 2026-04-20 15:02:18
+
+==================== WORKDIR ====================
+
+C:\Users\3bdel\Documents\skidy-rein-crm
+
+
+==================== ROOT FILES ====================
+
+
+Mode   Length LastWriteTime          Name                                 
+----   ------ -------------          ----                                 
+d--h--        2026-04-16 1:10:23 PM  .git                                 
+d-----        2026-04-08 1:08:33 PM  .github                              
+d-----        2026-04-16 12:10:38 PM .husky                               
+d-----        2026-04-20 12:03:20 AM .next                                
+d-----        2026-04-02 11:17:36 PM .vscode                              
+d-----        2026-04-11 3:53:08 AM  docs                                 
+d-----        2026-04-07 6:46:46 PM  node_modules                         
+d-----        2026-04-08 5:39:11 PM  password_note_fix                    
+d-----        2026-04-02 7:11:39 PM  public                               
+d-----        2026-04-11 3:53:08 AM  scripts                              
+d-----        2026-04-15 10:56:09 PM src                                  
+d-----        2026-04-16 3:13:06 AM  supabase                             
+d-----        2026-04-13 5:47:31 PM  _ops                                 
+-a---- 113    2026-04-08 1:08:33 PM  .env.example                         
+-a---- 305    2026-04-06 5:36:16 AM  .env.local                           
+-a---- 480    2026-04-02 10:03:07 AM .gitignore                           
+-a---- 327    2026-04-02 7:04:55 PM  AGENTS.md                            
+-a---- 590581 2026-04-14 6:49:04 PM  AUDIT_DUMP.md                        
+-a---- 2100   2026-04-15 11:45:48 AM BUILD_ERRORS.txt                     
+-a---- 11     2026-04-02 7:04:55 PM  CLAUDE.md                            
+-a---- 521    2026-04-08 1:08:33 PM  components.json                      
+-a---- 465    2026-04-02 10:03:07 AM eslint.config.mjs                    
+-a---- 1450   2026-04-08 1:08:33 PM  IMPLEMENTATION-NOTES.md              
+-a---- 247    2026-04-19 7:03:57 PM  next-env.d.ts                        
+-a---- 133    2026-04-08 1:08:33 PM  next.config.ts                       
+-a---- 460181 2026-04-07 6:46:47 PM  package-lock.json                    
+-a---- 1469   2026-04-08 1:08:33 PM  package.json                         
+-a---- 961    2026-04-09 1:42:28 PM  PAYMENTS-PERMISSIONS-BILLING-NOTES.md
+-a---- 1327   2026-04-08 7:38:48 PM  PAYMENTS-UPGRADE-NOTES.md            
+-a---- 464    2026-04-08 4:43:26 PM  PHASE-NEXT-NAV-CLEANUP-NOTES.md      
+-a---- 521    2026-04-08 5:13:37 PM  PHASE-NEXT-SECURITY-NOTES.md         
+-a---- 1101   2026-04-08 1:49:07 PM  PHASE7-9-COMBINED-NOTES.md           
+-a---- 1390   2026-04-08 1:08:33 PM  PHASE7-LEADS-FOLLOWUPS-NOTES.md      
+-a---- 1028   2026-04-08 3:51:03 PM  PHASE8-9-ROLE-FILTERING-FIX-NOTES.md 
+-a---- 94     2026-04-02 10:03:07 AM postcss.config.mjs                   
+-a---- 2793   2026-04-20 11:46:28 AM PROJECT_CONTEXT.md                   
+-a---- 2543   2026-04-08 1:08:33 PM  README.md                            
+-a---- 304    2026-04-11 8:43:56 AM  README.txt                           
+-a---- 670    2026-04-08 1:08:33 PM  tsconfig.json                        
+-a---- 142615 2026-04-16 1:10:38 PM  tsconfig.tsbuildinfo                 
+-a---- 222    2026-04-20 12:00:27 AM _check.js                            
+-a---- 91595  2026-04-19 12:22:27 PM _dump.txt                            
+-a---- 67290  2026-04-19 12:24:51 PM _dump2.txt                           
+-a---- 25209  2026-04-19 12:29:45 PM _dump3.txt                           
+-a---- 5678   2026-04-19 7:03:14 PM  _fix10.js                            
+-a---- 664    2026-04-19 7:17:21 PM  _fix11.js                            
+-a---- 3009   2026-04-19 7:25:48 PM  _fix12.js                            
+-a---- 3344   2026-04-19 8:00:42 PM  _fix13.js                            
+-a---- 536    2026-04-19 8:55:16 PM  _fix15.js                            
+-a---- 1179   2026-04-20 12:01:35 AM _fix17.js                            
+-a---- 1180   2026-04-19 12:58:15 PM _fix3.js                             
+-a---- 2706   2026-04-19 1:51:26 PM  _fix4.js                             
+-a---- 2016   2026-04-19 2:56:56 PM  _fix5.js                             
+-a---- 4292   2026-04-19 6:54:49 PM  _fix6.js                             
+-a---- 814    2026-04-19 6:55:15 PM  _fix7.js                             
+-a---- 550    2026-04-19 6:55:26 PM  _fix8.js                             
+-a---- 2131   2026-04-19 6:59:33 PM  _fix9.js                             
+-a---- 5388   2026-04-19 12:41:36 PM _fix_all.js                          
+-a---- 150    2026-04-20 3:02:18 PM  _project_snapshot.txt                
+
+
+
+
+
+==================== GIT STATUS ====================
+
+ M src/app/(dashboard)/parents/[id]/page.tsx
+ M src/app/(dashboard)/schedule/page.tsx
+ M src/app/(dashboard)/teachers/[id]/page.tsx
+ M src/app/(dashboard)/teachers/page.tsx
+ M src/components/schedule/schedule-entry-form.tsx
+ M src/components/teachers/teacher-form.tsx
+ M src/services/schedule.service.ts
+ M src/types/common.types.ts
+?? PROJECT_CONTEXT.md
+?? _check.js
+?? _dump.txt
+?? _dump2.txt
+?? _dump3.txt
+?? _fix10.js
+?? _fix11.js
+?? _fix12.js
+?? _fix13.js
+?? _fix15.js
+?? _fix17.js
+?? _fix3.js
+?? _fix4.js
+?? _fix5.js
+?? _fix6.js
+?? _fix7.js
+?? _fix8.js
+?? _fix9.js
+?? _fix_all.js
+?? _project_snapshot.txt
+
+
+
+==================== GIT BRANCHES ====================
+
+* main
+  remotes/origin/main
+
+
+
+==================== LAST 12 COMMITS ====================
+
+00907e2 chore: final cleanup - zero lint warnings, all locale props restored
+229c885 chore: truly zero warnings - removed all remaining unused code
+651adb9 chore: zero warnings - removed all unused vars, imports, and dead functions
+8983279 fix: lint cleanup - remove old scripts, fix unused vars, fix setState in effect
+7d3ff6b feat: Priority 2+3 complete - RLS policies, audit triggers, pre-push hook
+4d190e9 fix: graceful fallback for local-only teacher delete (no more false error toast)
+fc47a1d feat: Priority 1+2 - duplicate constraints, lead-to-enrollment flow, teacher finance to Supabase
+e78c87d Fix: DB defaults for NOT NULL columns + is_cancelled in sessions + courses seed
+425543d Fix follow-ups: remove ghost columns (lead_name, status, type), use is_completed + resolved lead names
+0fab27b Fix runtime: students parent lookup, honest teacher delete, schedule course resolution from courses table
+44806e0 Major schema audit: rewrite database.types.ts from real Supabase schema and fix all fake column references across services
+260883a Fix real teacher deletion and remove invalid class schema fields
+
+
+
+==================== LAST COMMIT FULL ====================
+
+commit 00907e262245323dc209d30dac57187b63c16e94
+Author: 3bdelroohman <3bdelroohman@gmail.com>
+Date:   Thu Apr 16 13:10:23 2026 +0200
+
+    chore: final cleanup - zero lint warnings, all locale props restored
+
+ src/app/(dashboard)/page.tsx | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+
+
+==================== UNTRACKED / MODIFIED SUMMARY ====================
+
+ src/app/(dashboard)/parents/[id]/page.tsx       |  2 +-
+ src/app/(dashboard)/schedule/page.tsx           | 26 ++++++++++++++++++-------
+ src/app/(dashboard)/teachers/[id]/page.tsx      | 25 ++++++++----------------
+ src/app/(dashboard)/teachers/page.tsx           |  4 ++--
+ src/components/schedule/schedule-entry-form.tsx | 17 +++++++++++++---
+ src/components/teachers/teacher-form.tsx        |  2 +-
+ src/services/schedule.service.ts                | 17 ++++++++++++----
+ src/types/common.types.ts                       |  2 +-
+ 8 files changed, 59 insertions(+), 36 deletions(-)
+
+
+
+==================== STAGED DIFF SUMMARY ====================
+
+(empty)
+
+
+==================== PACKAGE.JSON ====================
+
+{
+  "name": "skidy-rein-crm",
+  "version": "1.0.0",
+  "description": "Academy management system for Skidy Rein � Kids coding education platform",
+  "author": "Abdelrahman",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "date-fns-jalali": "^4.1.0-0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
+    "next": "16.2.2",
+    "next-intl": "^4.9.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.72.0",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.1.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+
+==================== TSCONFIG.JSON ====================
+
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+
+==================== NEXT.CONFIG.TS ====================
+
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+
+
+
+==================== ENV EXAMPLE ====================
+
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+
+
+
+==================== APP ROUTES (page.tsx) ====================
+
+src\app\(auth)\login\page.tsx
+src\app\(dashboard)\action-center\page.tsx
+src\app\(dashboard)\follow-ups\page.tsx
+src\app\(dashboard)\leads\[id]\edit\page.tsx
+src\app\(dashboard)\leads\[id]\page.tsx
+src\app\(dashboard)\leads\new\page.tsx
+src\app\(dashboard)\leads\page.tsx
+src\app\(dashboard)\page.tsx
+src\app\(dashboard)\parents\[id]\page.tsx
+src\app\(dashboard)\parents\new\page.tsx
+src\app\(dashboard)\parents\page.tsx
+src\app\(dashboard)\payments\[id]\invoice\page.tsx
+src\app\(dashboard)\payments\[id]\page.tsx
+src\app\(dashboard)\payments\invoice\[id]\page.tsx
+src\app\(dashboard)\payments\new\page.tsx
+src\app\(dashboard)\payments\page.tsx
+src\app\(dashboard)\reports\page.tsx
+src\app\(dashboard)\schedule\[id]\page.tsx
+src\app\(dashboard)\schedule\new\page.tsx
+src\app\(dashboard)\schedule\page.tsx
+src\app\(dashboard)\settings\page.tsx
+src\app\(dashboard)\students\[id]\page.tsx
+src\app\(dashboard)\students\[id]\report\page.tsx
+src\app\(dashboard)\students\new\page.tsx
+src\app\(dashboard)\students\page.tsx
+src\app\(dashboard)\teachers\[id]\page.tsx
+src\app\(dashboard)\teachers\finance\page.tsx
+src\app\(dashboard)\teachers\new\page.tsx
+src\app\(dashboard)\teachers\page.tsx
+
+
+
+==================== APP LAYOUTS / LOADING / ERROR / NOT-FOUND ====================
+
+src\app\(auth)\login\layout.tsx
+src\app\(dashboard)\layout.tsx
+src\app\(dashboard)\loading.tsx
+src\app\(dashboard)\not-found.tsx
+src\app\error.tsx
+src\app\layout.tsx
+src\app\not-found.tsx
+
+
+
+==================== API ROUTES ====================
+
+(empty)
+
+
+==================== COMPONENTS ====================
+
+src\app\(auth)\login\layout.tsx
+src\app\(auth)\login\page.tsx
+src\app\(dashboard)\action-center\page.tsx
+src\app\(dashboard)\follow-ups\page.tsx
+src\app\(dashboard)\layout.tsx
+src\app\(dashboard)\leads\[id]\edit\page.tsx
+src\app\(dashboard)\leads\[id]\page.tsx
+src\app\(dashboard)\leads\new\page.tsx
+src\app\(dashboard)\leads\page.tsx
+src\app\(dashboard)\loading.tsx
+src\app\(dashboard)\not-found.tsx
+src\app\(dashboard)\page.tsx
+src\app\(dashboard)\parents\[id]\page.tsx
+src\app\(dashboard)\parents\new\page.tsx
+src\app\(dashboard)\parents\page.tsx
+src\app\(dashboard)\payments\[id]\invoice\page.tsx
+src\app\(dashboard)\payments\[id]\page.tsx
+src\app\(dashboard)\payments\invoice\[id]\page.tsx
+src\app\(dashboard)\payments\new\page.tsx
+src\app\(dashboard)\payments\page.tsx
+src\app\(dashboard)\reports\page.tsx
+src\app\(dashboard)\schedule\[id]\page.tsx
+src\app\(dashboard)\schedule\new\page.tsx
+src\app\(dashboard)\schedule\page.tsx
+src\app\(dashboard)\settings\page.tsx
+src\app\(dashboard)\students\[id]\page.tsx
+src\app\(dashboard)\students\[id]\report\page.tsx
+src\app\(dashboard)\students\new\page.tsx
+src\app\(dashboard)\students\page.tsx
+src\app\(dashboard)\teachers\[id]\page.tsx
+src\app\(dashboard)\teachers\finance\page.tsx
+src\app\(dashboard)\teachers\new\page.tsx
+src\app\(dashboard)\teachers\page.tsx
+src\app\error.tsx
+src\app\layout.tsx
+src\app\not-found.tsx
+src\app\page.backup.tsx
+src\components\layout\dashboard-shell.tsx
+src\components\layout\global-search.tsx
+src\components\layout\mobile-nav.tsx
+src\components\layout\sidebar.tsx
+src\components\layout\top-navbar.tsx
+src\components\leads\lead-form.tsx
+src\components\leads\leads-kanban.tsx
+src\components\leads\stage-badge.tsx
+src\components\leads\temperature-badge.tsx
+src\components\parents\parent-form.tsx
+src\components\payments\invoice-toolbar.tsx
+src\components\payments\payment-invoice-view.tsx
+src\components\providers\theme-provider.tsx
+src\components\schedule\schedule-entry-form.tsx
+src\components\shared\page-state.tsx
+src\components\students\student-form.tsx
+src\components\teachers\teacher-form.tsx
+src\components\ui\button.tsx
+src\providers\user-provider.tsx
+
+
+
+==================== SERVICES ====================
+
+src\services\dashboard.service.ts
+src\services\duplicate-guard.service.ts
+src\services\enrollment.service.ts
+src\services\follow-ups.service.ts
+src\services\leads.service.ts
+src\services\operations.service.ts
+src\services\owner-summary.service.ts
+src\services\parents.service.ts
+src\services\payments.service.ts
+src\services\relations.service.ts
+src\services\reports.service.ts
+src\services\schedule.service.ts
+src\services\student-enrollment-control.service.ts
+src\services\student-finance.service.ts
+src\services\student-journey.service.ts
+src\services\student-report.service.ts
+src\services\students.service.ts
+src\services\teacher-evaluations.service.ts
+src\services\teacher-finance.service.ts
+src\services\teacher-reassignment.service.ts
+src\services\teachers.service.ts
+
+
+
+==================== HOOKS ====================
+
+src\providers\user-provider.tsx
+
+
+
+==================== STORES ====================
+
+src\stores\ui-store.ts
+
+
+
+==================== PROVIDERS ====================
+
+src\components\providers\theme-provider.tsx
+src\providers\user-provider.tsx
+
+
+
+==================== CONFIG FILES ====================
+
+(empty)
+
+
+==================== TYPE FILES ====================
+
+src\types\common.types.ts
+src\types\database.types.ts
+src\types\modules.d.ts
+
+
+
+==================== LIB FILES ====================
+
+src\lib\actions\auth.actions.ts
+src\lib\auth.ts
+src\lib\formatters.ts
+src\lib\locale.ts
+src\lib\mock-data.ts
+src\lib\supabase\client.ts
+src\lib\supabase\server.ts
+src\lib\utils.ts
+
+
+
+==================== SUPABASE FOLDER ====================
+
+supabase\client.ts
+supabase\migrations\20250101000001_duplicate_constraints.sql
+supabase\migrations\20250101000002_teacher_finance_table.sql
+supabase\migrations\20250101000004_fix_teacher_finance_cols.sql
+supabase\migrations\20250101000005_rls_policies.sql
+supabase\migrations\20250101000006_cleanup_old_policies.sql
+supabase\migrations\20250101000007_audit_triggers.sql
+
+
+
+==================== MIGRATIONS ====================
+
+supabase\migrations\20250101000001_duplicate_constraints.sql
+supabase\migrations\20250101000002_teacher_finance_table.sql
+supabase\migrations\20250101000004_fix_teacher_finance_cols.sql
+supabase\migrations\20250101000005_rls_policies.sql
+supabase\migrations\20250101000006_cleanup_old_policies.sql
+supabase\migrations\20250101000007_audit_triggers.sql
+
+
+
+==================== DATABASE TYPES (FIRST 1200 LINES MAX) ====================
+
+/**
+ * Supabase database types - VERIFIED against real schema
+ * DO NOT add columns that do not exist in Supabase.
+ */
+
+import type {
+  CommChannel,
+  CourseType,
+  FollowUpType,
+  LeadSource,
+  LeadStage,
+  LeadTemperature,
+  LossReason,
+  PaymentMethod,
+  PaymentStatus,
+  Priority,
+  StudentStatus,
+  UserRole,
+} from "@/types/common.types";
+
+export type EmploymentType = "full_time" | "part_time" | "freelance";
+export type AttendanceStatus = "present" | "absent" | "late" | "excused";
+export type ObjectionType =
+  | "price"
+  | "timing"
+  | "online"
+  | "uncertain"
+  | "hyperactive_child"
+  | "certificate"
+  | "other";
+
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          full_name: string;
+          full_name_ar: string | null;
+          email: string;
+          phone: string | null;
+          role: UserRole;
+          avatar_url: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
+          id: string;
+          full_name: string;
+          email: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        Relationships: [];
+      };
+
+      leads: {
+        Row: {
+          id: string;
+          parent_id: string | null;
+          parent_name: string;
+          parent_phone: string;
+          parent_whatsapp: string | null;
+          child_name: string;
+          child_age: number;
+          stage: LeadStage;
+          temperature: LeadTemperature;
+          source: LeadSource;
+          has_laptop: boolean | null;
+          has_prior_experience: boolean | null;
+          child_interests: string | null;
+          suggested_course: CourseType | null;
+          price_range_shared: boolean;
+          whatsapp_collected: boolean;
+          main_objection: ObjectionType | null;
+          loss_reason: LossReason | null;
+          loss_notes: string | null;
+          assigned_to: string;
+          first_contact_at: string | null;
+          last_contact_at: string | null;
+          next_follow_up_at: string | null;
+          won_at: string | null;
+          lost_at: string | null;
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["leads"]["Row"]> & {
+          parent_name: string;
+          parent_phone: string;
+          child_name: string;
+          child_age: number;
+          stage: LeadStage;
+          temperature: LeadTemperature;
+          source: LeadSource;
+          assigned_to: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["leads"]["Row"]>;
+        Relationships: [];
+      };
+
+      follow_ups: {
+        Row: {
+          id: string;
+          lead_id: string | null;
+          student_id: string | null;
+          parent_id: st

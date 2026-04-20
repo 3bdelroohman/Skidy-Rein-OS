@@ -49,7 +49,20 @@ const LOCAL_KEY = "skidy.crm.teacher-finance";
 
 const DEFAULT_TRACK: Record<CourseType, number> = {
   scratch: 0,
+  app_inventor: 0,
+  robotics_basic: 0,
+  ai_intro: 0,
   python: 20,
+  godot: 20,
+  robotics_iot: 20,
+  fastapi: 20,
+  html_css: 30,
+  javascript_tailwind: 30,
+  front_end: 30,
+  ai_ml: 40,
+  data_science: 40,
+  back_end: 40,
+  raspberry_pi: 0,
   web: 30,
   ai: 40,
 };
@@ -79,6 +92,7 @@ function rowToConfig(teacherId: string, row: DbRow): TeacherFinanceConfig {
     sessionRate90: safe(row.session_rate_90, 180),
     sessionRate120: safe(row.session_rate_120, 240),
     trackAdjustments: {
+      ...DEFAULT_TRACK,
       scratch: safe(row.adj_scratch, 0),
       python: safe(row.adj_python, 20),
       web: safe(row.adj_web, 30),
@@ -137,6 +151,7 @@ export async function getTeacherFinanceConfig(
       sessionRate90: safe(cached.sessionRate90, base.sessionRate90),
       sessionRate120: safe(cached.sessionRate120, base.sessionRate120),
       trackAdjustments: {
+        ...DEFAULT_TRACK,
         scratch: safe(cached.trackAdjustments?.scratch, base.trackAdjustments.scratch),
         python: safe(cached.trackAdjustments?.python, base.trackAdjustments.python),
         web: safe(cached.trackAdjustments?.web, base.trackAdjustments.web),
@@ -167,6 +182,7 @@ export async function saveTeacherFinanceConfig(input: {
     sessionRate90: safe(input.sessionRate90, 180),
     sessionRate120: safe(input.sessionRate120, 240),
     trackAdjustments: {
+      ...DEFAULT_TRACK,
       scratch: safe(input.trackAdjustments.scratch, 0),
       python: safe(input.trackAdjustments.python, 20),
       web: safe(input.trackAdjustments.web, 30),
