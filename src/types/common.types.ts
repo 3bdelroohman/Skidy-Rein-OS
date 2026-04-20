@@ -126,36 +126,36 @@ export type FollowUpType =
 export type CourseType = "scratch" | "app_inventor" | "robotics_basic" | "ai_intro" | "python" | "godot" | "robotics_iot" | "fastapi" | "html_css" | "javascript_tailwind" | "front_end" | "ai_ml" | "data_science" | "back_end" | "raspberry_pi" | "web" | "ai";
 
 
-/** Course family — 4 business-level categories for finance/reporting */
-export type CourseFamily = "junior" | "intermediate" | "advanced" | "specialized";
+/** Course stage — 4 curriculum stages for finance/reporting */
+export type CourseStage = "foundation" | "practical" | "web_apps" | "ai_data";
 
-/** Course track — maps each course to its family */
-export const COURSE_TRACK: Record<CourseType, CourseFamily> = {
-  scratch: "junior",
-  app_inventor: "junior",
-  robotics_basic: "junior",
-  ai_intro: "junior",
-  python: "intermediate",
-  godot: "intermediate",
-  robotics_iot: "intermediate",
-  fastapi: "intermediate",
-  html_css: "advanced",
-  javascript_tailwind: "advanced",
-  front_end: "advanced",
-  ai_ml: "specialized",
-  data_science: "specialized",
-  back_end: "specialized",
-  raspberry_pi: "junior",
-  web: "advanced",
-  ai: "specialized",
+/** Maps each course to its stage */
+export const COURSE_STAGE_MAP: Record<CourseType, CourseStage> = {
+  scratch: "foundation",
+  app_inventor: "foundation",
+  robotics_basic: "foundation",
+  ai_intro: "foundation",
+  python: "practical",
+  godot: "practical",
+  robotics_iot: "practical",
+  fastapi: "practical",
+  html_css: "web_apps",
+  javascript_tailwind: "web_apps",
+  front_end: "web_apps",
+  ai_ml: "ai_data",
+  data_science: "ai_data",
+  back_end: "ai_data",
+  raspberry_pi: "ai_data",
+  web: "web_apps",
+  ai: "ai_data",
 };
 
-/** Labels for CourseFamily */
-export const COURSE_FAMILY_LABELS: Record<CourseFamily, { ar: string; en: string }> = {
-  junior: { ar: "مبتدئ", en: "Junior" },
-  intermediate: { ar: "متوسط", en: "Intermediate" },
-  advanced: { ar: "متقدم", en: "Advanced" },
-  specialized: { ar: "متخصص", en: "Specialized" },
+/** Labels for CourseStage */
+export const COURSE_STAGE_LABELS: Record<CourseStage, { ar: string; en: string }> = {
+  foundation: { ar: "التأسيس الإبداعي", en: "Creative Foundation" },
+  practical: { ar: "البرمجة العملية", en: "Practical Programming" },
+  web_apps: { ar: "التطبيقات والويب", en: "Web & Apps" },
+  ai_data: { ar: "AI والبيانات", en: "AI & Data" },
 };
 
 /** Generic API response wrapper */
