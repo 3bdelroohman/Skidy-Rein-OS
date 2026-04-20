@@ -13,6 +13,7 @@ import { t, getStageLabel } from "@/lib/locale";
 import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils";
 import { listLeads } from "@/services/leads.service";
+import { LoadingState, EmptySearchState } from "@/components/shared/page-state";
 import type { LeadListItem } from "@/types/crm";
 import type { LeadStage, LeadTemperature } from "@/types/common.types";
 
@@ -106,9 +107,9 @@ export default function LeadsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">{t(locale, "جارِ تحميل العملاء...", "Loading leads...")}</div>
+        <LoadingState titleAr="\u062c\u0627\u0631\u0650 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0639\u0645\u0644\u0627\u0621" titleEn="Loading leads" descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0645\u0633\u0627\u0631 \u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0645\u062d\u062a\u0645\u0644\u064a\u0646." descriptionEn="Preparing the lead pipeline." />
       ) : filteredLeads.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">{t(locale, "لا يوجد عملاء مطابقون للفلاتر الحالية", "No leads match the current filters")}</div>
+        <EmptySearchState />
       ) : view === "kanban" ? (
         <LeadsKanban leads={filteredLeads} />
       ) : (

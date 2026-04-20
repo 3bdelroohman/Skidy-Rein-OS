@@ -27,6 +27,7 @@ import { getDashboardOperationToneStyles, getDashboardOverview } from "@/service
 import { getOwnerSnapshot, type OwnerSnapshotItem } from "@/services/owner-summary.service";
 import { useUIStore } from "@/stores/ui-store";
 import { t } from "@/lib/locale";
+import { LoadingState } from "@/components/shared/page-state";
 import type { DashboardActionItem, DashboardOverview, DashboardOperationItem } from "@/types/crm";
 
 function isManagement(role: string): boolean {
@@ -110,9 +111,12 @@ export default function DashboardPage() {
 
   if (loading || !overview) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
-        {t(locale, "جارِ تحميل لوحة التحكم...", "Loading dashboard...")}
-      </div>
+      <LoadingState
+        titleAr="\u062c\u0627\u0631\u0650 \u062a\u062d\u0645\u064a\u0644 \u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644"
+        titleEn="Loading dashboard"
+        descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644\u064a\u0629 \u0648\u0627\u0644\u0645\u0647\u0627\u0645 \u0648\u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a."
+        descriptionEn="Preparing operational data, tasks, and alerts."
+      />
     );
   }
 

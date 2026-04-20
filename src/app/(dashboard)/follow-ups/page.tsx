@@ -16,6 +16,7 @@ import { formatTime } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { getCommChannelLabel, getFollowUpTypeLabel, t } from "@/lib/locale";
 import { listFollowUps, markFollowUpCompleted, reopenFollowUp } from "@/services/follow-ups.service";
+import { LoadingState } from "@/components/shared/page-state";
 import type { FollowUpItem } from "@/types/crm";
 
 const CHANNEL_ICON: Record<FollowUpItem["channel"], typeof Phone> = {
@@ -103,7 +104,7 @@ export default function FollowUpsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">{t(locale, "جارِ تحميل المتابعات...", "Loading follow-ups...")}</div>
+        <LoadingState titleAr="\u062c\u0627\u0631\u0650 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0627\u062a" titleEn="Loading follow-ups" descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0645\u0647\u0627\u0645 \u0627\u0644\u064a\u0648\u0645 \u0648\u0627\u0644\u0645\u062a\u0623\u062e\u0631\u0629." descriptionEn="Preparing today and overdue tasks." />
       ) : (
         <div className="space-y-3">
           {displayItems.map((item) => {
