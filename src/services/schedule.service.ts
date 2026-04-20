@@ -9,7 +9,7 @@ import { listTeachers } from "@/services/teachers.service";
 
 const SCHEDULE_KEY = "skidy.crm.schedule";
 const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
-const VALID_COURSES: CourseType[] = ["scratch", "python", "web", "ai"];
+const VALID_COURSES: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi", "web", "ai"];
 
 const DEFAULT_SCHEDULE: ScheduleSessionItem[] = [
   { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTime: "17:00", className: "Scratch A", teacher: "Ø£. Ù…Ø­Ù…ÙˆØ¯", students: 5, course: "scratch", sessionDate: null },

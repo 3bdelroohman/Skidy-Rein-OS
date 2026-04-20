@@ -67,7 +67,7 @@ export default function LoginPage() {
         >
           <span className="text-white font-bold text-2xl">SR</span>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Skidy Rein</h1>
+        <h1 className="text-2xl font-bold text-foreground">Skidy Rein OS</h1>
         <p className="text-muted-foreground text-sm mt-1">
           تسجيل الدخول للوحة التحكم
         </p>
@@ -158,7 +158,7 @@ export default function LoginPage() {
       </div>
 
       <p className="text-center text-muted-foreground text-xs mt-6">
-        Skidy Rein CRM &copy; {new Date().getFullYear()}
+        Skidy Rein OS &copy; {new Date().getFullYear()}
       </p>
     </motion.div>
   );

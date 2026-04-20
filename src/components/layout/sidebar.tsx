@@ -68,8 +68,8 @@ export function Sidebar() {
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div variants={textVariants} initial="hide" animate="show" exit="hide" transition={{ duration: 0.2 }}>
-              <p className="text-sm font-bold leading-tight text-white">Skidy Rein</p>
-              <p className="text-[10px] text-white/50">{isAr ? "لوحة التحكم" : "Dashboard"}</p>
+              <p className="text-sm font-bold leading-tight text-white">Skidy Rein OS</p>
+              <p className="text-[10px] text-white/50">{isAr ? "نظام تشغيل الأكاديم\u064a\u0629" : "Academy Operating System"}</p>
             </motion.div>
           )}
         </AnimatePresence>

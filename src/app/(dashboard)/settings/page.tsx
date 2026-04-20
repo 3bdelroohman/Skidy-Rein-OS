@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { locale, setLocale, sidebarOpen, setSidebarOpen } = useUIStore();
   const [notifications, setNotifications] = useState({ email: true, whatsapp: true, browser: false });
-  const [profile, setProfile] = useState({ name: "Abdelrahman", email: "admin@skidyrein.com" });
+  const [profile, setProfile] = useState({ name: "Abdelrahman", email: "admin@skayeen.com" });
   const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
   const [showPassword, setShowPassword] = useState({ next: false, confirm: false });
   const [busy, setBusy] = useState<null | "save" | "reset" | "clear" | "export" | "import" | "password">(null);
@@ -135,7 +135,7 @@ export default function SettingsPage() {
       const link = document.createElement("a");
       const datePart = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
       link.href = url;
-      link.download = `skidy-rein-backup-${datePart}.json`;
+      link.download = `skidy-rein-os-backup-${datePart}.json`;
       document.body.appendChild(link);
       link.click();
       link.remove();

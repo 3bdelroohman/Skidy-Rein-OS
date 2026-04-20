@@ -4,7 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Calculator, FileText, Mail, Phone, PlusCircle, Save, Trash2, Users } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Calculator, FileText, Mail, Phone, PlusCircle, Save, Trash2, Users } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { formatCourseLabel, formatCurrencyEgp, formatDate } from "@/lib/formatters";
 import { getEmploymentTypeLabel, t } from "@/lib/locale";
@@ -163,12 +163,15 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
     } finally { setBusy(null); }
   }
 
+  const hasSessions = teacher !== null && teacher.linkedSessions.length > 0;
+
   if (loading) return <LoadingState titleAr="\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u062f\u0631\u0633" titleEn="Loading teacher details" descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0645\u0644\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 \u0648\u0631\u0628\u0637 \u0627\u0644\u062c\u0644\u0633\u0627\u062a \u0648\u0627\u0644\u0637\u0644\u0627\u0628." descriptionEn="Preparing the teacher profile with linked sessions and students." />;
 
   if (!teacher) return <PageStateCard variant="warning" titleAr="\u0627\u0644\u0645\u062f\u0631\u0633 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f" titleEn="Teacher not found" descriptionAr="\u0642\u062f \u064a\u0643\u0648\u0646 \u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641 \u0645\u062d\u0630\u0648\u0641\u0627\u064b \u0623\u0648 \u0627\u0644\u0631\u0627\u0628\u0637 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d." descriptionEn="This teacher profile may have been removed or the link is incorrect." actionHref="/teachers" actionLabelAr="\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646" actionLabelEn="Back to teachers" />;
 
   return (
     <div className="space-y-6">
+      {/* ── Header ── */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/teachers" className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted">{isAr ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}</Link>
@@ -183,13 +186,15 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      {/* ── Quick Metrics ── */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Metric label={t(locale, "\u0627\u0644\u0643\u0644\u0627\u0633\u0627\u062a", "Classes")} value={teacher.classesCount.toString()} />
         <Metric label={t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628", "Students")} value={teacher.studentsCount.toString()} />
         <Metric label={t(locale, "\u062a\u0642\u0627\u0631\u064a\u0631 \u062c\u0627\u0647\u0632\u0629", "Reports ready")} value={String(reportSummary.ready)} />
         <Metric label={t(locale, "\u064a\u062d\u062a\u0627\u062c \u0645\u062a\u0627\u0628\u0639\u0629", "Need follow-up")} value={String(reportSummary.needsAttention)} />
       </div>
 
+      {/* ── Specializations + Contact + Evaluation ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground"><BookOpen size={20} className="text-brand-600" />{t(locale, "\u0627\u0644\u062a\u062e\u0635\u0635\u0627\u062a \u0648\u0627\u0644\u062f\u0648\u0631\u0627\u062a", "Specializations & courses")}</h2>
@@ -232,69 +237,55 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><Calculator size={18} className="text-brand-600" />{t(locale, "\u0627\u0644\u062c\u0632\u0621 \u0627\u0644\u0645\u0627\u0644\u064a", "Finance")}</h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MoneyField label={t(locale, "\u0633\u0639\u0631 60 \u062f\u0642\u064a\u0642\u0629", "60 min rate")} value={sessionRate60} onChange={setSessionRate60} />
-            <MoneyField label={t(locale, "\u0633\u0639\u0631 90 \u062f\u0642\u064a\u0642\u0629", "90 min rate")} value={sessionRate90} onChange={setSessionRate90} />
-            <MoneyField label={t(locale, "\u0633\u0639\u0631 120 \u062f\u0642\u064a\u0642\u0629", "120 min rate")} value={sessionRate120} onChange={setSessionRate120} />
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {STAGES.map((stg) => (
-              <MoneyField key={stg} label={isAr ? COURSE_STAGE_LABELS[stg].ar : COURSE_STAGE_LABELS[stg].en} value={stageAdjustments[stg]} onChange={(v) => setStageAdjustments((prev) => ({ ...prev, [stg]: v }))} />
-            ))}
-          </div>
-          <div className="mt-4">
-            <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0645\u0627\u0644\u064a\u0629", "Finance notes")}</label>
-            <textarea value={financeNotes} onChange={(e) => setFinanceNotes(e.target.value)} rows={3} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
-          </div>
-          {financeSummary && (
-            <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <Metric label={t(locale, "\u0623\u0633\u0628\u0648\u0639\u064a", "Weekly")} value={formatCurrencyEgp(financeSummary.weeklyEstimated, locale)} compact />
-              <Metric label={t(locale, "\u0634\u0647\u0631\u064a", "Monthly")} value={formatCurrencyEgp(financeSummary.monthlyEstimated, locale)} compact />
-              <Metric label={t(locale, "\u0645\u062a\u0648\u0633\u0637 \u0627\u0644\u062d\u0635\u0629", "Avg/session")} value={formatCurrencyEgp(financeSummary.averagePerSession, locale)} compact />
-              <Metric label={t(locale, "\u0627\u0644\u062d\u0635\u0635", "Sessions")} value={String(financeSummary.linkedSessions)} compact />
-            </div>
-          )}
-          <button onClick={handleSaveFinance} disabled={busy !== null} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"><Save size={16} />{t(locale, "\u062d\u0641\u0638 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "Save finance settings")}</button>
+      {/* ── Finance: Inputs ── */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><Calculator size={18} className="text-brand-600" />{t(locale, "\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0623\u0633\u0639\u0627\u0631", "Rate Settings")}</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <MoneyField label={t(locale, "\u0633\u0639\u0631 60 \u062f\u0642\u064a\u0642\u0629", "60 min rate")} value={sessionRate60} onChange={setSessionRate60} />
+          <MoneyField label={t(locale, "\u0633\u0639\u0631 90 \u062f\u0642\u064a\u0642\u0629", "90 min rate")} value={sessionRate90} onChange={setSessionRate90} />
+          <MoneyField label={t(locale, "\u0633\u0639\u0631 120 \u062f\u0642\u064a\u0642\u0629", "120 min rate")} value={sessionRate120} onChange={setSessionRate120} />
         </div>
-
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><CalendarDays size={18} className="text-brand-600" />{t(locale, "\u0625\u0639\u0627\u062f\u0629 \u062a\u0639\u064a\u064a\u0646 \u0642\u0628\u0644 \u0627\u0644\u062d\u0630\u0641", "Reassign before deletion")}</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "\u0645\u062f\u0631\u0633 \u0628\u062f\u064a\u0644", "Replacement teacher")}</label>
-                <select value={replacementId} onChange={(e) => setReplacementId(e.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
-                  <option value="">{t(locale, "\u0627\u062e\u062a\u0631 \u0645\u062f\u0631\u0633\u0627\u064b", "Choose teacher")}</option>
-                  {alternatives.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
-                </select>
-              </div>
-              <p className="text-xs text-muted-foreground">{t(locale, "\u0625\u0630\u0627 \u0643\u0627\u0646 \u0627\u0644\u0645\u062f\u0631\u0633 \u0645\u0631\u062a\u0628\u0637\u0627\u064b \u0628\u062d\u0635\u0635\u060c \u0627\u0646\u0642\u0644\u0647\u0627 \u0623\u0648\u0644\u0627\u064b \u062b\u0645 \u0627\u062d\u0630\u0641.", "If linked to sessions, move them first then delete.")}</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={handleReassign} disabled={!replacementId || busy !== null || teacher.linkedSessions.length === 0} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"><CalendarDays size={16} />{t(locale, "\u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635", "Move sessions")}</button>
-                <button onClick={handleDelete} disabled={busy !== null || teacher.linkedSessions.length > 0} className="inline-flex items-center gap-2 rounded-xl bg-danger-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-danger-600 disabled:opacity-50"><Trash2 size={16} />{t(locale, "\u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633", "Delete teacher")}</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><CalendarDays size={18} className="text-brand-600" />{t(locale, "\u0627\u0644\u062c\u0644\u0633\u0627\u062a \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629", "Linked sessions")}</h3>
-            {teacher.linkedSessions.length === 0
-              ? <EmptyCopy locale={locale} ar="\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0644\u0633\u0627\u062a \u0645\u0631\u062a\u0628\u0637\u0629 \u062d\u0627\u0644\u064a\u0627\u064b" en="No linked sessions yet" />
-              : <div className="space-y-3">{teacher.linkedSessions.map((s) => (
-                  <Link key={s.id} href={"/schedule/" + s.id} className="block rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40">
-                    <div className="flex items-center justify-between gap-3">
-                      <div><p className="font-semibold text-foreground">{s.className}</p><p className="mt-1 text-xs text-muted-foreground">{s.startTime} \u2192 {s.endTime}</p></div>
-                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{formatCourseLabel(s.course, locale)}</span>
-                    </div>
-                  </Link>
-                ))}</div>}
-          </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {STAGES.map((stg) => (
+            <MoneyField key={stg} label={isAr ? COURSE_STAGE_LABELS[stg].ar : COURSE_STAGE_LABELS[stg].en} value={stageAdjustments[stg]} onChange={(v) => setStageAdjustments((prev) => ({ ...prev, [stg]: v }))} />
+          ))}
         </div>
+        <div className="mt-4">
+          <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "\u0645\u0644\u0627\u062d\u0638\u0627\u062a \u0645\u0627\u0644\u064a\u0629", "Finance notes")}</label>
+          <textarea value={financeNotes} onChange={(e) => setFinanceNotes(e.target.value)} rows={3} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
+        </div>
+        <button onClick={handleSaveFinance} disabled={busy !== null} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"><Save size={16} />{t(locale, "\u062d\u0641\u0638 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "Save finance settings")}</button>
       </div>
 
+      {/* ── Finance: Computed Summary (read-only) ── */}
+      {financeSummary && (
+        <div className="rounded-2xl border border-border bg-muted/30 p-5">
+          <h3 className="mb-3 text-sm font-bold text-muted-foreground">{t(locale, "\u0627\u0644\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u062d\u0633\u0648\u0628", "Computed Finance Summary")}</h3>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <Metric label={t(locale, "\u0623\u0633\u0628\u0648\u0639\u064a", "Weekly")} value={formatCurrencyEgp(financeSummary.weeklyEstimated, locale)} compact />
+            <Metric label={t(locale, "\u0634\u0647\u0631\u064a", "Monthly")} value={formatCurrencyEgp(financeSummary.monthlyEstimated, locale)} compact />
+            <Metric label={t(locale, "\u0645\u062a\u0648\u0633\u0637 \u0627\u0644\u062d\u0635\u0629", "Avg/session")} value={formatCurrencyEgp(financeSummary.averagePerSession, locale)} compact />
+            <Metric label={t(locale, "\u0627\u0644\u062d\u0635\u0635", "Sessions")} value={String(financeSummary.linkedSessions)} compact />
+          </div>
+        </div>
+      )}
+
+      {/* ── Linked Sessions ── */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><CalendarDays size={18} className="text-brand-600" />{t(locale, "\u0627\u0644\u062c\u0644\u0633\u0627\u062a \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629", "Linked sessions")}</h3>
+        {teacher.linkedSessions.length === 0
+          ? <EmptyCopy locale={locale} ar="\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0644\u0633\u0627\u062a \u0645\u0631\u062a\u0628\u0637\u0629 \u062d\u0627\u0644\u064a\u0627\u064b" en="No linked sessions yet" />
+          : <div className="space-y-3">{teacher.linkedSessions.map((s) => (
+              <Link key={s.id} href={"/schedule/" + s.id} className="block rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="font-semibold text-foreground">{s.className}</p><p className="mt-1 text-xs text-muted-foreground">{s.startTime} \u2192 {s.endTime}</p></div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{formatCourseLabel(s.course, locale)}</span>
+                </div>
+              </Link>
+            ))}</div>}
+      </div>
+
+      {/* ── Linked Students ── */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><Users size={18} className="text-brand-600" />{t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0648\u0646", "Linked students")}</h3>
         {teacher.linkedStudents.length === 0
@@ -311,6 +302,28 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                 </Link>
               );
             })}</div>}
+      </div>
+
+      {/* ── Danger Zone ── */}
+      <div className="rounded-2xl border-2 border-danger-200 bg-danger-50/30 p-5 dark:border-danger-800 dark:bg-danger-950/20">
+        <h3 className="mb-1 flex items-center gap-2 font-bold text-danger-700 dark:text-danger-400"><AlertTriangle size={18} />{t(locale, "\u0645\u0646\u0637\u0642\u0629 \u062e\u0637\u0631\u0629", "Danger Zone")}</h3>
+        <p className="mb-4 text-xs text-danger-600/70 dark:text-danger-400/70">{t(locale, "\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062a\u0631\u0627\u062c\u0639 \u0639\u0646\u0647\u0627. \u062a\u0623\u0643\u062f \u0642\u0628\u0644 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629.", "Irreversible actions. Confirm before proceeding.")}</p>
+
+        {hasSessions && (
+          <div className="mb-4 rounded-xl border border-danger-200 bg-white p-4 dark:border-danger-800 dark:bg-card">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "\u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635 \u0625\u0644\u0649 \u0645\u062f\u0631\u0633 \u0628\u062f\u064a\u0644", "Move sessions to replacement teacher")}</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <select value={replacementId} onChange={(e) => setReplacementId(e.target.value)} className="flex-1 rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
+                <option value="">{t(locale, "\u0627\u062e\u062a\u0631 \u0645\u062f\u0631\u0633\u0627\u064b", "Choose teacher")}</option>
+                {alternatives.map((a) => <option key={a.id} value={a.id}>{a.fullName}</option>)}
+              </select>
+              <button onClick={handleReassign} disabled={!replacementId || busy !== null} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"><CalendarDays size={16} />{t(locale, "\u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635", "Move sessions")}</button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{t(locale, "\u0647\u0630\u0627 \u0627\u0644\u0645\u062f\u0631\u0633 \u0645\u0631\u062a\u0628\u0637 \u0628\u0640 " + teacher.linkedSessions.length + " \u062d\u0635\u0629. \u0627\u0646\u0642\u0644\u0647\u0627 \u0623\u0648\u0644\u0627\u064b \u0644\u062a\u062a\u0645\u0643\u0646 \u0645\u0646 \u0627\u0644\u062d\u0630\u0641.", "This teacher has " + teacher.linkedSessions.length + " sessions. Move them first to enable deletion.")}</p>
+          </div>
+        )}
+
+        <button onClick={handleDelete} disabled={busy !== null || hasSessions} className="inline-flex items-center gap-2 rounded-xl bg-danger-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-danger-600 disabled:opacity-50"><Trash2 size={16} />{t(locale, "\u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 \u0646\u0647\u0627\u0626\u064a\u0627\u064b", "Delete teacher permanently")}</button>
       </div>
     </div>
   );

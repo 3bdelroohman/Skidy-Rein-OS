@@ -5,10 +5,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Skidy Rein — لوحة التحكم",
-    template: "%s | Skidy Rein",
+    default: "Skidy Rein OS — نظام تشغيل الأكاديمية",
+    template: "%s | Skidy Rein OS",
   },
-  description: "نظام إدارة أكاديمية Skidy Rein لتعليم البرمجة للأطفال",
+  description: "Skidy Rein OS — نظام التشغيل المتكامل لإدارة الأكاديمية",
 };
 
 export default function RootLayout({
