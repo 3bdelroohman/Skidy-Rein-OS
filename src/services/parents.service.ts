@@ -114,8 +114,25 @@ export async function listParents(): Promise<ParentListItem[]> {
 }
 
 export async function getParentById(id: string): Promise<ParentListItem | null> {
-  const items = await listParents();
-  return items.find((parent) => parent.id === id) ?? null;
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("parents")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    const mapped = mapRow(data);
+    saveLocalParents([mapped, ...getLocalParents().filter((parent) => parent.id !== mapped.id)]);
+    return mapped;
+  } catch (error) {
+    console.error("[parents] failed to load parent by id", error);
+    return null;
+  }
 }
 
 export async function createParent(input: CreateParentInput): Promise<ParentListItem> {
@@ -175,7 +192,6 @@ export async function deleteParent(id: string): Promise<boolean> {
 
   if (!before) throw new Error("Parent not found");
 
-  // Check for linked students
   const { data: students } = await supabase
     .from("students")
     .select("id")
@@ -183,15 +199,12 @@ export async function deleteParent(id: string): Promise<boolean> {
     .limit(1);
 
   if (students && students.length > 0) {
-    throw new Error("لا يمكن حذف ولي الأمر لأن لديه طلاب مرتبطين");
+    throw new Error("Cannot delete parent with linked students");
   }
 
   const { error } = await supabase.from("parents").delete().eq("id", id);
   if (error) throw new Error(error.message || "Failed to delete parent");
 
-  const local = readStorage<{id:string}[]>(PARENTS_KEY, []);
-  writeStorage(PARENTS_KEY, local.filter((p) => p.id !== id));
-
+  saveLocalParents(getLocalParents().filter((parent) => parent.id !== id));
   return true;
 }
-

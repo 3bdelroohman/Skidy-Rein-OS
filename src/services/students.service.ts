@@ -137,8 +137,36 @@ export async function listStudents(): Promise<StudentListItem[]> {
 }
 
 export async function getStudentById(id: string): Promise<StudentListItem | null> {
-  const items = await listStudents();
-  return items.find((student) => student.id === id) ?? null;
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    let parentInfo: ParentLookup | null = null;
+    if (data.parent_id) {
+      const { data: parentData } = await supabase
+        .from("parents")
+        .select("full_name, phone")
+        .eq("id", data.parent_id)
+        .maybeSingle();
+
+      parentInfo = parentData ?? null;
+    }
+
+    const mapped = mapRow(data, parentInfo);
+    saveLocalStudents([mapped, ...getLocalStudents().filter((student) => student.id !== mapped.id)]);
+    return mapped;
+  } catch (error) {
+    console.error("[students] failed to load student by id", error);
+    return null;
+  }
 }
 
 export async function createStudent(input: CreateStudentInput): Promise<StudentListItem> {
