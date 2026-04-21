@@ -50,8 +50,8 @@ const STATUS_META: Record<DisplayStatus, { bg: string; color: string }> = {
 };
 
 const STATUS_ACTIONS: Array<{ status: PaymentStatus; method?: PaymentMethod | null }> = [
-  { status: "paid", method: "instapay" },
-  { status: "partial", method: "instapay" },
+  { status: "paid" },
+  { status: "partial" },
   { status: "pending" },
   { status: "overdue" },
 ];
