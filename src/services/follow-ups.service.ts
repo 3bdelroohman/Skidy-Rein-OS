@@ -177,12 +177,12 @@ function saveLocalActivities(activities: LeadActivityItem[]): void {
 /*  created_at is auto-generated - do NOT send it                      */
 /* ------------------------------------------------------------------ */
 
-function createLeadActivity(
+async function createLeadActivity(
   leadId: string | null | undefined,
   action: string,
   by: string,
   type: LeadActivityItem["type"],
-): LeadActivityItem | null {
+): Promise<LeadActivityItem | null> {
   if (!leadId) return null;
 
   const activity: LeadActivityItem = {
@@ -194,18 +194,32 @@ function createLeadActivity(
     date: new Date().toISOString(),
   };
 
-  saveLocalActivities([activity, ...getLocalActivities()]);
-
   const supabase = getSupabaseClient();
-  if (supabase) {
-    void supabase.from("lead_activities").insert({
+  if (!supabase) {
+    if (shouldUseDemoFallback()) {
+      saveLocalActivities([activity, ...getLocalActivities()]);
+    }
+    return activity;
+  }
+
+  try {
+    const { error } = await supabase.from("lead_activities").insert({
       lead_id: leadId,
       action: activity.action,
       metadata: { type: activity.type, actor_name: by },
     });
-  }
 
-  return activity;
+    if (error) {
+      console.warn("[follow-ups] lead activity insert failed", error);
+      return null;
+    }
+
+    saveLocalActivities([activity, ...getLocalActivities()]);
+    return activity;
+  } catch (error) {
+    console.warn("[follow-ups] lead activity insert failed", error);
+    return null;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -223,18 +237,20 @@ function deriveNextFollowUpAt(leadId: string | null | undefined, items: FollowUp
 async function syncLeadNextFollowUp(leadId: string | null | undefined, items: FollowUpItem[]): Promise<void> {
   if (!leadId) return;
 
+  const nextFollowUpAt = deriveNextFollowUpAt(leadId, items);
   const leads = getLocalLeads();
   const existing = leads.find((lead) => lead.id === leadId);
-  if (!existing) return;
+  const lastContactAt = existing?.lastContactAt ?? new Date().toISOString();
 
-  const nextFollowUpAt = deriveNextFollowUpAt(leadId, items);
-  const updatedLead: LeadListItem = {
-    ...existing,
-    nextFollowUpAt,
-    lastContactAt: existing.lastContactAt ?? new Date().toISOString(),
-  };
+  if (existing) {
+    const updatedLead: LeadListItem = {
+      ...existing,
+      nextFollowUpAt,
+      lastContactAt,
+    };
 
-  saveLocalLeads(leads.map((lead) => (lead.id === leadId ? updatedLead : lead)));
+    saveLocalLeads(leads.map((lead) => (lead.id === leadId ? updatedLead : lead)));
+  }
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
@@ -243,7 +259,7 @@ async function syncLeadNextFollowUp(leadId: string | null | undefined, items: Fo
     .from("leads")
     .update({
       next_follow_up_at: nextFollowUpAt,
-      last_contact_at: updatedLead.lastContactAt,
+      last_contact_at: lastContactAt,
     })
     .eq("id", leadId);
 }
@@ -347,25 +363,29 @@ export async function createFollowUp(input: CreateFollowUpInput): Promise<Follow
     assignedTo: input.assignedTo,
   };
 
-  const current = getLocalFollowUps();
-  const next = [...current, item];
-  saveLocalFollowUps(next);
-
-  const typeLabel = item.type === "trial_reminder"
-    ? "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629"
-    : item.title;
-  createLeadActivity(
-    item.leadId,
-    "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u062c\u062f\u064a\u062f\u0629: " + typeLabel,
-    item.assignedTo,
-    "contact",
-  );
-  await syncLeadNextFollowUp(item.leadId, next);
-
   const supabase = getSupabaseClient();
   if (!supabase) {
-    if (shouldUseDemoFallback()) return item;
-    throw new Error("Supabase client is not available");
+    if (!shouldUseDemoFallback()) {
+      throw new Error("Supabase client is not available");
+    }
+
+    const current = getLocalFollowUps();
+    const next = [...current, item];
+    saveLocalFollowUps(next);
+
+    const typeLabel = item.type === "trial_reminder"
+      ? "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629"
+      : item.title;
+
+    await createLeadActivity(
+      item.leadId,
+      "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u062c\u062f\u064a\u062f\u0629: " + typeLabel,
+      item.assignedTo,
+      "contact",
+    );
+
+    await syncLeadNextFollowUp(item.leadId, next);
+    return item;
   }
 
   try {
@@ -384,29 +404,39 @@ export async function createFollowUp(input: CreateFollowUpInput): Promise<Follow
       .select("*")
       .maybeSingle();
 
-    if (!error && data) {
-      const names = new Map<string, LeadNameEntry>();
-      if (data.lead_id) {
-        names.set(data.lead_id, {
-          childName: item.leadName,
-          parentName: item.parentName,
-        });
-      }
-      const synced = mapRow(data, names);
-      const merged = getLocalFollowUps().map((existing) =>
-        existing.id === item.id ? synced : existing,
-      );
-      saveLocalFollowUps(merged);
-      await syncLeadNextFollowUp(item.leadId, merged);
-      return synced;
+    if (error || !data) {
+      throw error ?? new Error("Failed to create follow-up");
     }
+
+    const names = new Map<string, LeadNameEntry>();
+    if (data.lead_id) {
+      names.set(data.lead_id, {
+        childName: item.leadName,
+        parentName: item.parentName,
+      });
+    }
+
+    const synced = mapRow(data, names);
+    const merged = [...getLocalFollowUps().filter((existing) => existing.id !== synced.id), synced];
+    saveLocalFollowUps(merged);
+
+    const typeLabel = item.type === "trial_reminder"
+      ? "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629"
+      : item.title;
+
+    await createLeadActivity(
+      synced.leadId,
+      "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u062c\u062f\u064a\u062f\u0629: " + typeLabel,
+      synced.assignedTo,
+      "contact",
+    );
+
+    await syncLeadNextFollowUp(synced.leadId, merged);
+    return synced;
   } catch (error) {
     console.error("[follow-ups] create failed", error);
-    if (shouldUseDemoFallback()) return item;
     throw error instanceof Error ? error : new Error("Failed to create follow-up");
   }
-
-  return item;
 }
 
 /* ------------------------------------------------------------------ */
@@ -419,50 +449,82 @@ async function updateFollowUpStatus(
   id: string,
   status: FollowUpItem["status"],
 ): Promise<FollowUpItem | null> {
-  const current = getLocalFollowUps();
-  const existing = current.find((item) => item.id === id);
+  const supabase = getSupabaseClient();
+
+  let current = getLocalFollowUps();
+  let existing = current.find((item) => item.id === id);
+
+  if (!existing && supabase) {
+    current = await listFollowUps();
+    existing = current.find((item) => item.id === id);
+  }
+
   if (!existing) return null;
 
   const nextStatus = status === "completed" ? "completed" : resolveOpenStatus(existing.scheduledAt);
-  const updated: FollowUpItem = { ...existing, status: nextStatus };
-  const merged = current.map((item) => (item.id === id ? updated : item));
-  saveLocalFollowUps(merged);
 
-  if (updated.leadId) {
-    const action = nextStatus === "completed"
-      ? "\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title
-      : "\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title;
-    createLeadActivity(
-      updated.leadId,
-      action,
-      updated.assignedTo,
-      nextStatus === "completed" ? "contact" : "note",
-    );
-  }
-
-  await syncLeadNextFollowUp(updated.leadId, merged);
-
-  const supabase = getSupabaseClient();
   if (!supabase) {
-    if (shouldUseDemoFallback()) return updated;
-    throw new Error("Supabase client is not available");
+    if (!shouldUseDemoFallback()) {
+      throw new Error("Supabase client is not available");
+    }
+
+    const updated: FollowUpItem = { ...existing, status: nextStatus };
+    const merged = current.map((item) => (item.id === id ? updated : item));
+    saveLocalFollowUps(merged);
+
+    if (updated.leadId) {
+      const action = nextStatus === "completed"
+        ? "\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title
+        : "\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title;
+
+      await createLeadActivity(
+        updated.leadId,
+        action,
+        updated.assignedTo,
+        nextStatus === "completed" ? "contact" : "note",
+      );
+    }
+
+    await syncLeadNextFollowUp(updated.leadId, merged);
+    return updated;
   }
 
   try {
-    await supabase
+    const { error } = await supabase
       .from("follow_ups")
       .update({
         is_completed: nextStatus === "completed",
         completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
       })
       .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    const updated: FollowUpItem = { ...existing, status: nextStatus };
+    const merged = current.map((item) => (item.id === id ? updated : item));
+    saveLocalFollowUps(merged);
+
+    if (updated.leadId) {
+      const action = nextStatus === "completed"
+        ? "\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title
+        : "\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title;
+
+      await createLeadActivity(
+        updated.leadId,
+        action,
+        updated.assignedTo,
+        nextStatus === "completed" ? "contact" : "note",
+      );
+    }
+
+    await syncLeadNextFollowUp(updated.leadId, merged);
+    return updated;
   } catch (error) {
     console.error("[follow-ups] status update failed", error);
-    if (shouldUseDemoFallback()) return updated;
     throw error instanceof Error ? error : new Error("Failed to update follow-up status");
   }
-
-  return updated;
 }
 
 export async function markFollowUpCompleted(id: string): Promise<FollowUpItem | null> {

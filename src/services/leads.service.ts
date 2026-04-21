@@ -241,15 +241,19 @@ export async function listLeads(): Promise<LeadListItem[]> {
 }
 
 export async function getLeadById(id: string): Promise<LeadListItem | null> {
-  const local = getLocalLeads().find((lead) => lead.id === id);
-  if (local) return local;
-
   const supabase = getSupabaseClient();
-  if (!supabase) return null;
+
+  if (!supabase) {
+    if (shouldUseDemoFallback()) {
+      return getLocalLeads().find((lead) => lead.id === id) ?? null;
+    }
+    return null;
+  }
 
   try {
     const { data, error } = await supabase.from("leads").select("*").eq("id", id).maybeSingle();
     if (error || !data) return null;
+
     const mapped = mapLeadRow(data);
     const next = [mapped, ...getLocalLeads().filter((lead) => lead.id !== id)];
     saveLocalLeads(next);
@@ -406,8 +410,51 @@ export async function updateLead(
   input: UpdateLeadInput,
   actorName = input.assignedToName || "\u0627\u0644\u0646\u0638\u0627\u0645",
 ): Promise<LeadListItem | null> {
-  const current = getLocalLeads();
-  const existing = current.find((lead) => lead.id === leadId);
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    if (!shouldUseDemoFallback()) {
+      throw new Error("Supabase client is not available");
+    }
+
+    const current = getLocalLeads();
+    const existing = current.find((lead) => lead.id === leadId);
+    if (!existing) return null;
+
+    const updated: LeadListItem = {
+      ...existing,
+      childName: input.childName,
+      childAge: input.childAge,
+      parentName: input.parentName,
+      parentPhone: input.parentPhone,
+      source: input.source,
+      temperature: input.temperature,
+      suggestedCourse: input.suggestedCourse,
+      assignedTo: input.assignedTo,
+      assignedToName: input.assignedToName,
+      notes: input.notes ?? null,
+      stage: input.stage ?? existing.stage,
+      lossReason: input.lossReason ?? existing.lossReason ?? null,
+      nextFollowUpAt: input.nextFollowUpAt ?? existing.nextFollowUpAt,
+      lastContactAt: new Date().toISOString(),
+    };
+
+    saveLocalLeads(current.map((lead) => (lead.id === leadId ? updated : lead)));
+
+    const activity: LeadActivityItem = {
+      id: crypto.randomUUID(),
+      leadId,
+      action: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0639\u0645\u064a\u0644",
+      date: new Date().toISOString(),
+      by: actorName,
+      type: "note",
+    };
+    saveLocalActivities([activity, ...getLocalActivities()]);
+
+    return updated;
+  }
+
+  const existing = await getLeadById(leadId);
   if (!existing) return null;
 
   const updated: LeadListItem = {
@@ -428,8 +475,6 @@ export async function updateLead(
     lastContactAt: new Date().toISOString(),
   };
 
-  saveLocalLeads(current.map((lead) => (lead.id === leadId ? updated : lead)));
-
   const activity: LeadActivityItem = {
     id: crypto.randomUUID(),
     leadId,
@@ -438,13 +483,6 @@ export async function updateLead(
     by: actorName,
     type: "note",
   };
-  saveLocalActivities([activity, ...getLocalActivities()]);
-
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    if (shouldUseDemoFallback()) return updated;
-    throw new Error("Supabase client is not available");
-  }
 
   try {
     const assignedToUuid = await resolveAssignedToUuid(updated.assignedTo);
@@ -484,13 +522,16 @@ export async function updateLead(
     if (activityError) {
       console.warn("[lead_activities] update activity failed", activityError);
     }
+
+    const current = getLocalLeads().filter((lead) => lead.id !== leadId);
+    saveLocalLeads([updated, ...current]);
+    saveLocalActivities([activity, ...getLocalActivities()]);
+
+    return updated;
   } catch (error) {
     console.error("[leads] update failed", error);
-    if (shouldUseDemoFallback()) return updated;
     throw error instanceof Error ? error : new Error("Failed to update lead");
   }
-
-  return updated;
 }
 
 export async function updateLeadStage(
@@ -498,38 +539,59 @@ export async function updateLeadStage(
   stage: LeadStage,
   actorName: string,
 ): Promise<LeadListItem | null> {
-  const current = getLocalLeads();
-  const existing = current.find((lead) => lead.id === leadId);
+  const supabase = getSupabaseClient();
+
+  if (!supabase) {
+    if (!shouldUseDemoFallback()) {
+      throw new Error("Supabase client is not available");
+    }
+
+    const current = getLocalLeads();
+    const existing = current.find((lead) => lead.id === leadId);
+    if (!existing) return null;
+
+    const updated: LeadListItem = {
+      ...existing,
+      stage,
+      lastContactAt: new Date().toISOString(),
+    };
+
+    saveLocalLeads(current.map((lead) => (lead.id === leadId ? updated : lead)));
+
+    const activity: LeadActivityItem = {
+      id: crypto.randomUUID(),
+      leadId,
+      action: "\u062a\u0645 \u0646\u0642\u0644 \u0627\u0644\u0645\u0631\u062d\u0644\u0629 \u0625\u0644\u0649 " + STAGE_LABELS[stage],
+      date: new Date().toISOString(),
+      by: actorName,
+      type: "stage",
+    };
+
+    saveLocalActivities([activity, ...getLocalActivities()]);
+    return updated;
+  }
+
+  const existing = await getLeadById(leadId);
   if (!existing) return null;
 
   const previousStage = existing.stage;
-
   const updated: LeadListItem = {
     ...existing,
     stage,
     lastContactAt: new Date().toISOString(),
   };
 
-  saveLocalLeads(current.map((lead) => (lead.id === leadId ? updated : lead)));
-
   const activity: LeadActivityItem = {
     id: crypto.randomUUID(),
     leadId,
-    action: `\u062a\u0645 \u0646\u0642\u0644 \u0627\u0644\u0645\u0631\u062d\u0644\u0629 \u0625\u0644\u0649 ${STAGE_LABELS[stage]}`,
+    action: "\u062a\u0645 \u0646\u0642\u0644 \u0627\u0644\u0645\u0631\u062d\u0644\u0629 \u0625\u0644\u0649 " + STAGE_LABELS[stage],
     date: new Date().toISOString(),
     by: actorName,
     type: "stage",
   };
-  saveLocalActivities([activity, ...getLocalActivities()]);
-
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    if (shouldUseDemoFallback()) return updated;
-    throw new Error("Supabase client is not available");
-  }
 
   try {
-    await supabase
+    const { error: stageError } = await supabase
       .from("leads")
       .update({
         stage,
@@ -537,7 +599,11 @@ export async function updateLeadStage(
       })
       .eq("id", leadId);
 
-    await supabase.from("lead_activities").insert({
+    if (stageError) {
+      throw stageError;
+    }
+
+    const { error: activityError } = await supabase.from("lead_activities").insert({
       lead_id: leadId,
       action: activity.action,
       from_stage: previousStage,
@@ -545,7 +611,10 @@ export async function updateLeadStage(
       metadata: { type: "stage", actor_name: actorName },
     });
 
-    // --- Auto-enrollment on won ---
+    if (activityError) {
+      console.warn("[lead_activities] stage activity failed", activityError);
+    }
+
     if (stage === "won") {
       try {
         await ensureLeadEnrollment(leadId);
@@ -554,17 +623,17 @@ export async function updateLeadStage(
         console.warn("[leads] auto-enrollment failed", leadId, enrollErr);
       }
     }
-    // --- End auto-enrollment ---
 
+    const current = getLocalLeads().filter((lead) => lead.id !== leadId);
+    saveLocalLeads([updated, ...current]);
+    saveLocalActivities([activity, ...getLocalActivities()]);
+
+    return updated;
   } catch (error) {
     console.error("[leads] stage update failed", error);
-    if (shouldUseDemoFallback()) return updated;
     throw error instanceof Error ? error : new Error("Failed to update lead stage");
   }
-
-  return updated;
 }
-
 
 /** Delete a lead permanently */
 export async function deleteLead(id: string): Promise<boolean> {
@@ -579,16 +648,13 @@ export async function deleteLead(id: string): Promise<boolean> {
 
   if (!before) throw new Error("Lead not found");
 
-  // Delete related activities first
   await supabase.from("lead_activities").delete().eq("lead_id", id);
 
   const { error } = await supabase.from("leads").delete().eq("id", id);
   if (error) throw new Error(error.message || "Failed to delete lead");
 
-  // Clean local storage
-  const local = readStorage<{id:string}[]>(LEADS_KEY, []);
-  writeStorage(LEADS_KEY, local.filter((l) => l.id !== id));
+  saveLocalLeads(getLocalLeads().filter((lead) => lead.id !== id));
+  saveLocalActivities(getLocalActivities().filter((activity) => activity.leadId !== id));
 
   return true;
 }
-
