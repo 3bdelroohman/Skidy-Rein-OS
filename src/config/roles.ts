@@ -155,17 +155,43 @@ function normalizePaymentIdentity(value: string | null | undefined): string {
     .replace(/[\-_.]/g, "");
 }
 
-const ALAA_IDENTIFIERS = ["alaa", "alaa", "alaaabdel", "الاء", "الاءاحمد", "آلاء", "الاءمحمد"];
+const ALAA_PAYMENT_EMAILS = ["alaa@skidyrain.com"];
 
 export function canManagePaymentsForUser(user: PaymentResponsibleUser | null | undefined): boolean {
   if (!user) return false;
   if (user.role === "admin" || user.role === "owner") return true;
   if (user.role !== "sales") return false;
 
-  const candidates = [user.email, user.fullName, user.fullNameAr].map(normalizePaymentIdentity);
-  return ALAA_IDENTIFIERS.some((identifier) => candidates.some((candidate) => candidate.includes(normalizePaymentIdentity(identifier))));
+  const email = normalizePaymentIdentity(user.email);
+  return ALAA_PAYMENT_EMAILS.some((allowedEmail) => email === normalizePaymentIdentity(allowedEmail));
 }
 
 export function canAccessPaymentsForUser(user: PaymentResponsibleUser | null | undefined): boolean {
   return canManagePaymentsForUser(user);
+}
+
+interface TeacherResponsibleUser {
+  email?: string | null;
+  fullName?: string | null;
+  fullNameAr?: string | null;
+  role?: UserRole | null;
+}
+
+const HAGAR_TEACHER_EMAILS = ["hagar@skidyrain.com"];
+
+export function canManageTeachersForUser(user: TeacherResponsibleUser | null | undefined): boolean {
+  if (!user) return false;
+  if (user.role === "admin" || user.role === "owner") return true;
+  if (user.role !== "ops") return false;
+
+  const email = normalizePaymentIdentity(user.email);
+  return HAGAR_TEACHER_EMAILS.some((allowedEmail) => email === normalizePaymentIdentity(allowedEmail));
+}
+
+export function canAccessTeachersForUser(user: TeacherResponsibleUser | null | undefined): boolean {
+  return canManageTeachersForUser(user);
+}
+
+export function canManageTeacherFinanceForUser(user: TeacherResponsibleUser | null | undefined): boolean {
+  return canManageTeachersForUser(user);
 }

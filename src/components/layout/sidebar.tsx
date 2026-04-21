@@ -10,7 +10,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
 import { signOutClient } from "@/lib/actions/auth.actions";
 import { navigationGroups } from "@/config/navigation";
-import { ROLE_PERMISSIONS } from "@/config/roles";
+import { canAccessTeachersForUser, ROLE_PERMISSIONS } from "@/config/roles";
 
 const sidebarVariants = {
   expanded: { width: 260 },
@@ -36,7 +36,11 @@ export function Sidebar() {
   const filteredGroups = navigationGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.roles.includes(user.role)),
+      items: group.items.filter((item) => {
+        if (!item.roles.includes(user.role)) return false;
+        if (item.href.startsWith("/teachers")) return canAccessTeachersForUser(user);
+        return true;
+      }),
     }))
     .filter((group) => group.items.length > 0);
 
