@@ -122,7 +122,7 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
       t(
         locale,
         "سيتم إخفاء هذه الدفعة من قوائم المدفوعات مع بقاء السجل محفوظًا. هل تريد المتابعة؟",
-        "This payment will be hidden from payment lists while the record stays محفوظ. Continue?",
+        "This payment will be hidden from payment lists while the record remains saved. Continue?",
       ),
     );
     if (!confirmed) return;
@@ -359,7 +359,7 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
           </div>
 
           {canManage ? (
-            <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="rounded-2xl border border-red-200 bg-card p-5 dark:border-red-900/50">
               <h3 className="mb-4 font-bold text-foreground">{t(locale, "إدارة السجل", "Record management")}</h3>
               <div className="space-y-3">
                 {isArchived ? (

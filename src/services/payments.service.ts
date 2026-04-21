@@ -242,6 +242,18 @@ async function readPaymentRows(): Promise<PaymentRow[]> {
   return (data ?? []) as PaymentRow[];
 }
 
+async function readPaymentRowById(id: string): Promise<PaymentRow | null> {
+  const supabase = assertSupabaseConfigured();
+  const { data, error } = await supabase.from("payments").select("*").eq("id", id).maybeSingle();
+
+  if (error) {
+    console.error("[payments] failed to load payment by id", error);
+    throw new Error(error.message || "Failed to load payment");
+  }
+
+  return (data ?? null) as PaymentRow | null;
+}
+
 function toPaymentInsert(input: {
   id: string;
   studentId: string;
@@ -296,22 +308,43 @@ export async function listPayments(options: ListPaymentsOptions = {}): Promise<P
 }
 
 export async function getPaymentById(id: string, options: ListPaymentsOptions = {}): Promise<PaymentItem | null> {
-  const items = await listPayments({ includeArchived: options.includeArchived ?? true });
-  return items.find((payment) => payment.id === id) ?? null;
+  const { includeArchived = true } = options;
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  try {
+    const [row, { studentsMap, parentsMap }] = await Promise.all([
+      readPaymentRowById(id),
+      buildMaps(),
+    ]);
+
+    if (!row) return null;
+
+    const mapped = mapPaymentRow(row, studentsMap, parentsMap);
+    if (!includeArchived && getPaymentArchiveState(mapped).archived) {
+      return null;
+    }
+
+    return mapped;
+  } catch (error) {
+    console.error("[payments] failed to resolve payment by id", error);
+    return null;
+  }
 }
 
 export async function getPaymentDetails(id: string): Promise<PaymentDetails | null> {
-  const [allPayments, activePayments, students, parents] = await Promise.all([
+  const payment = await getPaymentById(id, { includeArchived: true });
+  if (!payment) return null;
+
+  const [allPayments, students, parents] = await Promise.all([
     listPayments({ includeArchived: true }),
-    listPayments(),
     listStudents(),
     listParents(),
   ]);
 
-  const payment = allPayments.find((item) => item.id === id) ?? null;
-  if (!payment) return null;
-
+  const activePayments = allPayments.filter((item) => !getPaymentArchiveState(item).archived);
   const archiveState = getPaymentArchiveState(payment);
+
   const student = payment.studentId ? students.find((item) => item.id === payment.studentId) ?? null : null;
   const parent = payment.parentId
     ? parents.find((item) => item.id === payment.parentId) ?? null

@@ -101,7 +101,7 @@ export function PaymentInvoiceView({ paymentId }: { paymentId: string }) {
 
     const parentPhone = payment.parent?.phone ?? payment.student?.parentPhone ?? null;
     const parentEmail = payment.parent?.email ?? null;
-    const invoiceNumber = payment.invoiceNumber ?? payment.id;
+    const invoiceNumber = payment.invoiceNumber ?? `SKR-${new Date().getFullYear()}-${payment.id.slice(0, 6).toUpperCase()}`;
     const studentName = payment.studentName;
     const amount = formatCurrency(payment.amount, locale);
     const sessions = String(payment.sessionsCovered);
