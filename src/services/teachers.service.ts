@@ -6,8 +6,9 @@ import { MOCK_TEACHERS } from "@/lib/mock-data";
 import { isBrowser, readStorage, writeStorage } from "@/services/storage";
 
 const TEACHERS_KEY = "skidy.crm.teachers";
+const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
 const VALID_EMPLOYMENTS: EmploymentType[] = ["full_time", "part_time", "freelance"];
-const VALID_COURSES: CourseType[] = ["scratch", "python", "web", "ai"];
+const VALID_COURSES: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi", "web", "ai"];
 
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -76,32 +77,74 @@ function mapRow(row: Record<string, unknown>): TeacherListItem {
 }
 
 function getLocalTeachers(): TeacherListItem[] {
-  return sortTeachers(readStorage(TEACHERS_KEY, mockTeachers()));
+  return sortTeachers(
+    readStorage(TEACHERS_KEY, ALLOW_DEMO ? mockTeachers() : ([] as TeacherListItem[])),
+  );
 }
 
 function saveLocalTeachers(items: TeacherListItem[]): void {
   writeStorage(TEACHERS_KEY, sortTeachers(items));
 }
 
+function clearLocalTeachers(): void {
+  writeStorage(TEACHERS_KEY, []);
+}
+
 export async function listTeachers(): Promise<TeacherListItem[]> {
-  const fallback = getLocalTeachers();
   const supabase = getSupabaseClient();
-  if (!supabase) return fallback;
+  if (!supabase) {
+    return ALLOW_DEMO ? getLocalTeachers() : [];
+  }
 
   try {
-    const { data, error } = await supabase.from("teachers").select("*").order("created_at", { ascending: false });
-    if (error || !data || data.length === 0) return fallback;
+    const { data, error } = await supabase
+      .from("teachers")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[teachers] failed to load from Supabase", error);
+      clearLocalTeachers();
+      return ALLOW_DEMO ? mockTeachers() : [];
+    }
+
+    if (!data || data.length === 0) {
+      clearLocalTeachers();
+      return ALLOW_DEMO ? mockTeachers() : [];
+    }
+
     const mapped = data.map((row) => mapRow(row as Record<string, unknown>));
     saveLocalTeachers(mapped);
     return mapped;
-  } catch {
-    return fallback;
+  } catch (error) {
+    console.error("[teachers] unexpected load failure", error);
+    clearLocalTeachers();
+    return ALLOW_DEMO ? mockTeachers() : [];
   }
 }
 
 export async function getTeacherById(id: string): Promise<TeacherListItem | null> {
-  const items = await listTeachers();
-  return items.find((teacher) => teacher.id === id) ?? null;
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return ALLOW_DEMO ? getLocalTeachers().find((teacher) => teacher.id === id) ?? null : null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("teachers")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    const mapped = mapRow(data as Record<string, unknown>);
+    saveLocalTeachers([mapped, ...getLocalTeachers().filter((teacher) => teacher.id !== mapped.id)]);
+    return mapped;
+  } catch (error) {
+    console.error("[teachers] failed to load teacher by id", error);
+    return null;
+  }
 }
 
 export async function createTeacher(input: CreateTeacherInput): Promise<TeacherListItem> {
