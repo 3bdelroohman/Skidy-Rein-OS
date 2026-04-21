@@ -50,6 +50,10 @@ function safe(value: number | null | undefined, fallback: number): number {
   return Number.isFinite(value) ? Number(value) : fallback;
 }
 
+function safeMoney(value: number | null | undefined, fallback: number): number {
+  return Math.max(0, safe(value, fallback));
+}
+
 type DbRow = Database["public"]["Tables"]["teacher_finance_config"]["Row"];
 
 function rowToConfig(teacherId: string, row: DbRow): TeacherFinanceConfig {
@@ -98,19 +102,47 @@ export async function saveTeacherFinanceConfig(input: {
   stageAdjustments: Record<CourseStage, number>; notes?: string | null;
 }): Promise<TeacherFinanceConfig> {
   const config: TeacherFinanceConfig = {
-    teacherId: input.teacherId, sessionRate60: safe(input.sessionRate60, 120), sessionRate90: safe(input.sessionRate90, 180), sessionRate120: safe(input.sessionRate120, 240),
-    stageAdjustments: { foundation: safe(input.stageAdjustments.foundation, 0), practical: safe(input.stageAdjustments.practical, 20), web_apps: safe(input.stageAdjustments.web_apps, 30), ai_data: safe(input.stageAdjustments.ai_data, 40) },
-    notes: input.notes?.trim() || null, updatedAt: new Date().toISOString(),
+    teacherId: input.teacherId,
+    sessionRate60: safeMoney(input.sessionRate60, 120),
+    sessionRate90: safeMoney(input.sessionRate90, 180),
+    sessionRate120: safeMoney(input.sessionRate120, 240),
+    stageAdjustments: {
+      foundation: safeMoney(input.stageAdjustments.foundation, 0),
+      practical: safeMoney(input.stageAdjustments.practical, 20),
+      web_apps: safeMoney(input.stageAdjustments.web_apps, 30),
+      ai_data: safeMoney(input.stageAdjustments.ai_data, 40),
+    },
+    notes: input.notes?.trim() || null,
+    updatedAt: new Date().toISOString(),
   };
-  writeLocal(config);
+
   const supabase = getSupabaseClient();
-  if (supabase) {
-    const { error } = await supabase.from("teacher_finance_config").upsert({
-      teacher_id: input.teacherId, session_rate_60: config.sessionRate60, session_rate_90: config.sessionRate90, session_rate_120: config.sessionRate120,
-      adj_scratch: config.stageAdjustments.foundation, adj_python: config.stageAdjustments.practical, adj_web: config.stageAdjustments.web_apps, adj_ai: config.stageAdjustments.ai_data, notes: config.notes,
-    }, { onConflict: "teacher_id" });
-    if (error) { console.error("[teacher-finance] save failed", error); throw new Error(error.message); }
+  if (!supabase) {
+    writeLocal(config);
+    return config;
   }
+
+  const { error } = await supabase.from("teacher_finance_config").upsert(
+    {
+      teacher_id: input.teacherId,
+      session_rate_60: config.sessionRate60,
+      session_rate_90: config.sessionRate90,
+      session_rate_120: config.sessionRate120,
+      adj_scratch: config.stageAdjustments.foundation,
+      adj_python: config.stageAdjustments.practical,
+      adj_web: config.stageAdjustments.web_apps,
+      adj_ai: config.stageAdjustments.ai_data,
+      notes: config.notes,
+    },
+    { onConflict: "teacher_id" },
+  );
+
+  if (error) {
+    console.error("[teacher-finance] save failed", error);
+    throw new Error(error.message);
+  }
+
+  writeLocal(config);
   return config;
 }
 
