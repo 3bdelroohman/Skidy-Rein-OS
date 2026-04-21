@@ -81,6 +81,7 @@ export default function NewPaymentPage() {
     () => students.find((student) => student.id === form.studentId) ?? null,
     [students, form.studentId],
   );
+  const selectedStudentHasParent = Boolean(selectedStudent?.parentId);
   const normalizedSessions = useMemo(() => normalizeSessionBlock(form.sessionsCovered), [form.sessionsCovered]);
   const amountNumber = Number(form.amount || 0);
   const hasRoundedSessions = normalizedSessions !== Number(form.sessionsCovered || 0);
@@ -109,6 +110,17 @@ export default function NewPaymentPage() {
 
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
       toast.error(t(locale, "\u0623\u062f\u062e\u0644 \u0645\u0628\u0644\u063a\u064b\u0627 \u0635\u062d\u064a\u062d\u064b\u0627 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631", "Enter a valid amount greater than zero"));
+      return;
+    }
+
+    if (selectedStudent && !selectedStudentHasParent) {
+      toast.error(
+        t(
+          locale,
+          "\u0647\u0630\u0627 \u0627\u0644\u0637\u0627\u0644\u0628 \u063a\u064a\u0631 \u0645\u0631\u0628\u0648\u0637 \u0628\u0648\u0644\u064a \u0623\u0645\u0631. \u0627\u0631\u0628\u0637 \u0648\u0644\u064a \u0627\u0644\u0623\u0645\u0631 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062f\u0641\u0639\u0629",
+          "This student is not linked to a parent yet. Link a parent first before creating a payment.",
+        ),
+      );
       return;
     }
 
@@ -157,6 +169,19 @@ export default function NewPaymentPage() {
               ))}
             </select>
           </Field>
+
+          {selectedStudent && !selectedStudentHasParent ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-danger-200 bg-danger-50 p-4 text-sm text-danger-800 dark:border-danger-900/60 dark:bg-danger-950/30 dark:text-danger-200">
+              <TriangleAlert size={18} className="mt-0.5 shrink-0" />
+              <p>
+                {t(
+                  locale,
+                  "\u0647\u0630\u0627 \u0627\u0644\u0637\u0627\u0644\u0628 \u063a\u064a\u0631 \u0645\u0631\u0628\u0648\u0637 \u0628\u0648\u0644\u064a \u0623\u0645\u0631 \u062d\u062a\u0649 \u0627\u0644\u0622\u0646. \u0644\u0627 \u064a\u0645\u0643\u0646 \u0625\u0635\u062f\u0627\u0631 \u062f\u0641\u0639\u0629 \u0635\u062d\u064a\u062d\u0629 \u0644\u0647 \u0642\u0628\u0644 \u0631\u0628\u0637 \u0648\u0644\u064a \u0627\u0644\u0623\u0645\u0631.",
+                  "This student is not linked to a parent yet. A valid payment cannot be created until the parent is linked.",
+                )}
+              </p>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t(locale, "\u0627\u0644\u0645\u0628\u0644\u063a", "Amount")}>
@@ -222,7 +247,7 @@ export default function NewPaymentPage() {
           <SummaryRow label={t(locale, "\u0627\u0644\u0627\u0633\u062a\u062d\u0642\u0627\u0642", "Due date")} value={form.dueDate || "\u2014"} />
           <SummaryRow label={t(locale, "\u0627\u0644\u062a\u0623\u062c\u064a\u0644", "Deferred until")} value={form.deferredUntil || t(locale, "\u0628\u062f\u0648\u0646 \u062a\u0623\u062c\u064a\u0644", "No deferment")} />
 
-          <button type="submit" disabled={saving} className={cn("w-full rounded-xl bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600", saving && "opacity-70")}>{saving ? t(locale, "\u062c\u0627\u0631\u0650 \u0627\u0644\u0625\u0646\u0634\u0627\u0621...", "Creating...") : t(locale, "\u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062f\u0641\u0639\u0629 \u0648\u0625\u0635\u062f\u0627\u0631 \u0641\u0627\u062a\u0648\u0631\u0629", "Create payment & issue invoice")}</button>
+          <button type="submit" disabled={saving || Boolean(selectedStudent && !selectedStudentHasParent)} className={cn("w-full rounded-xl bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600", (saving || Boolean(selectedStudent && !selectedStudentHasParent)) && "opacity-70")}>{saving ? t(locale, "\u062c\u0627\u0631\u0650 \u0627\u0644\u0625\u0646\u0634\u0627\u0621...", "Creating...") : t(locale, "\u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062f\u0641\u0639\u0629 \u0648\u0625\u0635\u062f\u0627\u0631 \u0641\u0627\u062a\u0648\u0631\u0629", "Create payment & issue invoice")}</button>
         </div>
       </form>
     </div>

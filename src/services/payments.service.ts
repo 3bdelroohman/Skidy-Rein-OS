@@ -88,6 +88,13 @@ function normalizeSessionBlock(value: number | null | undefined): number {
   return Math.max(DEFAULT_SESSION_BLOCK, Math.ceil(numeric / DEFAULT_SESSION_BLOCK) * DEFAULT_SESSION_BLOCK);
 }
 
+function normalizeInputDate(value: string | null | undefined): string | null {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : trimmed.slice(0, 10);
+}
+
 function parsePaymentMeta(raw: string | null | undefined): { publicNote: string | null; meta: PaymentMeta } {
   const value = typeof raw === "string" ? raw : "";
   if (!value.startsWith(PAYMENT_META_PREFIX)) {
@@ -345,22 +352,50 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
     throw new Error("Payment amount must be greater than zero.");
   }
 
+  const dueDate = normalizeInputDate(input.dueDate);
+  if (!dueDate) {
+    throw new Error("Due date is required.");
+  }
+
+  const blockStartDate = normalizeInputDate(input.blockStartDate);
+  const blockEndDate = normalizeInputDate(input.blockEndDate);
+  const deferredUntil = normalizeInputDate(input.deferredUntil);
+
+  if (blockStartDate && blockEndDate && blockEndDate < blockStartDate) {
+    throw new Error("Block end date cannot be earlier than block start date.");
+  }
+
+  if (deferredUntil && deferredUntil < dueDate) {
+    throw new Error("Deferred date cannot be earlier than the due date.");
+  }
+
   const supabase = assertSupabaseConfigured();
   const [{ studentsMap, parentsMap }, current] = await Promise.all([
     buildMaps(),
     listPayments({ includeArchived: true }),
   ]);
+
   const student = studentsMap.get(input.studentId) ?? null;
-  const parent = student?.parentId ? parentsMap.get(student.parentId) ?? null : null;
+  if (!student) {
+    throw new Error("Selected student was not found. Refresh the page and try again.");
+  }
+
+  const parent = student.parentId ? parentsMap.get(student.parentId) ?? null : null;
+  const resolvedParentId = student.parentId ?? parent?.id ?? null;
+
+  if (!resolvedParentId) {
+    throw new Error("This student is not linked to a parent yet. Link a parent before creating a payment.");
+  }
+
   const now = new Date().toISOString();
   const paymentId = crypto.randomUUID();
   const invoiceNumber = generateInvoiceNumber(current);
   const sessionsCovered = normalizeSessionBlock(input.sessionsCovered ?? DEFAULT_SESSION_BLOCK);
   const notes = buildPaymentNotes(input.notes, {
     sessionsCovered,
-    blockStartDate: input.blockStartDate ?? null,
-    blockEndDate: input.blockEndDate ?? null,
-    deferredUntil: input.deferredUntil ?? null,
+    blockStartDate,
+    blockEndDate,
+    deferredUntil,
     invoiceNumber,
     invoiceIssuedAt: now,
   });
@@ -368,20 +403,20 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
   const payment: PaymentItem = {
     id: paymentId,
     studentId: input.studentId,
-    studentName: student?.fullName ?? "Ø·Ø§Ù„Ø¨ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
-    parentId: student?.parentId ?? parent?.id ?? null,
-    parentName: parent?.fullName ?? student?.parentName ?? "ÙˆÙ„ÙŠ Ø£Ù…Ø± ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    studentName: student.fullName,
+    parentId: resolvedParentId,
+    parentName: parent?.fullName ?? student.parentName ?? "ولي أمر غير محدد",
     amount: input.amount,
     status: input.status,
     method: input.method,
-    dueDate: input.dueDate,
+    dueDate,
     paidAt: input.status === "paid" || input.status === "partial" ? now : null,
     notes,
     publicNote: input.notes?.trim() ? input.notes.trim() : null,
     sessionsCovered,
-    blockStartDate: input.blockStartDate ?? null,
-    blockEndDate: input.blockEndDate ?? null,
-    deferredUntil: input.deferredUntil ?? null,
+    blockStartDate,
+    blockEndDate,
+    deferredUntil,
     invoiceNumber,
     invoiceIssuedAt: now,
   };
@@ -390,11 +425,11 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
     toPaymentInsert({
       id: paymentId,
       studentId: input.studentId,
-      parentId: student?.parentId ?? parent?.id ?? input.studentId,
+      parentId: resolvedParentId,
       amount: input.amount,
       status: input.status,
       method: input.method,
-      dueDate: input.dueDate,
+      dueDate,
       paidAt: payment.paidAt,
       notes,
     }),
