@@ -206,18 +206,30 @@ export async function listScheduleSessions(): Promise<ScheduleSessionItem[]> {
     const sessionRows = ((sessionsResponse.data ?? []) as RawSessionRow[]);
     const enrollmentRows = ((enrollmentsResponse.data ?? []) as RawEnrollmentRow[]);
 
-    if (classesResponse.error || sessionsResponse.error || enrollmentsResponse.error || (coursesResponse as { error: unknown }).error) {
-      console.error("[schedule] failed to load from Supabase", classesResponse.error || sessionsResponse.error || enrollmentsResponse.error || (coursesResponse as { error: unknown }).error);
-      clearLocalSchedule();
-      return ALLOW_DEMO && local.length === 0 ? DEFAULT_SCHEDULE : [];
+    if (
+      classesResponse.error ||
+      sessionsResponse.error ||
+      enrollmentsResponse.error ||
+      (coursesResponse as { error: unknown }).error
+    ) {
+      console.error(
+        "[schedule] failed to load from Supabase",
+        classesResponse.error ||
+          sessionsResponse.error ||
+          enrollmentsResponse.error ||
+          (coursesResponse as { error: unknown }).error,
+      );
+      return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
     }
 
     const courseMap = new Map<string, CourseType>();
-    ((coursesResponse as { data: { id: string; type: string }[] | null }).data ?? []).forEach((c) => courseMap.set(c.id, c.type as CourseType));
+    ((coursesResponse as { data: { id: string; type: string }[] | null }).data ?? []).forEach((c) =>
+      courseMap.set(c.id, c.type as CourseType),
+    );
 
     if (classesRows.length === 0 && sessionRows.length === 0) {
       clearLocalSchedule();
-      return ALLOW_DEMO && local.length === 0 ? DEFAULT_SCHEDULE : [];
+      return ALLOW_DEMO ? DEFAULT_SCHEDULE : [];
     }
 
     const enrollmentCountByClassId = new Map<string, number>();
@@ -259,8 +271,7 @@ export async function listScheduleSessions(): Promise<ScheduleSessionItem[]> {
     return merged;
   } catch (error) {
     console.error("[schedule] unexpected failure", error);
-    clearLocalSchedule();
-    return ALLOW_DEMO && local.length === 0 ? DEFAULT_SCHEDULE : [];
+    return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
   }
 }
 
@@ -442,7 +453,9 @@ export async function deleteScheduleEntry(id: string): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error("Supabase client not available");
 
-  // Try deleting from sessions first
+  let deletedSessionId: string | null = null;
+  let deletedClassId: string | null = null;
+
   const { data: session } = await supabase
     .from("sessions")
     .select("id, class_id")
@@ -450,14 +463,13 @@ export async function deleteScheduleEntry(id: string): Promise<boolean> {
     .maybeSingle();
 
   if (session) {
-    // Delete attendance for this session
+    deletedSessionId = session.id ?? id;
+
     await supabase.from("attendance").delete().eq("session_id", id);
 
-    // Delete the session
     const { error } = await supabase.from("sessions").delete().eq("id", id);
     if (error) throw new Error(error.message || "Failed to delete session");
 
-    // Check if class has other sessions
     if (session.class_id) {
       const { data: remaining } = await supabase
         .from("sessions")
@@ -465,21 +477,29 @@ export async function deleteScheduleEntry(id: string): Promise<boolean> {
         .eq("class_id", session.class_id)
         .limit(1);
 
-      // If no more sessions, delete the class too
       if (!remaining || remaining.length === 0) {
+        deletedClassId = session.class_id;
         await supabase.from("class_enrollments").delete().eq("class_id", session.class_id);
         await supabase.from("classes").delete().eq("id", session.class_id);
       }
     }
   } else {
-    // Maybe it's a class ID directly
+    deletedClassId = id;
+
     await supabase.from("sessions").delete().eq("class_id", id);
     await supabase.from("class_enrollments").delete().eq("class_id", id);
+
     const { error } = await supabase.from("classes").delete().eq("id", id);
     if (error) throw new Error(error.message || "Failed to delete class");
   }
 
-  saveLocalSchedule(getLocalSchedule().filter((s) => s.id !== id));
+  saveLocalSchedule(
+    getLocalSchedule().filter((entry) => {
+      if (deletedSessionId && entry.id === deletedSessionId) return false;
+      if (deletedClassId && (entry.id === deletedClassId || entry.classId === deletedClassId)) return false;
+      return true;
+    }),
+  );
+
   return true;
 }
-
