@@ -460,6 +460,51 @@ export interface Database {
           }
         ]
       }
+      teacher_course_rates: {
+        Row: {
+          id: string
+          teacher_id: string
+          course_type: CourseType
+          duration_minutes: number
+          price_egp: number
+          is_active: boolean
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          teacher_id: string
+          course_type: CourseType
+          duration_minutes: number
+          price_egp: number
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          teacher_id?: string
+          course_type?: CourseType
+          duration_minutes?: number
+          price_egp?: number
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_course_rates_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
       audit_log: {
         Row: {
           id: string

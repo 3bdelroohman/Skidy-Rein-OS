@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database.types";
-import type { CourseType, CourseStage, ScheduleSessionItem } from "@/types/crm";
+import type { CourseType, ScheduleSessionItem } from "@/types/crm";
 import { COURSE_STAGE_MAP } from "@/types/crm";
 import { readStorage, writeStorage } from "@/services/storage";
 
@@ -11,12 +11,21 @@ function getSupabaseClient() {
   return createBrowserClient<Database>(url, key);
 }
 
+export type LessonDuration = 60 | 90 | 120;
+
+export interface TeacherCourseRate {
+  id: string;
+  course: CourseType;
+  durationMinutes: LessonDuration;
+  priceEgp: number;
+  isActive: boolean;
+  notes: string | null;
+  updatedAt: string | null;
+}
+
 export interface TeacherFinanceConfig {
   teacherId: string;
-  sessionRate60: number;
-  sessionRate90: number;
-  sessionRate120: number;
-  stageAdjustments: Record<CourseStage, number>;
+  rates: TeacherCourseRate[];
   notes: string | null;
   updatedAt: string | null;
 }
@@ -25,9 +34,9 @@ export interface TeacherFinanceLineItem {
   sessionId: string;
   className: string;
   course: CourseType;
-  stage: CourseStage;
-  minutes: number;
+  durationMinutes: LessonDuration;
   payout: number;
+  matched: boolean;
 }
 
 export interface TeacherFinanceSummary {
@@ -39,11 +48,35 @@ export interface TeacherFinanceSummary {
 }
 
 const LOCAL_KEY = "skidy.crm.teacher-finance";
+const PRICED_COURSES: CourseType[] = [
+  "scratch",
+  "app_inventor",
+  "robotics_basic",
+  "ai_intro",
+  "python",
+  "godot",
+  "robotics_iot",
+  "fastapi",
+  "html_css",
+  "javascript_tailwind",
+  "front_end",
+  "ai_ml",
+  "data_science",
+  "back_end",
+  "raspberry_pi",
+];
+const DURATIONS: LessonDuration[] = [60, 90, 120];
 
-const DEFAULT_STAGE_ADJ: Record<CourseStage, number> = { foundation: 0, practical: 20, web_apps: 30, ai_data: 40 };
+type LegacyDbRow = Database["public"]["Tables"]["teacher_finance_config"]["Row"];
+type RateDbRow = Database["public"]["Tables"]["teacher_course_rates"]["Row"];
 
 function defaultConfig(teacherId: string): TeacherFinanceConfig {
-  return { teacherId, sessionRate60: 120, sessionRate90: 180, sessionRate120: 240, stageAdjustments: { ...DEFAULT_STAGE_ADJ }, notes: null, updatedAt: null };
+  return {
+    teacherId,
+    rates: [],
+    notes: null,
+    updatedAt: null,
+  };
 }
 
 function safe(value: number | null | undefined, fallback: number): number {
@@ -54,18 +87,33 @@ function safeMoney(value: number | null | undefined, fallback: number): number {
   return Math.max(0, safe(value, fallback));
 }
 
-type DbRow = Database["public"]["Tables"]["teacher_finance_config"]["Row"];
+function normalizeDuration(value: number | null | undefined): LessonDuration {
+  if (!Number.isFinite(value)) return 60;
+  if (Number(value) <= 60) return 60;
+  if (Number(value) <= 90) return 90;
+  return 120;
+}
 
-function rowToConfig(teacherId: string, row: DbRow): TeacherFinanceConfig {
-  return {
-    teacherId,
-    sessionRate60: safe(row.session_rate_60, 120),
-    sessionRate90: safe(row.session_rate_90, 180),
-    sessionRate120: safe(row.session_rate_120, 240),
-    stageAdjustments: { foundation: safe(row.adj_scratch, 0), practical: safe(row.adj_python, 20), web_apps: safe(row.adj_web, 30), ai_data: safe(row.adj_ai, 40) },
-    notes: row.notes ?? null,
-    updatedAt: row.updated_at ?? null,
-  };
+function resolveDurationBucket(minutes: number): LessonDuration {
+  if (minutes <= 60) return 60;
+  if (minutes <= 90) return 90;
+  return 120;
+}
+
+function isPricedCourse(value: string | null | undefined): value is CourseType {
+  return PRICED_COURSES.includes(value as CourseType);
+}
+
+function uniqueRateKey(course: CourseType, durationMinutes: LessonDuration): string {
+  return course + "__" + String(durationMinutes);
+}
+
+function sortRates(rows: TeacherCourseRate[]): TeacherCourseRate[] {
+  return [...rows].sort(
+    (a, b) =>
+      PRICED_COURSES.indexOf(a.course) - PRICED_COURSES.indexOf(b.course) ||
+      a.durationMinutes - b.durationMinutes,
+  );
 }
 
 function readLocal(teacherId: string): TeacherFinanceConfig | null {
@@ -79,67 +127,199 @@ function writeLocal(config: TeacherFinanceConfig): void {
   writeStorage(LOCAL_KEY, all);
 }
 
+function mapRateRow(row: RateDbRow): TeacherCourseRate {
+  return {
+    id: row.id,
+    course: isPricedCourse(row.course_type) ? row.course_type : "scratch",
+    durationMinutes: normalizeDuration(row.duration_minutes),
+    priceEgp: safeMoney(row.price_egp, 0),
+    isActive: row.is_active ?? true,
+    notes: row.notes ?? null,
+    updatedAt: row.updated_at ?? null,
+  };
+}
+
+function getLegacyBaseRate(durationMinutes: LessonDuration, row: LegacyDbRow): number {
+  if (durationMinutes === 60) return safeMoney(row.session_rate_60, 120);
+  if (durationMinutes === 90) return safeMoney(row.session_rate_90, 180);
+  return safeMoney(row.session_rate_120, 240);
+}
+
+function getLegacyStageAdjustment(course: CourseType, row: LegacyDbRow): number {
+  const stage = COURSE_STAGE_MAP[course] ?? "foundation";
+
+  if (stage === "foundation") return safeMoney(row.adj_scratch, 0);
+  if (stage === "practical") return safeMoney(row.adj_python, 20);
+  if (stage === "web_apps") return safeMoney(row.adj_web, 30);
+  return safeMoney(row.adj_ai, 40);
+}
+
+function buildLegacyRates(teacherId: string, row: LegacyDbRow): TeacherCourseRate[] {
+  return sortRates(
+    PRICED_COURSES.flatMap((course) =>
+      DURATIONS.map((durationMinutes) => ({
+        id: "legacy-" + teacherId + "-" + course + "-" + String(durationMinutes),
+        course,
+        durationMinutes,
+        priceEgp: getLegacyBaseRate(durationMinutes, row) + getLegacyStageAdjustment(course, row),
+        isActive: true,
+        notes: null,
+        updatedAt: row.updated_at ?? null,
+      })),
+    ),
+  );
+}
+
+function normalizeRateInput(
+  rows: Array<Pick<TeacherCourseRate, "course" | "durationMinutes" | "priceEgp"> & Partial<TeacherCourseRate>>,
+): TeacherCourseRate[] {
+  const seen = new Set<string>();
+
+  return sortRates(
+    rows.map((row) => {
+      const course = isPricedCourse(row.course) ? row.course : "scratch";
+      const durationMinutes = normalizeDuration(row.durationMinutes);
+      const priceEgp = safeMoney(row.priceEgp, 0);
+      const key = uniqueRateKey(course, durationMinutes);
+
+      if (seen.has(key)) {
+        throw new Error("Duplicate teacher rate detected for the same course and lesson duration.");
+      }
+
+      seen.add(key);
+
+      return {
+        id: row.id ?? crypto.randomUUID(),
+        course,
+        durationMinutes,
+        priceEgp,
+        isActive: row.isActive ?? true,
+        notes: row.notes ?? null,
+        updatedAt: row.updatedAt ?? null,
+      } satisfies TeacherCourseRate;
+    }),
+  );
+}
+
 export async function getTeacherFinanceConfig(teacherId: string): Promise<TeacherFinanceConfig> {
   const base = defaultConfig(teacherId);
   const supabase = getSupabaseClient();
+
   if (supabase) {
     try {
-      const { data, error } = await supabase.from("teacher_finance_config").select("*").eq("teacher_id", teacherId).maybeSingle();
-      if (!error && data) { const config = rowToConfig(teacherId, data); writeLocal(config); return config; }
-    } catch (err) { console.warn("[teacher-finance] Supabase read failed", err); }
+      const { data: rateRows, error: rateError } = await supabase
+        .from("teacher_course_rates")
+        .select("*")
+        .eq("teacher_id", teacherId)
+        .order("course_type", { ascending: true })
+        .order("duration_minutes", { ascending: true });
+
+      if (!rateError && rateRows && rateRows.length > 0) {
+        const config: TeacherFinanceConfig = {
+          teacherId,
+          rates: sortRates(rateRows.map(mapRateRow).filter((row) => row.isActive)),
+          notes: null,
+          updatedAt: rateRows[0]?.updated_at ?? null,
+        };
+        writeLocal(config);
+        return config;
+      }
+
+      const { data: legacyRow, error: legacyError } = await supabase
+        .from("teacher_finance_config")
+        .select("*")
+        .eq("teacher_id", teacherId)
+        .maybeSingle();
+
+      if (!legacyError && legacyRow) {
+        const config: TeacherFinanceConfig = {
+          teacherId,
+          rates: buildLegacyRates(teacherId, legacyRow),
+          notes: legacyRow.notes ?? null,
+          updatedAt: legacyRow.updated_at ?? null,
+        };
+        writeLocal(config);
+        return config;
+      }
+    } catch (error) {
+      console.warn("[teacher-finance] Supabase read failed", error);
+    }
   }
+
   const cached = readLocal(teacherId);
   if (cached) {
-    return { ...base, sessionRate60: safe(cached.sessionRate60, base.sessionRate60), sessionRate90: safe(cached.sessionRate90, base.sessionRate90), sessionRate120: safe(cached.sessionRate120, base.sessionRate120),
-      stageAdjustments: { foundation: safe(cached.stageAdjustments?.foundation, 0), practical: safe(cached.stageAdjustments?.practical, 20), web_apps: safe(cached.stageAdjustments?.web_apps, 30), ai_data: safe(cached.stageAdjustments?.ai_data, 40) },
-      notes: cached.notes ?? null, updatedAt: cached.updatedAt ?? null };
+    return {
+      ...base,
+      rates: sortRates(
+        normalizeRateInput(
+          cached.rates.map((row) => ({
+            id: row.id,
+            course: row.course,
+            durationMinutes: row.durationMinutes,
+            priceEgp: row.priceEgp,
+            isActive: row.isActive,
+            notes: row.notes,
+            updatedAt: row.updatedAt,
+          })),
+        ),
+      ),
+      notes: cached.notes ?? null,
+      updatedAt: cached.updatedAt ?? null,
+    };
   }
+
   return base;
 }
 
 export async function saveTeacherFinanceConfig(input: {
-  teacherId: string; sessionRate60: number; sessionRate90: number; sessionRate120: number;
-  stageAdjustments: Record<CourseStage, number>; notes?: string | null;
+  teacherId: string;
+  rates: Array<Pick<TeacherCourseRate, "course" | "durationMinutes" | "priceEgp"> & Partial<TeacherCourseRate>>;
+  notes?: string | null;
 }): Promise<TeacherFinanceConfig> {
+  const normalizedRates = normalizeRateInput(input.rates);
+
+  if (normalizedRates.length === 0) {
+    throw new Error("At least one teacher course rate is required.");
+  }
+
+  if (normalizedRates.some((row) => row.priceEgp <= 0)) {
+    throw new Error("Every teacher course rate must be greater than zero.");
+  }
+
   const config: TeacherFinanceConfig = {
     teacherId: input.teacherId,
-    sessionRate60: safeMoney(input.sessionRate60, 120),
-    sessionRate90: safeMoney(input.sessionRate90, 180),
-    sessionRate120: safeMoney(input.sessionRate120, 240),
-    stageAdjustments: {
-      foundation: safeMoney(input.stageAdjustments.foundation, 0),
-      practical: safeMoney(input.stageAdjustments.practical, 20),
-      web_apps: safeMoney(input.stageAdjustments.web_apps, 30),
-      ai_data: safeMoney(input.stageAdjustments.ai_data, 40),
-    },
+    rates: normalizedRates,
     notes: input.notes?.trim() || null,
     updatedAt: new Date().toISOString(),
   };
 
   const supabase = getSupabaseClient();
-  if (!supabase) {
-    writeLocal(config);
-    return config;
-  }
+  if (supabase) {
+    const { error: deleteError } = await supabase
+      .from("teacher_course_rates")
+      .delete()
+      .eq("teacher_id", input.teacherId);
 
-  const { error } = await supabase.from("teacher_finance_config").upsert(
-    {
+    if (deleteError) {
+      console.error("[teacher-finance] delete old rates failed", deleteError);
+      throw new Error(deleteError.message || "Failed to replace existing teacher rates");
+    }
+
+    const rowsToInsert: Database["public"]["Tables"]["teacher_course_rates"]["Insert"][] = config.rates.map((row) => ({
       teacher_id: input.teacherId,
-      session_rate_60: config.sessionRate60,
-      session_rate_90: config.sessionRate90,
-      session_rate_120: config.sessionRate120,
-      adj_scratch: config.stageAdjustments.foundation,
-      adj_python: config.stageAdjustments.practical,
-      adj_web: config.stageAdjustments.web_apps,
-      adj_ai: config.stageAdjustments.ai_data,
-      notes: config.notes,
-    },
-    { onConflict: "teacher_id" },
-  );
+      course_type: row.course,
+      duration_minutes: row.durationMinutes,
+      price_egp: row.priceEgp,
+      is_active: row.isActive,
+      notes: row.notes,
+    }));
 
-  if (error) {
-    console.error("[teacher-finance] save failed", error);
-    throw new Error(error.message);
+    const { error: insertError } = await supabase.from("teacher_course_rates").insert(rowsToInsert);
+
+    if (insertError) {
+      console.error("[teacher-finance] save rates failed", insertError);
+      throw new Error(insertError.message || "Failed to save teacher course rates");
+    }
   }
 
   writeLocal(config);
@@ -149,26 +329,54 @@ export async function saveTeacherFinanceConfig(input: {
 function toMinutes(startTime: string, endTime: string): number {
   const [sh, sm] = startTime.split(":").map(Number);
   const [eh, em] = endTime.split(":").map(Number);
-  if ([sh, sm, eh, em].some((v) => !Number.isFinite(v))) return 60;
-  const start = sh * 60 + sm; let end = eh * 60 + em;
+
+  if ([sh, sm, eh, em].some((value) => !Number.isFinite(value))) return 60;
+
+  const start = sh * 60 + sm;
+  let end = eh * 60 + em;
+
   if (end <= start) end += 1440;
+
   return Math.max(30, end - start);
 }
 
-function getBaseRate(minutes: number, config: TeacherFinanceConfig): number {
-  if (minutes <= 60) return config.sessionRate60;
-  if (minutes <= 90) return config.sessionRate90;
-  if (minutes <= 120) return config.sessionRate120;
-  return config.sessionRate120 + Math.ceil((minutes - 120) / 30) * (config.sessionRate60 / 2);
+function findMatchingRate(
+  course: CourseType,
+  durationMinutes: LessonDuration,
+  config: TeacherFinanceConfig,
+): TeacherCourseRate | null {
+  return (
+    sortRates(config.rates).find(
+      (rate) => rate.isActive && rate.course === course && rate.durationMinutes === durationMinutes,
+    ) ?? null
+  );
 }
 
-export function computeTeacherFinanceSummary(sessions: ScheduleSessionItem[], config: TeacherFinanceConfig): TeacherFinanceSummary {
-  const lines = sessions.map((s) => {
-    const minutes = toMinutes(s.startTime, s.endTime);
-    const stage = COURSE_STAGE_MAP[s.course] ?? "foundation";
-    const payout = getBaseRate(minutes, config) + (config.stageAdjustments[stage] ?? 0);
-    return { sessionId: s.id, className: s.className, course: s.course, stage, minutes, payout };
+export function computeTeacherFinanceSummary(
+  sessions: ScheduleSessionItem[],
+  config: TeacherFinanceConfig,
+): TeacherFinanceSummary {
+  const lines = sessions.map((session) => {
+    const durationMinutes = resolveDurationBucket(toMinutes(session.startTime, session.endTime));
+    const matchedRate = findMatchingRate(session.course, durationMinutes, config);
+
+    return {
+      sessionId: session.id,
+      className: session.className,
+      course: session.course,
+      durationMinutes,
+      payout: matchedRate?.priceEgp ?? 0,
+      matched: Boolean(matchedRate),
+    } satisfies TeacherFinanceLineItem;
   });
-  const weeklyEstimated = lines.reduce((sum, l) => sum + l.payout, 0);
-  return { linkedSessions: lines.length, weeklyEstimated, monthlyEstimated: Math.round(weeklyEstimated * 4.33), averagePerSession: lines.length > 0 ? Math.round(weeklyEstimated / lines.length) : 0, lines };
+
+  const weeklyEstimated = lines.reduce((sum, line) => sum + line.payout, 0);
+
+  return {
+    linkedSessions: lines.length,
+    weeklyEstimated,
+    monthlyEstimated: Math.round(weeklyEstimated * 4.33),
+    averagePerSession: lines.length > 0 ? Math.round(weeklyEstimated / lines.length) : 0,
+    lines,
+  };
 }
