@@ -4,13 +4,13 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, LogOut } from "lucide-react";
+import { Layers3, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
 import { signOutClient } from "@/lib/actions/auth.actions";
 import { navigationGroups } from "@/config/navigation";
-import { ROLE_PERMISSIONS } from "@/config/roles";
+import { canAccessTeachersForUser, ROLE_PERMISSIONS } from "@/config/roles";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -23,12 +23,55 @@ export function MobileNav() {
   const initial = user.fullName.charAt(0).toUpperCase();
   const roleLabel = isAr ? ROLE_PERMISSIONS[user.role].labelAr : ROLE_PERMISSIONS[user.role].labelEn;
 
-  const filteredGroups = navigationGroups
+  const filteredGroupsBase = navigationGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.roles.includes(user.role)),
+      items: group.items.filter((item) => {
+        if (!item.roles.includes(user.role)) return false;
+        if (item.href.startsWith("/teachers")) return canAccessTeachersForUser(user);
+        return true;
+      }),
     }))
     .filter((group) => group.items.length > 0);
+
+  const filteredGroups = (() => {
+    if (!canAccessTeachersForUser(user)) return filteredGroupsBase;
+
+    const groupsItem = {
+      href: "/groups",
+      titleAr: "الجروبات",
+      titleEn: "Groups",
+      icon: Layers3,
+      roles: [user.role],
+      badge: 0,
+    };
+
+    let inserted = false;
+
+    const next = filteredGroupsBase.map((group) => {
+      const hasTeacherSection = group.items.some((item) => item.href.startsWith("/teachers"));
+      const hasGroupsAlready = group.items.some((item) => item.href === "/groups");
+
+      if (!hasTeacherSection || hasGroupsAlready) return group;
+
+      inserted = true;
+      return {
+        ...group,
+        items: [...group.items, groupsItem],
+      };
+    });
+
+    if (inserted) return next;
+
+    return [
+      ...next,
+      {
+        labelAr: "تشغيل الأكاديمية",
+        labelEn: "Academy Ops",
+        items: [groupsItem],
+      },
+    ];
+  })();
 
   const isActive = (href: string): boolean => {
     if (href === "/") return pathname === "/";
@@ -70,8 +113,8 @@ export function MobileNav() {
                   <span className="text-sm font-bold text-white">SR</span>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white">Skidy Rein</p>
-                  <p className="text-[10px] text-white/50">{isAr ? "لوحة التحكم" : "Dashboard"}</p>
+                  <p className="text-sm font-bold text-white">Skidy Rein OS</p>
+                  <p className="text-[10px] text-white/50">{isAr ? "نظام تشغيل الأكاديمية" : "Dashboard"}</p>
                 </div>
               </div>
 
