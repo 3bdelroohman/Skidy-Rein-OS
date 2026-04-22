@@ -4,7 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Calculator, FileText, Mail, Phone, PlusCircle, Save, Trash2, Users } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Calculator, FileText, Layers3, Mail, Phone, PlusCircle, Save, Trash2, Users } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessTeachersForUser, canManageTeacherFinanceForUser, canManageTeachersForUser } from "@/config/roles";
@@ -156,6 +156,29 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       ready: snapshots.filter((snapshot) => snapshot.ready).length,
       needsAttention: snapshots.filter((snapshot) => !snapshot.ready).length,
     };
+  }, [teacher]);
+
+  const linkedGroups = useMemo(() => {
+    if (!teacher) return [];
+
+    const seen = new Set<string>();
+
+    return teacher.linkedSessions.flatMap((session) => {
+      const groupId =
+        typeof (session as { classId?: unknown }).classId === "string"
+          ? (((session as { classId?: string | null }).classId ?? "").trim() || null)
+          : null;
+
+      if (!groupId || seen.has(groupId)) return [];
+
+      seen.add(groupId);
+
+      return [{
+        id: groupId,
+        name: session.className,
+        course: session.course,
+      }];
+    });
   }, [teacher]);
 
   function handleAddRateRow() {
@@ -604,6 +627,30 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                   </div>
                   <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{formatCourseLabel(session.course, locale)}</span>
                 </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground">
+          <Layers3 size={18} className="text-brand-600" />
+          {t(locale, "الجروبات المرتبطة", "Linked groups")}
+        </h3>
+        {linkedGroups.length === 0 ? (
+          <EmptyCopy locale={locale} ar="لا توجد جروبات مرتبطة بهذا المدرس حتى الآن" en="No groups are linked to this teacher yet" />
+        ) : (
+          <div className="space-y-3">
+            {linkedGroups.map((group) => (
+              <Link key={group.id} href={"/groups/" + group.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">{group.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatCourseLabel(group.course, locale)}</p>
+                </div>
+                <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  {t(locale, "فتح الجروب", "Open group")}
+                </span>
               </Link>
             ))}
           </div>
