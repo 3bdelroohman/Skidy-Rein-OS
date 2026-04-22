@@ -19,7 +19,7 @@ import type { PaymentItem } from "@/types/crm";
 import type { PaymentStatus } from "@/types/common.types";
 import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessPaymentsForUser, canManagePaymentsForUser } from "@/config/roles";
-import { PageStateCard } from "@/components/shared/page-state";
+import { LoadingState, PageStateCard } from "@/components/shared/page-state";
 
 type DisplayStatus = PaymentStatus | "deferred";
 
@@ -184,9 +184,7 @@ export default function PaymentsPage() {
           </div>
 
           {loading ? (
-            <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
-              {t(locale, "جارِ تحميل بيانات المدفوعات...", "Loading payments...")}
-            </div>
+            <LoadingState titleAr="جارٍ تحميل المدفوعات" titleEn="Loading payments" descriptionAr="يتم تحميل سجلات المدفوعات والفواتير." descriptionEn="Payment records and invoices are being loaded." />
           ) : !hasRealPayments ? (
             <PageStateCard
               icon={AlertCircle}

@@ -118,7 +118,7 @@ export function TopNavbar() {
           </button>
           <div>
             <h1 className="text-base font-bold text-foreground lg:text-lg">{isAr ? pageTitle.ar : pageTitle.en}</h1>
-            <p className="hidden text-xs text-muted-foreground sm:block">Skidy Rein CRM</p>
+            <p className="hidden text-xs text-muted-foreground sm:block">Skidy Rein OS</p>
           </div>
         </div>
 
