@@ -97,10 +97,6 @@ export default function ScheduleSessionDetailsPage({ params }: { params: Promise
         <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
           {formatCourseLabel(session.course, locale)}
         </span>
-        <button onClick={handleDeleteSession} disabled={deleting} className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
-          <Trash2 size={16} />
-          {deleting ? (locale === "ar" ? "جارِ الحذف..." : "Deleting...") : (locale === "ar" ? "حذف" : "Delete")}
-        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -176,6 +172,26 @@ export default function ScheduleSessionDetailsPage({ params }: { params: Promise
             )}
           </div>
         </div>
+
+      {/* Danger zone */}
+      <div className="rounded-2xl border border-red-200 bg-card p-5 dark:border-red-900/50">
+        <h3 className="mb-3 text-sm font-bold text-red-600">
+          {t(locale, "منطقة خطرة", "Danger zone")}
+        </h3>
+        <p className="mb-4 text-xs leading-5 text-muted-foreground">
+          {t(locale, "الحذف نهائي ولا يمكن التراجع عنه.", "Deletion is permanent and cannot be undone.")}
+        </p>
+        <button
+          onClick={handleDeleteSession}
+          disabled={deleting}
+          className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+        >
+          <Trash2 size={16} />
+          {deleting
+            ? (locale === "ar" ? "جارٍ الحذف..." : "Deleting...")
+            : (locale === "ar" ? "حذف نهائي" : "Delete permanently")}
+        </button>
+      </div>
       </div>
     </div>
   );
