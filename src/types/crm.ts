@@ -177,6 +177,52 @@ export interface ScheduleSessionDetails extends ScheduleSessionItem {
   siblingSessions: ScheduleSessionItem[];
 }
 
+
+export interface SessionOperationsChecklist {
+  id: string;
+  sessionId: string;
+  classId: string;
+  teacherId: string;
+  attendanceTaken: boolean;
+  materialsUploaded: boolean;
+  recordingUploaded: boolean;
+  telegramPosted: boolean;
+  homeworkShared: boolean;
+  operationsNotes: string | null;
+  updatedAt: string | null;
+}
+
+export interface GroupListItem {
+  id: string;
+  name: string;
+  course: CourseType;
+  teacherId: string | null;
+  teacherName: string;
+  isActive: boolean;
+  studentsCount: number;
+  sessionsCount: number;
+  nextSessionDate: string | null;
+  nextSessionStartTime: string | null;
+}
+
+export interface GroupSessionItem extends ScheduleSessionItem {
+  linkedStudents: StudentListItem[];
+  attendanceSummary: {
+    present: number;
+    absent: number;
+    late: number;
+    excused: number;
+  };
+  operations: SessionOperationsChecklist | null;
+}
+
+export interface GroupDetails extends GroupListItem {
+  teacherRecord: TeacherListItem | null;
+  linkedStudents: StudentListItem[];
+  sessions: GroupSessionItem[];
+}
+
+
 export interface StudentDetails extends StudentListItem {
   parent: ParentListItem | null;
   siblings: StudentListItem[];

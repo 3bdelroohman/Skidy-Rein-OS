@@ -505,6 +505,74 @@ export interface Database {
         ]
       }
 
+      session_operation_logs: {
+        Row: {
+          id: string
+          session_id: string
+          class_id: string
+          teacher_id: string
+          attendance_taken: boolean
+          materials_uploaded: boolean
+          recording_uploaded: boolean
+          telegram_posted: boolean
+          homework_shared: boolean
+          operations_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          class_id: string
+          teacher_id: string
+          attendance_taken?: boolean
+          materials_uploaded?: boolean
+          recording_uploaded?: boolean
+          telegram_posted?: boolean
+          homework_shared?: boolean
+          operations_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          class_id?: string
+          teacher_id?: string
+          attendance_taken?: boolean
+          materials_uploaded?: boolean
+          recording_uploaded?: boolean
+          telegram_posted?: boolean
+          homework_shared?: boolean
+          operations_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_operation_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_operation_logs_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_operation_logs_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
       audit_log: {
         Row: {
           id: string
