@@ -11,7 +11,7 @@ import { canAccessTeachersForUser, canManageTeacherFinanceForUser, canManageTeac
 import { formatCourseLabel, formatCurrencyEgp, formatDate } from "@/lib/formatters";
 import { getEmploymentTypeLabel, t } from "@/lib/locale";
 import { getTeacherDetails } from "@/services/relations.service";
-import { getTeacherEvaluation, saveTeacherEvaluation } from "@/services/teacher-evaluations.service";
+import { getTeacherEvaluation, saveTeacherEvaluation, computeAverageRating, type EvaluationAxes } from "@/services/teacher-evaluations.service";
 import { computeTeacherFinanceSummary, getTeacherFinanceConfig, saveTeacherFinanceConfig, type LessonDuration, type TeacherCourseRate } from "@/services/teacher-finance.service";
 import { reassignTeacherRelations } from "@/services/teacher-reassignment.service";
 import { deleteTeacher, listTeachers } from "@/services/teachers.service";
@@ -87,6 +87,13 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
   const [rating, setRating] = useState("3");
   const [notes, setNotes] = useState("");
   const [rateRows, setRateRows] = useState<TeacherCourseRate[]>([]);
+  const [axes, setAxes] = useState<EvaluationAxes>({
+    punctuality: null,
+    materialPrep: null,
+    communication: null,
+    studentEngagement: null,
+    reportReadiness: null,
+  });
   const [draftCourse, setDraftCourse] = useState<CourseType>("scratch");
   const [draftDuration, setDraftDuration] = useState<LessonDuration>(60);
   const [draftPrice, setDraftPrice] = useState("120");
@@ -103,6 +110,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       const finance = await getTeacherFinanceConfig(id);
 
       setRating(evaluation?.rating ? String(evaluation.rating) : "3");
+      if (evaluation?.axes) setAxes(evaluation.axes);
       setNotes(evaluation?.notes ?? "");
       setRateRows(finance.rates.length > 0 ? sortRateRows(finance.rates) : [createRateRow()]);
       setReplacementId((prev) => prev || teachers.find((item) => item.id !== id)?.id || "");
@@ -226,6 +234,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         teacherId: teacher.id,
         rating: Number(rating) || null,
         notes,
+        axes,
       });
       toast.success(t(locale, "تم حفظ تقييم المدرس", "Teacher evaluation saved"));
       await load();
@@ -448,33 +457,48 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="mb-3 flex items-center gap-2 font-bold text-foreground">
               <FileText size={18} className="text-brand-600" />
-              {t(locale, "التقييم", "Evaluation")}
+              {t(locale, "التقييم التشغيلي", "Operational Evaluation")}
             </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "التقييم من 5", "Rating / 5")}</label>
-                <select value={rating} onChange={(event) => setRating(event.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option key={value} value={String(value)}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "ملاحظات", "Notes")}</label>
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
-              </div>
-              {teacher.evaluationUpdatedAt ? (
-                <p className="text-xs text-muted-foreground">
-                  {t(locale, "آخر تحديث", "Last updated")}: {formatDate(teacher.evaluationUpdatedAt, locale)}
-                </p>
-              ) : null}
-              <button onClick={handleSaveEvaluation} disabled={busy !== null} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50">
-                <Save size={16} />
-                {t(locale, "حفظ التقييم", "Save evaluation")}
-              </button>
+
+            {/* Average rating display */}
+            {(() => {
+              const avg = computeAverageRating(axes);
+              return avg !== null ? (
+                <div className="mb-4 flex items-center gap-3 rounded-xl bg-brand-50/60 px-4 py-3 dark:bg-brand-950/30">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700 text-lg font-bold text-white">
+                    {avg}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-brand-700 dark:text-brand-300">{t(locale, "المتوسط العام", "Overall Average")}</p>
+                    <p className="text-xs text-muted-foreground">{t(locale, "من 5 — محسوب من المحاور أدناه", "out of 5 — computed from axes below")}</p>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            <div className="space-y-2.5">
+              <AxisRating label={t(locale, "الالتزام بالمواعيد", "Punctuality")} value={axes.punctuality} onChange={(v) => setAxes((prev) => ({ ...prev, punctuality: v }))} />
+              <AxisRating label={t(locale, "تجهيز المواد", "Material Preparation")} value={axes.materialPrep} onChange={(v) => setAxes((prev) => ({ ...prev, materialPrep: v }))} />
+              <AxisRating label={t(locale, "التواصل", "Communication")} value={axes.communication} onChange={(v) => setAxes((prev) => ({ ...prev, communication: v }))} />
+              <AxisRating label={t(locale, "تفاعل الطلاب", "Student Engagement")} value={axes.studentEngagement} onChange={(v) => setAxes((prev) => ({ ...prev, studentEngagement: v }))} />
+              <AxisRating label={t(locale, "جاهزية التقارير", "Report Readiness")} value={axes.reportReadiness} onChange={(v) => setAxes((prev) => ({ ...prev, reportReadiness: v }))} />
             </div>
+
+            <div className="mt-3">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "ملاحظات", "Notes")}</label>
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
+            </div>
+
+            {teacher.evaluationUpdatedAt ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t(locale, "آخر تحديث", "Last updated")}: {formatDate(teacher.evaluationUpdatedAt, locale)}
+              </p>
+            ) : null}
+
+            <button onClick={handleSaveEvaluation} disabled={busy !== null} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50">
+              <Save size={16} />
+              {t(locale, "حفظ التقييم", "Save evaluation")}
+            </button>
           </div>
         ) : null}
       </div>
@@ -734,6 +758,26 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function AxisRating({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2">
+      <span className="text-xs font-medium text-foreground">{label}</span>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={"flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-colors " + (value !== null && n <= value ? "bg-brand-700 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80")}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
