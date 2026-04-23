@@ -419,7 +419,7 @@ export interface CreateLeadInput {
   childName: string;
   childAge: number;
   parentName: string;
-  parentPhone: string;
+  parentPhone?: string;
   parentWhatsapp?: string;
   source: LeadSource;
   temperature: LeadTemperature;

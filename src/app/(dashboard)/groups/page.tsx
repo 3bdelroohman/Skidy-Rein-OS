@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Layers3, Search, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Layers3, Plus, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
@@ -81,7 +81,7 @@ export default function GroupsPage() {
     return (
       <PageStateCard
         variant="warning"
-        titleAr="هذا القسم خاص بمسؤول تشغيل المدرسين"
+        titleAr="هذا القسم خاص بتشغيل المدرسين"
         titleEn="This section is restricted to teacher operations"
         descriptionAr="إدارة الجروبات وتشغيل الحصص متاحة فقط للمستخدم المسؤول عن تشغيل المدرسين."
         descriptionEn="Groups and class operations are restricted to the assigned teacher operations owner."
@@ -95,7 +95,7 @@ export default function GroupsPage() {
   if (loading) {
     return (
       <LoadingState
-        titleAr="جارٍ تحميل الجروبات"
+        titleAr="جارِ تحميل الجروبات"
         titleEn="Loading groups"
         descriptionAr="يتم الآن تجهيز الجروبات والحصص والطلاب المرتبطين بها."
         descriptionEn="Preparing groups, linked sessions, and enrolled students."
@@ -125,6 +125,14 @@ export default function GroupsPage() {
               </p>
             </div>
           </div>
+
+          <Link
+            href="/groups/new"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+          >
+            <Plus size={18} />
+            {t(locale, "إنشاء جروب", "Create group")}
+          </Link>
         </div>
       </div>
 
@@ -137,7 +145,10 @@ export default function GroupsPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search size={18} className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isAr ? "right-3" : "left-3")} />
+          <Search
+            size={18}
+            className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isAr ? "right-3" : "left-3")}
+          />
           <input
             type="text"
             value={search}
@@ -191,41 +202,64 @@ export default function GroupsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {filtered.map((group) => (
-            <div key={group.id} className="rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-brand-md">
-              <div className="flex items-start justify-between gap-4">
+            <Link
+              key={group.id}
+              href={"/groups/" + group.id}
+              className="group block rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-brand-md"
+            >
+              {/* ── Header: identity band ── */}
+              <div className="flex items-center gap-3 border-b border-border/60 px-5 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-700 text-white shadow-sm">
+                  <Layers3 size={18} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-lg font-bold text-foreground">{group.name}</p>
+                    <h3 className="truncate text-base font-bold text-foreground group-hover:text-brand-700 transition-colors">
+                      {group.name}
+                    </h3>
                     {!group.isActive ? (
                       <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
                         {t(locale, "غير نشط", "Inactive")}
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold text-success-600 dark:bg-success-950 dark:text-success-300">
+                        {t(locale, "نشط", "Active")}
+                      </span>
+                    )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{group.teacherName}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {group.teacherName} • {formatCourseLabel(group.course, locale)}
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Body: operational metrics ── */}
+              <div className="px-5 py-4">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <MiniInfo icon={Users} label={t(locale, "طلاب", "Students")} value={group.studentsCount} />
+                  <MiniInfo icon={CalendarDays} label={t(locale, "حصص", "Sessions")} value={group.sessionsCount} />
+                  <MiniInfo icon={BookOpen} label={t(locale, "البداية", "Started")} value={group.startDate} />
                 </div>
 
-                <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                  {formatCourseLabel(group.course, locale)}
-                </span>
+                {/* ── Next session indicator ── */}
+                {group.nextSessionDate ? (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-50/60 px-3 py-2 dark:bg-brand-950/30">
+                    <CalendarDays size={13} className="shrink-0 text-brand-600" />
+                    <p className="text-xs font-medium text-brand-700 dark:text-brand-300">
+                      {t(locale, "أقرب حصة", "Next session")}: {group.nextSessionDate}
+                      {group.nextSessionStartTime ? " • " + group.nextSessionStartTime : ""}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+                    <CalendarDays size={13} className="shrink-0 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      {t(locale, "لا توجد حصص مجدولة بعد", "No sessions scheduled yet")}
+                    </p>
+                  </div>
+                )}
               </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <MiniInfo icon={Users} label={t(locale, "الطلاب", "Students")} value={group.studentsCount} />
-                <MiniInfo icon={CalendarDays} label={t(locale, "الحصص", "Sessions")} value={group.sessionsCount} />
-                <MiniInfo icon={BookOpen} label={t(locale, "التالي", "Next")} value={group.nextSessionStartTime ?? "—"} />
-              </div>
-
-              {group.nextSessionDate ? (
-                <p className="mt-4 text-xs text-muted-foreground">
-                  {t(locale, "أقرب حصة", "Next session")}: {group.nextSessionDate} {group.nextSessionStartTime ? "• " + group.nextSessionStartTime : ""}
-                </p>
-              ) : (
-                <p className="mt-4 text-xs text-muted-foreground">
-                  {t(locale, "لا توجد حصص مجدولة بعد", "No sessions scheduled yet")}
-                </p>
-              )}
-            </div>
+            </Link>
           ))}
         </div>
       )}

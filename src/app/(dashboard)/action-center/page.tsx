@@ -52,9 +52,9 @@ export default function ActionCenterPage() {
   if (loading || !data) {
     return (
       <LoadingState
-        titleAr="\u062c\u0627\u0631\u0650 \u062a\u062d\u0645\u064a\u0644 \u0645\u0631\u0643\u0632 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a"
+        titleAr="جارِ تحميل مركز العمليات"
         titleEn="Loading action center"
-        descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u062d\u0631\u062c\u0629 \u0648\u0627\u0644\u0645\u0647\u0627\u0645 \u0627\u0644\u062a\u0634\u063a\u064a\u0644\u064a\u0629."
+        descriptionAr="يتم الآن تجهيز العناصر الحرجة والمهام التشغيلية."
         descriptionEn="Preparing critical items and operational tasks."
       />
     );

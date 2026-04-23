@@ -13,8 +13,8 @@ import type { PaymentDetails } from "@/types/crm";
 /** Convert Eastern-Arabic digits to Western 0-9 */
 function _w(s: string): string {
   return s
-    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
 }
 
 

@@ -53,7 +53,6 @@ export function Sidebar() {
       titleEn: "Groups",
       icon: Layers3,
       roles: [user.role],
-      badge: 0,
     };
 
     let inserted = false;
@@ -112,7 +111,7 @@ export function Sidebar() {
           {sidebarOpen && (
             <motion.div variants={textVariants} initial="hide" animate="show" exit="hide" transition={{ duration: 0.2 }}>
               <p className="text-sm font-bold leading-tight text-white">Skidy Rein OS</p>
-              <p className="text-[10px] text-white/50">{isAr ? "نظام تشغيل الأكاديم\u064a\u0629" : "Academy Operating System"}</p>
+              <p className="text-[10px] text-white/50">{isAr ? "نظام تشغيل الأكاديمية" : "Academy Operating System"}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -155,7 +154,13 @@ export function Sidebar() {
                         : "text-white/60 hover:bg-white/8 hover:text-white",
                     )}
                   >
-                    <Icon className={cn("shrink-0 transition-colors", active ? "text-cream-200" : "text-white/50 group-hover:text-white")} size={20} />
+                    <Icon
+                      className={cn(
+                        "shrink-0 transition-colors",
+                        active ? "text-cream-200" : "text-white/50 group-hover:text-white",
+                      )}
+                      size={20}
+                    />
 
                     <AnimatePresence>
                       {sidebarOpen && (
@@ -164,21 +169,6 @@ export function Sidebar() {
                         </motion.span>
                       )}
                     </AnimatePresence>
-
-                    {item.badge && item.badge > 0 && (
-                      <span
-                        className={cn(
-                          "bg-danger-500 text-white text-[10px] font-bold rounded-full",
-                          sidebarOpen
-                            ? isAr
-                              ? "mr-auto px-1.5 py-0.5"
-                              : "ml-auto px-1.5 py-0.5"
-                            : "absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center",
-                        )}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
 
                     {!sidebarOpen && (
                       <div
@@ -214,7 +204,7 @@ export function Sidebar() {
           )}
         </button>
 
-        <div className={cn("flex items-center gap-3 rounded-xl bg-white/5 p-2", !sidebarOpen && "justify-center") }>
+        <div className={cn("flex items-center gap-3 rounded-xl bg-white/5 p-2", !sidebarOpen && "justify-center")}>
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "#4338CA" }}>
             <span className="text-xs font-bold text-white">{initial}</span>
           </div>

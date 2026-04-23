@@ -48,7 +48,7 @@ function asSpecialization(value: unknown, fallback: CourseType[] = []): CourseTy
 }
 
 function normalizeName(value: string | null | undefined): string {
-  return (value ?? "").toLowerCase().replace(/[\u064B-\u065F]/g, "").replace(/\s+/g, " ").trim();
+  return (value ?? "").toLowerCase().replace(/[ً-ٟ]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function normalizePhone(value: string | null | undefined): string {
@@ -192,7 +192,7 @@ export async function createTeacher(input: CreateTeacherInput): Promise<TeacherL
 export async function deleteTeacher(id: string): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    throw new Error("\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.");
+    throw new Error("تعذر الاتصال بقاعدة البيانات.");
   }
 
   // Check for linked classes first
@@ -204,7 +204,7 @@ export async function deleteTeacher(id: string): Promise<boolean> {
     .limit(1);
 
   if (linkedClasses && linkedClasses.length > 0) {
-    throw new Error("\u0644\u0627 \u064a\u0645\u0643\u0646 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 \u0644\u0623\u0646 \u0644\u062f\u064a\u0647 \u0641\u0635\u0648\u0644 \u0646\u0634\u0637\u0629. \u0623\u0644\u063a\u0650 \u0627\u0644\u0641\u0635\u0648\u0644 \u0623\u0648\u0644\u0627\u064b.");
+    throw new Error("لا يمكن حذف المدرس لأن لديه فصول نشطة. ألغِ الفصول أولاً.");
   }
 
   // Verify teacher exists before delete
@@ -222,7 +222,7 @@ export async function deleteTeacher(id: string): Promise<boolean> {
 
   const { error } = await supabase.from("teachers").delete().eq("id", id);
   if (error) {
-    throw new Error(error.message || "\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633.");
+    throw new Error(error.message || "تعذر حذف المدرس.");
   }
 
   // Verify deletion actually happened
@@ -233,7 +233,7 @@ export async function deleteTeacher(id: string): Promise<boolean> {
     .maybeSingle();
 
   if (after) {
-    throw new Error("\u0641\u0634\u0644 \u0627\u0644\u062d\u0630\u0641: \u0627\u0644\u0645\u062f\u0631\u0633 \u0644\u0627 \u064a\u0632\u0627\u0644 \u0645\u0648\u062c\u0648\u062f\u0627\u064b. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0635\u0644\u0627\u062d\u064a\u0627\u062a RLS.");
+    throw new Error("فشل الحذف: المدرس لا يزال موجوداً. تحقق من صلاحيات RLS.");
   }
 
   saveLocalTeachers(getLocalTeachers().filter((teacher) => teacher.id !== id));

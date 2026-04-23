@@ -126,15 +126,15 @@ function mapRow(
   return {
     id: row.id ?? crypto.randomUUID(),
     leadId: row.lead_id ?? null,
-    title: row.title || "\u0645\u062a\u0627\u0628\u0639\u0629",
-    leadName: leadEntry?.childName || "\u0639\u0645\u064a\u0644 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
-    parentName: leadEntry?.parentName || "\u0648\u0644\u064a \u0623\u0645\u0631 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+    title: row.title || "متابعة",
+    leadName: leadEntry?.childName || "عميل غير محدد",
+    parentName: leadEntry?.parentName || "ولي أمر غير محدد",
     type: asType(row.type),
     channel: asChannel(row.channel),
     priority: asPriority(row.priority),
     scheduledAt,
     status: isCompleted ? "completed" : resolveOpenStatus(scheduledAt),
-    assignedTo: row.assigned_to ?? "\u063a\u064a\u0631 \u0645\u062e\u0635\u0635",
+    assignedTo: row.assigned_to ?? "غير مخصص",
   };
 }
 
@@ -374,12 +374,12 @@ export async function createFollowUp(input: CreateFollowUpInput): Promise<Follow
     saveLocalFollowUps(next);
 
     const typeLabel = item.type === "trial_reminder"
-      ? "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629"
+      ? "تذكير بالسيشن التجريبية"
       : item.title;
 
     await createLeadActivity(
       item.leadId,
-      "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u062c\u062f\u064a\u062f\u0629: " + typeLabel,
+      "تم إنشاء متابعة جديدة: " + typeLabel,
       item.assignedTo,
       "contact",
     );
@@ -421,12 +421,12 @@ export async function createFollowUp(input: CreateFollowUpInput): Promise<Follow
     saveLocalFollowUps(merged);
 
     const typeLabel = item.type === "trial_reminder"
-      ? "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629"
+      ? "تذكير بالسيشن التجريبية"
       : item.title;
 
     await createLeadActivity(
       synced.leadId,
-      "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 \u062c\u062f\u064a\u062f\u0629: " + typeLabel,
+      "تم إنشاء متابعة جديدة: " + typeLabel,
       synced.assignedTo,
       "contact",
     );
@@ -474,8 +474,8 @@ async function updateFollowUpStatus(
 
     if (updated.leadId) {
       const action = nextStatus === "completed"
-        ? "\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title
-        : "\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title;
+        ? "تم إنهاء متابعة " + updated.title
+        : "تمت إعادة فتح متابعة " + updated.title;
 
       await createLeadActivity(
         updated.leadId,
@@ -508,8 +508,8 @@ async function updateFollowUpStatus(
 
     if (updated.leadId) {
       const action = nextStatus === "completed"
-        ? "\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title
-        : "\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0641\u062a\u062d \u0645\u062a\u0627\u0628\u0639\u0629 " + updated.title;
+        ? "تم إنهاء متابعة " + updated.title
+        : "تمت إعادة فتح متابعة " + updated.title;
 
       await createLeadActivity(
         updated.leadId,
@@ -562,20 +562,20 @@ export function suggestFollowUpTypeByStage(stage: LeadStage): FollowUpType {
 export function suggestFollowUpTitle(stage: LeadStage, childName: string): string {
   switch (stage) {
     case "new":
-      return "\u0623\u0648\u0644 \u062a\u0648\u0627\u0635\u0644 \u2013 " + childName;
+      return "أول تواصل – " + childName;
     case "qualified":
-      return "\u0627\u0633\u062a\u0643\u0645\u0627\u0644 \u0627\u0644\u062a\u0623\u0647\u064a\u0644 \u2013 " + childName;
+      return "استكمال التأهيل – " + childName;
     case "trial_proposed":
-      return "\u062a\u0623\u0643\u064a\u062f \u0645\u0648\u0639\u062f \u0627\u0644\u0633\u064a\u0634\u0646 \u2013 " + childName;
+      return "تأكيد موعد السيشن – " + childName;
     case "trial_booked":
-      return "\u062a\u0630\u0643\u064a\u0631 \u0628\u0627\u0644\u0633\u064a\u0634\u0646 \u2013 " + childName;
+      return "تذكير بالسيشن – " + childName;
     case "trial_attended":
-      return "\u0645\u062a\u0627\u0628\u0639\u0629 \u0628\u0639\u062f \u0627\u0644\u0633\u064a\u0634\u0646 \u2013 " + childName;
+      return "متابعة بعد السيشن – " + childName;
     case "offer_sent":
-      return "\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0639\u0631\u0636 \u2013 " + childName;
+      return "متابعة العرض – " + childName;
     case "lost":
-      return "\u0625\u0639\u0627\u062f\u0629 \u062a\u0648\u0627\u0635\u0644 \u2013 " + childName;
+      return "إعادة تواصل – " + childName;
     default:
-      return "\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u062f\u0641\u0639 \u2013 " + childName;
+      return "متابعة الدفع – " + childName;
   }
 }

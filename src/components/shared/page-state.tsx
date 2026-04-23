@@ -62,7 +62,9 @@ export function PageStateCard({
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-background/80 text-brand-600 shadow-sm ring-1 ring-border/60">
         <Icon size={24} />
       </div>
+
       <h2 className="mt-4 text-lg font-bold text-foreground">{t(locale, titleAr, titleEn)}</h2>
+
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
         {t(locale, descriptionAr, descriptionEn)}
       </p>
@@ -79,6 +81,7 @@ export function PageStateCard({
               {isAr ? <ArrowLeft size={16} /> : null}
             </Link>
           ) : null}
+
           {secondaryAction}
         </div>
       )}
@@ -86,7 +89,12 @@ export function PageStateCard({
   );
 }
 
-export function LoadingState({ titleAr, titleEn, descriptionAr, descriptionEn }: Omit<PageStateProps, "variant">) {
+export function LoadingState({
+  titleAr,
+  titleEn,
+  descriptionAr,
+  descriptionEn,
+}: Omit<PageStateProps, "variant">) {
   const locale = useUIStore((state) => state.locale);
 
   return (
@@ -99,14 +107,12 @@ export function LoadingState({ titleAr, titleEn, descriptionAr, descriptionEn }:
 }
 
 export function EmptySearchState() {
-  // const locale = useUIStore((state) => state.locale);
-
   return (
     <PageStateCard
       icon={SearchX}
       titleAr="لا توجد نتائج مطابقة"
       titleEn="No matching results"
-      descriptionAr="جرّب تعديل كلمة البحث أو تخفيف الفلاتر للوصول إلى نتائج أكثر دقة."
+      descriptionAr="جرّب تعديل كلمة البحث أو تخفيف الفلاتر للحصول على نتائج أفضل."
       descriptionEn="Try adjusting the search term or easing the filters to get better results."
       compact
     />

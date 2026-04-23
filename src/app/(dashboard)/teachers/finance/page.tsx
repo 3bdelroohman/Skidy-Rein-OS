@@ -109,9 +109,9 @@ export default function TeachersFinancePage() {
   if (loading) {
     return (
       <LoadingState
-        titleAr="\u062c\u0627\u0631\u0650 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0627\u0644\u064a\u0629 \u0644\u0644\u0645\u062f\u0631\u0633\u064a\u0646"
+        titleAr="جارِ تحميل الحسابات المالية للمدرسين"
         titleEn="Loading teachers finance"
-        descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062d\u0633\u0627\u0628 \u0627\u0644\u062a\u0642\u062f\u064a\u0631 \u0627\u0644\u0623\u0633\u0628\u0648\u0639\u064a \u0648\u0627\u0644\u0634\u0647\u0631\u064a \u0628\u0646\u0627\u0621\u064b \u0639\u0644\u0649 \u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0643\u0648\u0631\u0633\u0627\u062a \u0648\u0645\u062f\u062f \u0627\u0644\u062f\u0631\u0648\u0633."
+        descriptionAr="يتم الآن حساب التقدير الأسبوعي والشهري بناءً على أسعار الكورسات ومدد الدروس."
         descriptionEn="Preparing weekly and monthly estimates from real course and lesson-duration pricing."
       />
     );
@@ -126,12 +126,12 @@ export default function TeachersFinancePage() {
         <div className="flex-1">
           <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <Wallet size={26} className="text-brand-600" />
-            {t(locale, "\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646", "Teacher accounts")}
+            {t(locale, "حسابات المدرسين", "Teacher accounts")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t(
               locale,
-              "\u062a\u0642\u062f\u064a\u0631 \u0623\u0633\u0628\u0648\u0639\u064a \u0648\u0634\u0647\u0631\u064a \u0644\u0645\u0633\u062a\u062d\u0642\u0627\u062a \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646 \u0628\u0646\u0627\u0621\u064b \u0639\u0644\u0649 \u0627\u0644\u062d\u0635\u0635 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629 \u0648\u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0643\u0648\u0631\u0633\u0627\u062a \u0627\u0644\u0641\u0639\u0644\u064a\u0629.",
+              "تقدير أسبوعي وشهري لمستحقات المدرسين بناءً على الحصص المرتبطة وأسعار الكورسات الفعلية.",
               "Weekly and monthly estimates for teacher dues based on linked sessions and real course-based pricing.",
             )}
           </p>
@@ -139,7 +139,7 @@ export default function TeachersFinancePage() {
         {canManageTeachers ? (
           <Link href="/teachers/new" className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
             <PlusCircle size={16} />
-            {t(locale, "\u0625\u0636\u0627\u0641\u0629 \u0645\u062f\u0631\u0633", "Add teacher")}
+            {t(locale, "إضافة مدرس", "Add teacher")}
           </Link>
         ) : null}
       </div>
@@ -148,10 +148,10 @@ export default function TeachersFinancePage() {
         {(["all", "active", "inactive"] as StatusFilter[]).map((filterValue) => {
           const label =
             filterValue === "all"
-              ? t(locale, "\u0627\u0644\u0643\u0644", "All")
+              ? t(locale, "الكل", "All")
               : filterValue === "active"
-                ? t(locale, "\u0646\u0634\u0637", "Active")
-                : t(locale, "\u063a\u064a\u0631 \u0646\u0634\u0637", "Inactive");
+                ? t(locale, "نشط", "Active")
+                : t(locale, "غير نشط", "Inactive");
           const count =
             filterValue === "all"
               ? items.length
@@ -166,20 +166,20 @@ export default function TeachersFinancePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SummaryCard locale={locale} icon={Wallet} labelAr="\u0625\u062c\u0645\u0627\u0644\u064a \u0623\u0633\u0628\u0648\u0639\u064a" labelEn="Weekly total" value={formatCurrencyEgp(totals.weekly, locale)} />
-        <SummaryCard locale={locale} icon={Wallet} labelAr="\u0625\u062c\u0645\u0627\u0644\u064a \u0634\u0647\u0631\u064a \u062a\u0642\u062f\u064a\u0631\u064a" labelEn="Estimated monthly total" value={formatCurrencyEgp(totals.monthly, locale)} />
-        <SummaryCard locale={locale} icon={Calculator} labelAr="\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u062d\u0635\u0635" labelEn="Total sessions" value={String(totals.sessions)} />
+        <SummaryCard locale={locale} icon={Wallet} labelAr="إجمالي أسبوعي" labelEn="Weekly total" value={formatCurrencyEgp(totals.weekly, locale)} />
+        <SummaryCard locale={locale} icon={Wallet} labelAr="إجمالي شهري تقديري" labelEn="Estimated monthly total" value={formatCurrencyEgp(totals.monthly, locale)} />
+        <SummaryCard locale={locale} icon={Calculator} labelAr="إجمالي الحصص" labelEn="Total sessions" value={String(totals.sessions)} />
       </div>
 
       {filtered.length === 0 ? (
         <PageStateCard
           variant="default"
-          titleAr="\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0645\u0627\u0644\u064a\u0629 \u0644\u0644\u0645\u062f\u0631\u0633\u064a\u0646 \u0628\u0639\u062f"
+          titleAr="لا توجد بيانات مالية للمدرسين بعد"
           titleEn="No teacher finance data yet"
-          descriptionAr="\u0623\u0636\u0641 \u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0643\u0648\u0631\u0633\u0627\u062a \u0648\u0645\u062f\u062f \u0627\u0644\u062f\u0631\u0648\u0633 \u0645\u0646 \u0645\u0644\u0641 \u0643\u0644 \u0645\u062f\u0631\u0633 \u062b\u0645 \u0631\u0627\u062c\u0639 \u0627\u0644\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0627\u0644\u064a."
+          descriptionAr="أضف أسعار الكورسات ومدد الدروس من ملف كل مدرس ثم راجع الملخص المالي."
           descriptionEn="Add course and duration pricing from each teacher profile, then review the finance summary here."
           actionHref="/teachers"
-          actionLabelAr="\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646"
+          actionLabelAr="العودة إلى المدرسين"
           actionLabelEn="Back to teachers"
         />
       ) : (
@@ -192,12 +192,12 @@ export default function TeachersFinancePage() {
                     <p className="truncate text-lg font-bold text-foreground">{item.teacher.fullName}</p>
                     {!item.teacher.isActive ? (
                       <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                        {t(locale, "\u063a\u064a\u0631 \u0646\u0634\u0637", "Inactive")}
+                        {t(locale, "غير نشط", "Inactive")}
                       </span>
                     ) : null}
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {getEmploymentTypeLabel(item.teacher.employment, locale)} \u2022 {item.teacher.linkedStudents.length} {t(locale, "\u0637\u0644\u0627\u0628", "students")} \u2022 {item.linkedSessions} {t(locale, "\u062d\u0635\u0635", "sessions")}
+                    {getEmploymentTypeLabel(item.teacher.employment, locale)} • {item.teacher.linkedStudents.length} {t(locale, "طلاب", "students")} • {item.linkedSessions} {t(locale, "حصص", "sessions")}
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
@@ -216,9 +216,9 @@ export default function TeachersFinancePage() {
               ) : null}
 
               <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
-                <MiniMetric locale={locale} labelAr="\u0623\u0633\u0628\u0648\u0639\u064a" labelEn="Weekly" value={formatCurrencyEgp(item.weeklyEstimated, locale)} />
-                <MiniMetric locale={locale} labelAr="\u0634\u0647\u0631\u064a" labelEn="Monthly" value={formatCurrencyEgp(item.monthlyEstimated, locale)} />
-                <MiniMetric locale={locale} labelAr="\u0645\u062a\u0648\u0633\u0637 \u0627\u0644\u062d\u0635\u0629" labelEn="Avg session" value={formatCurrencyEgp(item.averagePerSession, locale)} />
+                <MiniMetric locale={locale} labelAr="أسبوعي" labelEn="Weekly" value={formatCurrencyEgp(item.weeklyEstimated, locale)} />
+                <MiniMetric locale={locale} labelAr="شهري" labelEn="Monthly" value={formatCurrencyEgp(item.monthlyEstimated, locale)} />
+                <MiniMetric locale={locale} labelAr="متوسط الحصة" labelEn="Avg session" value={formatCurrencyEgp(item.averagePerSession, locale)} />
               </div>
             </Link>
           ))}

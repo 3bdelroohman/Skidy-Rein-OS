@@ -77,24 +77,24 @@ export default function SchedulePage() {
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
               <CalendarDays size={28} className="text-brand-600" />
-              {t(locale, "\u0627\u0644\u062c\u062f\u0648\u0644", "Schedule")}
+              {t(locale, "الجدول", "Schedule")}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {t(locale, "\u0639\u0631\u0636 \u0623\u0633\u0628\u0648\u0639\u064a \u0644\u0644\u0643\u0644\u0627\u0633\u0627\u062a\u060c \u0627\u0644\u0623\u062d\u0645\u0627\u0644\u060c \u0648\u0623\u0647\u0645 \u0627\u0644\u062c\u0644\u0633\u0627\u062a \u0627\u0644\u062c\u0627\u0631\u064a\u0629", "Weekly view of classes, load, and ongoing sessions")}
+              {t(locale, "عرض أسبوعي للكلاسات، الأحمال، وأهم الجلسات الجارية", "Weekly view of classes, load, and ongoing sessions")}
             </p>
           </div>
           <Link href="/schedule/new" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
             <Plus size={18} />
-            {t(locale, "\u0625\u0636\u0627\u0641\u0629 \u062d\u0635\u0629 / \u062d\u062f\u062b", "Add session / event")}
+            {t(locale, "إضافة حصة / حدث", "Add session / event")}
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <MiniMetric label={t(locale, "\u0639\u062f\u062f \u0627\u0644\u062c\u0644\u0633\u0627\u062a", "Sessions")} value={overview.sessionsCount} />
-        <MiniMetric label={t(locale, "\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0642\u0627\u0639\u062f", "Total seats")} value={overview.totalStudents} />
-        <MiniMetric label={t(locale, "\u0639\u062f\u062f \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646", "Teachers")} value={overview.uniqueTeachers} />
-        <MiniMetric label={t(locale, "\u0623\u0643\u062b\u0631 \u064a\u0648\u0645 \u0627\u0632\u062f\u062d\u0627\u0645\u0627\u064b", "Busiest day")} value={getDayLabel(overview.busiestDay, locale) + " (" + overview.busiestDayCount + ")"} />
+        <MiniMetric label={t(locale, "عدد الجلسات", "Sessions")} value={overview.sessionsCount} />
+        <MiniMetric label={t(locale, "إجمالي المقاعد", "Total seats")} value={overview.totalStudents} />
+        <MiniMetric label={t(locale, "عدد المدرسين", "Teachers")} value={overview.uniqueTeachers} />
+        <MiniMetric label={t(locale, "أكثر يوم ازدحاماً", "Busiest day")} value={getDayLabel(overview.busiestDay, locale) + " (" + overview.busiestDayCount + ")"} />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -104,7 +104,7 @@ export default function SchedulePage() {
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={t(locale, "\u0628\u062d\u062b \u0628\u0627\u0633\u0645 \u0627\u0644\u0643\u0644\u0627\u0633 \u0623\u0648 \u0627\u0644\u0645\u062f\u0631\u0633...", "Search by class or teacher...")}
+            placeholder={t(locale, "بحث باسم الكلاس أو المدرس...", "Search by class or teacher...")}
             className={cn("w-full rounded-xl border border-border bg-card py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring", isAr ? "pr-10 pl-4" : "pl-10 pr-4")}
           />
         </div>
@@ -113,25 +113,25 @@ export default function SchedulePage() {
           onChange={(event) => setCourseFilter(event.target.value as CourseType | "all")}
           className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground"
         >
-          <option value="all">{t(locale, "\u0643\u0644 \u0627\u0644\u0643\u0648\u0631\u0633\u0627\u062a", "All courses")}</option>
-          <optgroup label={t(locale, "\u0645\u0631\u062d\u0644\u0629 \u0627\u0644\u062a\u0623\u0633\u064a\u0633 \u0627\u0644\u0625\u0628\u062f\u0627\u0639\u064a", "Creative Foundation")}>
+          <option value="all">{t(locale, "كل الكورسات", "All courses")}</option>
+          <optgroup label={t(locale, "مرحلة التأسيس الإبداعي", "Creative Foundation")}>
             <option value="scratch">Scratch</option>
             <option value="app_inventor">App Inventor</option>
-            <option value="robotics_basic">{t(locale, "\u0631\u0648\u0628\u0648\u062a\u0643\u0633 \u0623\u0633\u0627\u0633\u064a", "Robotics Basic")}</option>
-            <option value="ai_intro">{t(locale, "\u0645\u0642\u062f\u0645\u0629 \u0641\u064a \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a", "AI Intro")}</option>
+            <option value="robotics_basic">{t(locale, "روبوتكس أساسي", "Robotics Basic")}</option>
+            <option value="ai_intro">{t(locale, "مقدمة في الذكاء الاصطناعي", "AI Intro")}</option>
           </optgroup>
-          <optgroup label={t(locale, "\u0645\u0631\u062d\u0644\u0629 \u0627\u0644\u0628\u0631\u0645\u062c\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0629", "Practical Programming")}>
+          <optgroup label={t(locale, "مرحلة البرمجة العملية", "Practical Programming")}>
             <option value="python">Python</option>
             <option value="godot">Godot</option>
             <option value="robotics_iot">Robotics / IoT</option>
             <option value="fastapi">FastAPI</option>
           </optgroup>
-          <optgroup label={t(locale, "\u0645\u0631\u062d\u0644\u0629 \u0627\u0644\u062a\u0637\u0628\u064a\u0642\u0627\u062a \u0648\u0627\u0644\u0648\u064a\u0628", "Web & Apps")}>
+          <optgroup label={t(locale, "مرحلة التطبيقات والويب", "Web & Apps")}>
             <option value="html_css">HTML / CSS</option>
             <option value="javascript_tailwind">JavaScript / Tailwind</option>
             <option value="front_end">Front End</option>
           </optgroup>
-          <optgroup label={t(locale, "\u0645\u0631\u062d\u0644\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a \u0648\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a", "AI & Data")}>
+          <optgroup label={t(locale, "مرحلة الذكاء الاصطناعي والبيانات", "AI & Data")}>
             <option value="ai_ml">AI & Machine Learning</option>
             <option value="data_science">Data Science</option>
             <option value="back_end">Back End</option>
@@ -142,7 +142,7 @@ export default function SchedulePage() {
 
       {loading ? (
         <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
-          {t(locale, "\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u062c\u062f\u0648\u0644...", "Loading schedule...")}
+          {t(locale, "جارٍ تحميل الجدول...", "Loading schedule...")}
         </div>
       ) : (
         <>
@@ -152,7 +152,7 @@ export default function SchedulePage() {
                 <div className="mb-2 border-b border-border pb-2 text-center text-sm font-bold text-foreground">{day}</div>
                 <div className="space-y-2">
                   {items.length === 0 ? (
-                    <EmptyDay label={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0644\u0633\u0627\u062a", "No sessions")} />
+                    <EmptyDay label={t(locale, "لا توجد جلسات", "No sessions")} />
                   ) : (
                     items.map((session) => {
                       const colors = getCourseColors(session.course);
@@ -164,8 +164,8 @@ export default function SchedulePage() {
                           </div>
                           <p className="mt-1 truncate text-[10px] text-muted-foreground">{getCourseLabel(session.course, locale)}</p>
                           <div className="mt-2 space-y-1 text-[10px] text-muted-foreground">
-                            <div className="flex items-center gap-1.5"><Clock size={10} />{session.startTime} \u2014 {session.endTime}</div>
-                            <div className="flex items-center gap-1.5 truncate"><Users size={10} /><span className="truncate">{session.teacher}</span> - {session.students} {t(locale, "\u0637\u0644\u0627\u0628", "students")}</div>
+                            <div className="flex items-center gap-1.5"><Clock size={10} />{session.startTime} — {session.endTime}</div>
+                            <div className="flex items-center gap-1.5 truncate"><Users size={10} /><span className="truncate">{session.teacher}</span> - {session.students} {t(locale, "طلاب", "students")}</div>
                           </div>
                         </Link>
                       );
@@ -181,7 +181,7 @@ export default function SchedulePage() {
               <div key={day} className="space-y-2">
                 <p className="text-sm font-bold text-foreground">{day}</p>
                 {items.length === 0 ? (
-                  <EmptyDay label={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0644\u0633\u0627\u062a", "No sessions")} />
+                  <EmptyDay label={t(locale, "لا توجد جلسات", "No sessions")} />
                 ) : (
                   items.map((session) => {
                     const colors = getCourseColors(session.course);
@@ -190,7 +190,7 @@ export default function SchedulePage() {
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className={cn("truncate text-sm font-bold", colors.text)}>{session.className}</p>
-                            <p className="truncate text-xs text-muted-foreground">{session.teacher} \u2014 {session.students} {t(locale, "\u0637\u0644\u0627\u0628", "students")}</p>
+                            <p className="truncate text-xs text-muted-foreground">{session.teacher} — {session.students} {t(locale, "طلاب", "students")}</p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                             <span>{session.startTime}</span>

@@ -43,7 +43,6 @@ export function MobileNav() {
       titleEn: "Groups",
       icon: Layers3,
       roles: [user.role],
-      badge: 0,
     };
 
     let inserted = false;
@@ -149,12 +148,6 @@ export function MobileNav() {
                         >
                           <Icon size={20} className={cn(active ? "text-cream-200" : "text-white/50")} />
                           <span>{isAr ? item.titleAr : item.titleEn}</span>
-
-                          {item.badge && item.badge > 0 && (
-                            <span className={cn("bg-danger-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5", isAr ? "mr-auto" : "ml-auto")}>
-                              {item.badge}
-                            </span>
-                          )}
                         </Link>
                       );
                     })}

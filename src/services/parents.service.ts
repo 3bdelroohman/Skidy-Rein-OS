@@ -32,7 +32,7 @@ function normalizePhone(value: string | null | undefined): string {
 function normalizeName(value: string | null | undefined): string {
   return (value ?? "")
     .toLowerCase()
-    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/[ً-ٟ]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

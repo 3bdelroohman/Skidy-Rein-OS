@@ -145,16 +145,16 @@ function mapLeadRow(row: Database["public"]["Tables"]["leads"]["Row"] | Record<s
   const record = row as Record<string, unknown>;
   return {
     id: asString(record.id, crypto.randomUUID()),
-    parentName: asString(record.parent_name ?? record.parentName, "\u0648\u0644\u064a \u0623\u0645\u0631 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f"),
-    parentPhone: asString(record.parent_phone ?? record.parentPhone, "\u2013"),
-    childName: asString(record.child_name ?? record.childName, "\u0637\u0641\u0644 \u0628\u062f\u0648\u0646 \u0627\u0633\u0645"),
+    parentName: asString(record.parent_name ?? record.parentName, "ولي أمر غير محدد"),
+    parentPhone: asString(record.parent_phone ?? record.parentPhone, "–"),
+    childName: asString(record.child_name ?? record.childName, "طفل بدون اسم"),
     childAge: asNumber(record.child_age ?? record.childAge, 0),
     stage: asStage(record.stage),
     temperature: asTemperature(record.temperature),
     source: asString(record.source, "other") as LeadListItem["source"],
     suggestedCourse: asNullableString(record.suggested_course ?? record.suggestedCourse) as LeadListItem["suggestedCourse"],
     assignedTo: asString(record.assigned_to ?? record.assignedTo, ""),
-    assignedToName: asString(record.assignedToName, "\u063a\u064a\u0631 \u0645\u062e\u0635\u0635"),
+    assignedToName: asString(record.assignedToName, "غير مخصص"),
     lastContactAt: asNullableString(record.last_contact_at ?? record.lastContactAt),
     nextFollowUpAt: asNullableString(record.next_follow_up_at ?? record.nextFollowUpAt),
     notes: asNullableString(record.notes),
@@ -170,9 +170,9 @@ function mapActivityRow(row: Database["public"]["Tables"]["lead_activities"]["Ro
   return {
     id: asString(record.id, crypto.randomUUID()),
     leadId: asString(record.lead_id ?? record.leadId),
-    action: asString(record.action ?? record.description, "\u062a\u062d\u062f\u064a\u062b \u0639\u0644\u0649 \u0627\u0644\u0639\u0645\u064a\u0644"),
+    action: asString(record.action ?? record.description, "تحديث على العميل"),
     date: asString(record.created_at ?? record.date, new Date().toISOString()),
-    by: asString(meta.actor_name ?? record.performed_by ?? record.by, "\u0627\u0644\u0646\u0638\u0627\u0645"),
+    by: asString(meta.actor_name ?? record.performed_by ?? record.by, "النظام"),
     type: (["create", "contact", "stage", "note"] as const).includes(activityType as LeadActivityItem["type"])
       ? (activityType as LeadActivityItem["type"])
       : "note",
@@ -280,7 +280,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
     childName: input.childName,
     childAge: input.childAge,
     parentName: input.parentName,
-    parentPhone: input.parentPhone,
+    parentPhone: input.parentPhone || "",
     stage: "new",
     temperature: input.temperature,
     source: input.source,
@@ -289,7 +289,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
     assignedToName:
       input.assignedToName ||
       MOCK_TEAM.find((member) => member.id === input.assignedTo)?.name ||
-      "\u063a\u064a\u0631 \u0645\u062e\u0635\u0635",
+      "غير مخصص",
     lastContactAt: null,
     nextFollowUpAt: null,
     notes: input.notes ?? null,
@@ -301,7 +301,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
 
   if (!supabase) {
     if (!shouldUseDemoFallback()) {
-      throw new Error("\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a. \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0628\u0639\u062f \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a.");
+      throw new Error("تعذر الاتصال بقاعدة البيانات. أعد المحاولة بعد تسجيل الدخول أو التحقق من الإعدادات.");
     }
 
     const current = getLocalLeads();
@@ -310,7 +310,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
     const demoActivity: LeadActivityItem = {
       id: crypto.randomUUID(),
       leadId: draftLead.id,
-      action: "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0639\u0645\u064a\u0644 \u0627\u0644\u0645\u062d\u062a\u0645\u0644",
+      action: "تم إنشاء العميل المحتمل",
       date: createdAt,
       by: draftLead.assignedToName,
       type: "create",
@@ -323,12 +323,12 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
   try {
     const assignedToUuid = await resolveAssignedToUuid(input.assignedTo);
     if (!assignedToUuid) {
-      throw new Error("\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0627\u0644\u0635\u062d\u064a\u062d \u0639\u0646 \u0627\u0644\u0639\u0645\u064a\u0644. \u062a\u0623\u0643\u062f \u0645\u0646 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0633\u0624\u0648\u0644.");
+      throw new Error("تعذر تحديد المسؤول الصحيح عن العميل. تأكد من تسجيل الدخول أو بيانات المسؤول.");
     }
 
     const insertPayload: Database["public"]["Tables"]["leads"]["Insert"] = {
       parent_name: draftLead.parentName,
-      parent_phone: draftLead.parentPhone,
+      parent_phone: draftLead.parentPhone || "",
       parent_whatsapp: input.parentWhatsapp ?? null,
       child_name: draftLead.childName,
       child_age: draftLead.childAge,
@@ -340,7 +340,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
       child_interests: input.childInterests ?? null,
       suggested_course: draftLead.suggestedCourse as Database["public"]["Enums"]["course_type"] | null,
       price_range_shared: false,
-      whatsapp_collected: Boolean((input.parentWhatsapp ?? input.parentPhone).trim()),
+      whatsapp_collected: Boolean((input.parentWhatsapp ?? input.parentPhone ?? "").trim()),
       assigned_to: assignedToUuid,
       notes: draftLead.notes,
     };
@@ -362,7 +362,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
 
       if (_dup) {
         throw new Error(
-          "\u064a\u0648\u062c\u062f \u0639\u0645\u064a\u0644 \u0645\u062d\u062a\u0645\u0644 \u0628\u0646\u0641\u0633 \u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641 \u0648\u0627\u0633\u0645 \u0627\u0644\u0637\u0641\u0644 (ID: " + _dup.id.slice(0, 8) + ")"
+          "يوجد عميل محتمل بنفس رقم الهاتف واسم الطفل (ID: " + _dup.id.slice(0, 8) + ")"
         );
       }
     }
@@ -376,11 +376,11 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
 
     if (error) {
       console.error("[leads] create failed", error);
-      throw new Error(error.message || "\u062a\u0639\u0630\u0631 \u062d\u0641\u0638 \u0627\u0644\u0639\u0645\u064a\u0644 \u0641\u064a \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a");
+      throw new Error(error.message || "تعذر حفظ العميل في قاعدة البيانات");
     }
 
     if (!data) {
-      throw new Error("\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0637\u0644\u0628 \u0627\u0644\u062d\u0641\u0638 \u0644\u0643\u0646 \u0644\u0645 \u064a\u0631\u062c\u0639 \u0623\u064a \u0633\u062c\u0644 \u0645\u0646 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a");
+      throw new Error("تم إرسال طلب الحفظ لكن لم يرجع أي سجل من قاعدة البيانات");
     }
 
     const synced = mapLeadRow(data);
@@ -389,7 +389,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
 
     const activityPayload: Database["public"]["Tables"]["lead_activities"]["Insert"] = {
       lead_id: synced.id,
-      action: "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0639\u0645\u064a\u0644 \u0627\u0644\u0645\u062d\u062a\u0645\u0644",
+      action: "تم إنشاء العميل المحتمل",
       metadata: { type: "create", actor_name: draftLead.assignedToName },
     };
 
@@ -401,14 +401,14 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
     return { ...synced, assignedToName: draftLead.assignedToName };
   } catch (error) {
     console.error("[leads] create failed", error);
-    throw error instanceof Error ? error : new Error("\u062a\u0639\u0630\u0631 \u062d\u0641\u0638 \u0627\u0644\u0639\u0645\u064a\u0644");
+    throw error instanceof Error ? error : new Error("تعذر حفظ العميل");
   }
 }
 
 export async function updateLead(
   leadId: string,
   input: UpdateLeadInput,
-  actorName = input.assignedToName || "\u0627\u0644\u0646\u0638\u0627\u0645",
+  actorName = input.assignedToName || "النظام",
 ): Promise<LeadListItem | null> {
   const supabase = getSupabaseClient();
 
@@ -426,7 +426,7 @@ export async function updateLead(
       childName: input.childName,
       childAge: input.childAge,
       parentName: input.parentName,
-      parentPhone: input.parentPhone,
+      parentPhone: input.parentPhone || "",
       source: input.source,
       temperature: input.temperature,
       suggestedCourse: input.suggestedCourse,
@@ -444,7 +444,7 @@ export async function updateLead(
     const activity: LeadActivityItem = {
       id: crypto.randomUUID(),
       leadId,
-      action: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0639\u0645\u064a\u0644",
+      action: "تم تحديث بيانات العميل",
       date: new Date().toISOString(),
       by: actorName,
       type: "note",
@@ -462,9 +462,9 @@ export async function updateLead(
     childName: input.childName,
     childAge: input.childAge,
     parentName: input.parentName,
-    parentPhone: input.parentPhone,
-    source: input.source,
-    temperature: input.temperature,
+    parentPhone: input.parentPhone || "",
+      source: input.source,
+      temperature: input.temperature,
     suggestedCourse: input.suggestedCourse,
     assignedTo: input.assignedTo,
     assignedToName: input.assignedToName,
@@ -478,7 +478,7 @@ export async function updateLead(
   const activity: LeadActivityItem = {
     id: crypto.randomUUID(),
     leadId,
-    action: "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0639\u0645\u064a\u0644",
+    action: "تم تحديث بيانات العميل",
     date: new Date().toISOString(),
     by: actorName,
     type: "note",
@@ -487,7 +487,7 @@ export async function updateLead(
   try {
     const assignedToUuid = await resolveAssignedToUuid(updated.assignedTo);
     if (!assignedToUuid) {
-      throw new Error("\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0627\u0644\u0635\u062d\u064a\u062d \u0639\u0646 \u0627\u0644\u0639\u0645\u064a\u0644.");
+      throw new Error("تعذر تحديد المسؤول الصحيح عن العميل.");
     }
 
     const { error: updateError } = await supabase
@@ -561,7 +561,7 @@ export async function updateLeadStage(
     const activity: LeadActivityItem = {
       id: crypto.randomUUID(),
       leadId,
-      action: "\u062a\u0645 \u0646\u0642\u0644 \u0627\u0644\u0645\u0631\u062d\u0644\u0629 \u0625\u0644\u0649 " + STAGE_LABELS[stage],
+      action: "تم نقل المرحلة إلى " + STAGE_LABELS[stage],
       date: new Date().toISOString(),
       by: actorName,
       type: "stage",
@@ -584,7 +584,7 @@ export async function updateLeadStage(
   const activity: LeadActivityItem = {
     id: crypto.randomUUID(),
     leadId,
-    action: "\u062a\u0645 \u0646\u0642\u0644 \u0627\u0644\u0645\u0631\u062d\u0644\u0629 \u0625\u0644\u0649 " + STAGE_LABELS[stage],
+    action: "تم نقل المرحلة إلى " + STAGE_LABELS[stage],
     date: new Date().toISOString(),
     by: actorName,
     type: "stage",

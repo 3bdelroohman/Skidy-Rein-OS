@@ -185,7 +185,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
     const price = Number(draftPrice);
 
     if (!Number.isFinite(price) || price <= 0) {
-      toast.error(t(locale, "\u0623\u062f\u062e\u0644 \u0633\u0639\u0631\u064b\u0627 \u0635\u062d\u064a\u062d\u064b\u0627 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631", "Enter a valid rate greater than zero"));
+      toast.error(t(locale, "أدخل سعرًا صحيحًا أكبر من صفر", "Enter a valid rate greater than zero"));
       return;
     }
 
@@ -197,7 +197,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       toast.error(
         t(
           locale,
-          "\u0647\u0646\u0627\u0643 \u0633\u0639\u0631 \u0645\u0633\u062c\u0644 \u0628\u0627\u0644\u0641\u0639\u0644 \u0644\u0646\u0641\u0633 \u0627\u0644\u0643\u0648\u0631\u0633 \u0648\u0645\u062f\u0629 \u0627\u0644\u062d\u0635\u0629",
+          "هناك سعر مسجل بالفعل لنفس الكورس ومدة الحصة",
           "A rate already exists for this course and lesson duration",
         ),
       );
@@ -227,10 +227,10 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         rating: Number(rating) || null,
         notes,
       });
-      toast.success(t(locale, "\u062a\u0645 \u062d\u0641\u0638 \u062a\u0642\u064a\u064a\u0645 \u0627\u0644\u0645\u062f\u0631\u0633", "Teacher evaluation saved"));
+      toast.success(t(locale, "تم حفظ تقييم المدرس", "Teacher evaluation saved"));
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t(locale, "\u062a\u0639\u0630\u0631 \u062d\u0641\u0638 \u0627\u0644\u062a\u0642\u064a\u064a\u0645", "Could not save evaluation"));
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر حفظ التقييم", "Could not save evaluation"));
     } finally {
       setBusy(null);
     }
@@ -248,7 +248,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       toast.error(
         t(
           locale,
-          "\u0623\u0636\u0641 \u0633\u0639\u0631\u064b\u0627 \u0648\u0627\u062d\u062f\u064b\u0627 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0642\u0628\u0644 \u0627\u0644\u062d\u0641\u0638",
+          "أضف سعرًا واحدًا على الأقل قبل الحفظ",
           "Add at least one course rate before saving",
         ),
       );
@@ -259,7 +259,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       toast.error(
         t(
           locale,
-          "\u0643\u0644 \u0633\u0639\u0631 \u064a\u062c\u0628 \u0623\u0646 \u064a\u0643\u0648\u0646 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631",
+          "كل سعر يجب أن يكون أكبر من صفر",
           "Every rate must be greater than zero",
         ),
       );
@@ -273,10 +273,10 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         rates: normalizedRows,
       });
 
-      toast.success(t(locale, "\u062a\u0645 \u062d\u0641\u0638 \u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0643\u0648\u0631\u0633\u0627\u062a \u0644\u0644\u0645\u062f\u0631\u0633", "Teacher course rates saved"));
+      toast.success(t(locale, "تم حفظ أسعار الكورسات للمدرس", "Teacher course rates saved"));
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t(locale, "\u062a\u0639\u0630\u0631 \u062d\u0641\u0638 \u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0643\u0648\u0631\u0633\u0627\u062a", "Could not save teacher course rates"));
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر حفظ أسعار الكورسات", "Could not save teacher course rates"));
     } finally {
       setBusy(null);
     }
@@ -291,13 +291,13 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       toast.success(
         t(
           locale,
-          "\u062a\u0645 \u0646\u0642\u0644 " + result.sessionsUpdated + " \u062d\u0635\u0635 \u0648 " + result.classesUpdated + " \u0643\u0644\u0627\u0633\u0627\u062a",
+          "تم نقل " + result.sessionsUpdated + " حصص و " + result.classesUpdated + " كلاسات",
           "Moved " + result.sessionsUpdated + " sessions and " + result.classesUpdated + " classes",
         ),
       );
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t(locale, "\u062a\u0639\u0630\u0631 \u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635", "Could not reassign sessions"));
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر نقل الحصص", "Could not reassign sessions"));
     } finally {
       setBusy(null);
     }
@@ -307,12 +307,12 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
     if (!teacher) return;
 
     if (teacher.linkedSessions.length > 0) {
-      toast.error(t(locale, "\u0627\u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635 \u0623\u0648\u0644\u0627\u064b \u0642\u0628\u0644 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633", "Reassign sessions before deleting"));
+      toast.error(t(locale, "انقل الحصص أولاً قبل حذف المدرس", "Reassign sessions before deleting"));
       return;
     }
 
     const confirmed = window.confirm(
-      t(locale, "\u0647\u0644 \u062a\u0631\u064a\u062f \u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0645\u062f\u0631\u0633 \u0646\u0647\u0627\u0626\u064a\u0627\u064b\u061f", "Delete this teacher permanently?"),
+      t(locale, "هل تريد حذف هذا المدرس نهائياً؟", "Delete this teacher permanently?"),
     );
     if (!confirmed) return;
 
@@ -321,10 +321,10 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       const deleted = await deleteTeacher(teacher.id);
       if (!deleted) throw new Error("Delete failed");
 
-      toast.success(t(locale, "\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633", "Teacher deleted"));
+      toast.success(t(locale, "تم حذف المدرس", "Teacher deleted"));
       router.push("/teachers");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t(locale, "\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633", "Could not delete teacher"));
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر حذف المدرس", "Could not delete teacher"));
     } finally {
       setBusy(null);
     }
@@ -350,9 +350,9 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
   if (loading) {
     return (
       <LoadingState
-        titleAr="\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u062f\u0631\u0633"
+        titleAr="جارٍ تحميل بيانات المدرس"
         titleEn="Loading teacher details"
-        descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0645\u0644\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 \u0648\u0631\u0628\u0637 \u0627\u0644\u062c\u0644\u0633\u0627\u062a \u0648\u0627\u0644\u0637\u0644\u0627\u0628."
+        descriptionAr="يتم الآن تجهيز ملف المدرس وربط الجلسات والطلاب."
         descriptionEn="Preparing the teacher profile with linked sessions and students."
       />
     );
@@ -362,12 +362,12 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
     return (
       <PageStateCard
         variant="warning"
-        titleAr="\u0627\u0644\u0645\u062f\u0631\u0633 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"
+        titleAr="المدرس غير موجود"
         titleEn="Teacher not found"
-        descriptionAr="\u0642\u062f \u064a\u0643\u0648\u0646 \u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641 \u0645\u062d\u0630\u0648\u0641\u0627\u064b \u0623\u0648 \u0627\u0644\u0631\u0627\u0628\u0637 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d."
+        descriptionAr="قد يكون هذا الملف محذوفاً أو الرابط غير صحيح."
         descriptionEn="This teacher profile may have been removed or the link is incorrect."
         actionHref="/teachers"
-        actionLabelAr="\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646"
+        actionLabelAr="العودة إلى المدرسين"
         actionLabelEn="Back to teachers"
       />
     );
@@ -389,30 +389,30 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           {canManage ? (
             <Link href={"/schedule/new?teacherId=" + teacher.id} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
               <PlusCircle size={16} />
-              {t(locale, "\u0625\u0636\u0627\u0641\u0629 \u062d\u0635\u0629", "Add session")}
+              {t(locale, "إضافة حصة", "Add session")}
             </Link>
           ) : null}
           {canManageFinance ? (
             <Link href="/teachers/finance" className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
               <Calculator size={16} />
-              {t(locale, "\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u062f\u0631\u0633\u064a\u0646", "Teacher accounts")}
+              {t(locale, "حسابات المدرسين", "Teacher accounts")}
             </Link>
           ) : null}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Metric label={t(locale, "\u0627\u0644\u0643\u0644\u0627\u0633\u0627\u062a", "Classes")} value={teacher.classesCount.toString()} />
-        <Metric label={t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628", "Students")} value={teacher.studentsCount.toString()} />
-        <Metric label={t(locale, "\u062a\u0642\u0627\u0631\u064a\u0631 \u062c\u0627\u0647\u0632\u0629", "Reports ready")} value={String(reportSummary.ready)} />
-        <Metric label={t(locale, "\u064a\u062d\u062a\u0627\u062c \u0645\u062a\u0627\u0628\u0639\u0629", "Need follow-up")} value={String(reportSummary.needsAttention)} />
+        <Metric label={t(locale, "الكلاسات", "Classes")} value={teacher.classesCount.toString()} />
+        <Metric label={t(locale, "الطلاب", "Students")} value={teacher.studentsCount.toString()} />
+        <Metric label={t(locale, "تقارير جاهزة", "Reports ready")} value={String(reportSummary.ready)} />
+        <Metric label={t(locale, "يحتاج متابعة", "Need follow-up")} value={String(reportSummary.needsAttention)} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
             <BookOpen size={20} className="text-brand-600" />
-            {t(locale, "\u0627\u0644\u062a\u062e\u0635\u0635\u0627\u062a \u0648\u0627\u0644\u062f\u0648\u0631\u0627\u062a", "Specializations & courses")}
+            {t(locale, "التخصصات والدورات", "Specializations & courses")}
           </h2>
           <div className="mb-6 flex flex-wrap gap-2">
             {teacher.specialization.map((course) => (
@@ -423,10 +423,10 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <h3 className="mb-3 text-sm font-bold text-foreground">{t(locale, "\u0627\u0644\u062f\u0648\u0631\u0627\u062a \u0627\u0644\u0645\u0641\u0639\u0644\u0629", "Active courses")}</h3>
+              <h3 className="mb-3 text-sm font-bold text-foreground">{t(locale, "الدورات المفعلة", "Active courses")}</h3>
               <div className="flex flex-wrap gap-2">
                 {teacher.activeCourses.length === 0 ? (
-                  <span className="text-sm text-muted-foreground">{t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u0643\u0644\u0627\u0633\u0627\u062a \u0628\u0639\u062f", "No classes yet")}</span>
+                  <span className="text-sm text-muted-foreground">{t(locale, "لا توجد كلاسات بعد", "No classes yet")}</span>
                 ) : (
                   teacher.activeCourses.map((course) => (
                     <span key={course} className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
@@ -437,9 +437,9 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
             <div className="space-y-3">
-              <Info icon={Phone} label={t(locale, "\u0627\u0644\u0647\u0627\u062a\u0641", "Phone")} value={teacher.phone} href={"tel:" + teacher.phone} ltr />
-              <Info icon={Mail} label={t(locale, "\u0627\u0644\u0628\u0631\u064a\u062f", "Email")} value={teacher.email ?? t(locale, "\u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631", "N/A")} href={teacher.email ? "mailto:" + teacher.email : undefined} />
-              <Info icon={BookOpen} label={t(locale, "\u0627\u0644\u062d\u0627\u0644\u0629", "Status")} value={teacher.isActive ? t(locale, "\u0646\u0634\u0637", "Active") : t(locale, "\u063a\u064a\u0631 \u0646\u0634\u0637", "Inactive")} />
+              <Info icon={Phone} label={t(locale, "الهاتف", "Phone")} value={teacher.phone} href={"tel:" + teacher.phone} ltr />
+              <Info icon={Mail} label={t(locale, "البريد", "Email")} value={teacher.email ?? t(locale, "غير متوفر", "N/A")} href={teacher.email ? "mailto:" + teacher.email : undefined} />
+              <Info icon={BookOpen} label={t(locale, "الحالة", "Status")} value={teacher.isActive ? t(locale, "نشط", "Active") : t(locale, "غير نشط", "Inactive")} />
             </div>
           </div>
         </div>
@@ -448,11 +448,11 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="mb-3 flex items-center gap-2 font-bold text-foreground">
               <FileText size={18} className="text-brand-600" />
-              {t(locale, "\u0627\u0644\u062a\u0642\u064a\u064a\u0645", "Evaluation")}
+              {t(locale, "التقييم", "Evaluation")}
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "\u0627\u0644\u062a\u0642\u064a\u064a\u0645 \u0645\u0646 5", "Rating / 5")}</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "التقييم من 5", "Rating / 5")}</label>
                 <select value={rating} onChange={(event) => setRating(event.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
                   {[1, 2, 3, 4, 5].map((value) => (
                     <option key={value} value={String(value)}>
@@ -462,17 +462,17 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "\u0645\u0644\u0627\u062d\u0638\u0627\u062a", "Notes")}</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "ملاحظات", "Notes")}</label>
                 <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
               </div>
               {teacher.evaluationUpdatedAt ? (
                 <p className="text-xs text-muted-foreground">
-                  {t(locale, "\u0622\u062e\u0631 \u062a\u062d\u062f\u064a\u062b", "Last updated")}: {formatDate(teacher.evaluationUpdatedAt, locale)}
+                  {t(locale, "آخر تحديث", "Last updated")}: {formatDate(teacher.evaluationUpdatedAt, locale)}
                 </p>
               ) : null}
               <button onClick={handleSaveEvaluation} disabled={busy !== null} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50">
                 <Save size={16} />
-                {t(locale, "\u062d\u0641\u0638 \u0627\u0644\u062a\u0642\u064a\u064a\u0645", "Save evaluation")}
+                {t(locale, "حفظ التقييم", "Save evaluation")}
               </button>
             </div>
           </div>
@@ -483,19 +483,19 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         <div className="rounded-2xl border border-border bg-card p-5">
           <h3 className="mb-2 flex items-center gap-2 font-bold text-foreground">
             <Calculator size={18} className="text-brand-600" />
-            {t(locale, "\u062a\u0633\u0639\u064a\u0631 \u0627\u0644\u0645\u062f\u0631\u0633 \u062d\u0633\u0628 \u0627\u0644\u0643\u0648\u0631\u0633 \u0648\u0645\u062f\u0629 \u0627\u0644\u062f\u0631\u0633", "Teacher pricing by course and lesson duration")}
+            {t(locale, "تسعير المدرس حسب الكورس ومدة الدرس", "Teacher pricing by course and lesson duration")}
           </h3>
           <p className="mb-4 text-sm text-muted-foreground">
             {t(
               locale,
-              "\u0623\u0636\u0641 \u0633\u0639\u0631\u064b\u0627 \u0645\u062d\u062f\u062f\u064b\u0627 \u0644\u0643\u0644 \u062a\u0631\u0643\u064a\u0628\u0629 \u0645\u0646 \u0645\u062f\u0629 \u0627\u0644\u062d\u0635\u0629 \u0648\u0627\u0633\u0645 \u0627\u0644\u0643\u0648\u0631\u0633 \u0627\u0644\u062d\u0642\u064a\u0642\u064a.",
+              "أضف سعرًا محددًا لكل تركيبة من مدة الحصة واسم الكورس الحقيقي.",
               "Add an explicit price for each real combination of course and lesson duration.",
             )}
           </p>
 
           <div className="grid grid-cols-1 gap-3 rounded-2xl border border-dashed border-border bg-muted/20 p-4 lg:grid-cols-[1fr_180px_160px_auto]">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "\u0627\u0644\u0643\u0648\u0631\u0633", "Course")}</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "الكورس", "Course")}</label>
               <select value={draftCourse} onChange={(event) => setDraftCourse(event.target.value as CourseType)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
                 {COURSE_OPTIONS_BY_STAGE.map((group) => (
                   <optgroup key={group.stage} label={isAr ? COURSE_STAGE_LABELS[group.stage].ar : COURSE_STAGE_LABELS[group.stage].en}>
@@ -510,7 +510,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "\u0645\u062f\u0629 \u0627\u0644\u062d\u0635\u0629", "Lesson duration")}</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "مدة الحصة", "Lesson duration")}</label>
               <select value={String(draftDuration)} onChange={(event) => setDraftDuration(Number(event.target.value) as LessonDuration)} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
                 <option value="60">60 min</option>
                 <option value="90">90 min</option>
@@ -519,14 +519,14 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u062c\u0646\u064a\u0647", "Price (EGP)")}</label>
+              <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "السعر بالجنيه", "Price (EGP)")}</label>
               <input inputMode="numeric" value={draftPrice} onChange={(event) => setDraftPrice(event.target.value)} className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
             </div>
 
             <div className="flex items-end">
               <button type="button" onClick={handleAddRateRow} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
                 <PlusCircle size={16} />
-                {t(locale, "\u0625\u0636\u0627\u0641\u0629 \u0633\u0639\u0631", "Add rate")}
+                {t(locale, "إضافة سعر", "Add rate")}
               </button>
             </div>
           </div>
@@ -534,13 +534,13 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           <div className="mt-4 space-y-3">
             {rateRows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                {t(locale, "\u0644\u0645 \u064a\u062a\u0645 \u0625\u0636\u0627\u0641\u0629 \u0623\u064a \u0623\u0633\u0639\u0627\u0631 \u0628\u0639\u062f", "No course rates have been added yet")}
+                {t(locale, "لم يتم إضافة أي أسعار بعد", "No course rates have been added yet")}
               </div>
             ) : (
               rateRows.map((row) => (
                 <div key={row.id} className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-background p-4 lg:grid-cols-[1fr_180px_160px_auto]">
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "\u0627\u0644\u0643\u0648\u0631\u0633", "Course")}</label>
+                    <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "الكورس", "Course")}</label>
                     <select value={row.course} onChange={(event) => updateRateRow(row.id, { course: event.target.value as CourseType })} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
                       {COURSE_OPTIONS_BY_STAGE.map((group) => (
                         <optgroup key={group.stage} label={isAr ? COURSE_STAGE_LABELS[group.stage].ar : COURSE_STAGE_LABELS[group.stage].en}>
@@ -555,7 +555,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "\u0645\u062f\u0629 \u0627\u0644\u062d\u0635\u0629", "Lesson duration")}</label>
+                    <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "مدة الحصة", "Lesson duration")}</label>
                     <select value={String(row.durationMinutes)} onChange={(event) => updateRateRow(row.id, { durationMinutes: Number(event.target.value) as LessonDuration })} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
                       <option value="60">60 min</option>
                       <option value="90">90 min</option>
@@ -564,14 +564,14 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "\u0627\u0644\u0633\u0639\u0631 \u0628\u0627\u0644\u062c\u0646\u064a\u0647", "Price (EGP)")}</label>
+                    <label className="mb-1.5 block text-xs font-medium text-foreground">{t(locale, "السعر بالجنيه", "Price (EGP)")}</label>
                     <input inputMode="numeric" value={String(row.priceEgp)} onChange={(event) => updateRateRow(row.id, { priceEgp: Number(event.target.value) || 0 })} className="w-full rounded-xl border border-input bg-muted/50 px-3 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring" />
                   </div>
 
                   <div className="flex items-end">
                     <button type="button" onClick={() => removeRateRow(row.id)} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-danger-300 bg-danger-50 px-4 py-2.5 text-sm font-semibold text-danger-700 transition-colors hover:bg-danger-100 dark:border-danger-800 dark:bg-danger-950/30 dark:text-danger-300">
                       <Trash2 size={16} />
-                      {t(locale, "\u062d\u0630\u0641", "Remove")}
+                      {t(locale, "حذف", "Remove")}
                     </button>
                   </div>
                 </div>
@@ -581,30 +581,30 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
 
           <button onClick={handleSaveFinance} disabled={busy !== null} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50">
             <Save size={16} />
-            {t(locale, "\u062d\u0641\u0638 \u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0645\u062f\u0631\u0633", "Save teacher rates")}
+            {t(locale, "حفظ أسعار المدرس", "Save teacher rates")}
           </button>
         </div>
       ) : null}
 
       {financeSummary ? (
         <div className="rounded-2xl border border-border bg-muted/30 p-5">
-          <h3 className="mb-3 text-sm font-bold text-muted-foreground">{t(locale, "\u0627\u0644\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u062d\u0633\u0648\u0628", "Computed Finance Summary")}</h3>
+          <h3 className="mb-3 text-sm font-bold text-muted-foreground">{t(locale, "الملخص المالي المحسوب", "Computed Finance Summary")}</h3>
 
           {missingRateCount > 0 ? (
             <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
               {t(
                 locale,
-                "\u0647\u0646\u0627\u0643 " + missingRateCount + " \u062d\u0635\u0629 \u0628\u062f\u0648\u0646 \u0633\u0639\u0631 \u0645\u0637\u0627\u0628\u0642. \u0631\u0627\u062c\u0639 \u0633\u0639\u0631 \u0627\u0644\u0643\u0648\u0631\u0633 \u0648\u0645\u062f\u0629 \u0627\u0644\u062f\u0631\u0633.",
+                "هناك " + missingRateCount + " حصة بدون سعر مطابق. راجع سعر الكورس ومدة الدرس.",
                 missingRateCount + " sessions do not have a matching course rate yet. Review course and duration pricing.",
               )}
             </div>
           ) : null}
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <Metric label={t(locale, "\u0623\u0633\u0628\u0648\u0639\u064a", "Weekly")} value={formatCurrencyEgp(financeSummary.weeklyEstimated, locale)} compact />
-            <Metric label={t(locale, "\u0634\u0647\u0631\u064a", "Monthly")} value={formatCurrencyEgp(financeSummary.monthlyEstimated, locale)} compact />
-            <Metric label={t(locale, "\u0645\u062a\u0648\u0633\u0637 \u0627\u0644\u062d\u0635\u0629", "Avg/session")} value={formatCurrencyEgp(financeSummary.averagePerSession, locale)} compact />
-            <Metric label={t(locale, "\u0627\u0644\u062d\u0635\u0635", "Sessions")} value={String(financeSummary.linkedSessions)} compact />
+            <Metric label={t(locale, "أسبوعي", "Weekly")} value={formatCurrencyEgp(financeSummary.weeklyEstimated, locale)} compact />
+            <Metric label={t(locale, "شهري", "Monthly")} value={formatCurrencyEgp(financeSummary.monthlyEstimated, locale)} compact />
+            <Metric label={t(locale, "متوسط الحصة", "Avg/session")} value={formatCurrencyEgp(financeSummary.averagePerSession, locale)} compact />
+            <Metric label={t(locale, "الحصص", "Sessions")} value={String(financeSummary.linkedSessions)} compact />
           </div>
         </div>
       ) : null}
@@ -612,10 +612,10 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground">
           <CalendarDays size={18} className="text-brand-600" />
-          {t(locale, "\u0627\u0644\u062c\u0644\u0633\u0627\u062a \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0629", "Linked sessions")}
+          {t(locale, "الجلسات المرتبطة", "Linked sessions")}
         </h3>
         {teacher.linkedSessions.length === 0 ? (
-          <EmptyCopy locale={locale} ar="\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0644\u0633\u0627\u062a \u0645\u0631\u062a\u0628\u0637\u0629 \u062d\u0627\u0644\u064a\u0627\u064b" en="No linked sessions yet" />
+          <EmptyCopy locale={locale} ar="لا توجد جلسات مرتبطة حالياً" en="No linked sessions yet" />
         ) : (
           <div className="space-y-3">
             {teacher.linkedSessions.map((session) => (
@@ -623,7 +623,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-foreground">{session.className}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{session.startTime} \u2192 {session.endTime}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{session.startTime} → {session.endTime}</p>
                   </div>
                   <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">{formatCourseLabel(session.course, locale)}</span>
                 </div>
@@ -660,10 +660,10 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground">
           <Users size={18} className="text-brand-600" />
-          {t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628 \u0627\u0644\u0645\u0631\u062a\u0628\u0637\u0648\u0646", "Linked students")}
+          {t(locale, "الطلاب المرتبطون", "Linked students")}
         </h3>
         {teacher.linkedStudents.length === 0 ? (
-          <EmptyCopy locale={locale} ar="\u0644\u0627 \u064a\u0648\u062c\u062f \u0637\u0644\u0627\u0628 \u0645\u0631\u062a\u0628\u0637\u0648\u0646 \u062d\u062a\u0649 \u0627\u0644\u0622\u0646" en="No linked students yet" />
+          <EmptyCopy locale={locale} ar="لا يوجد طلاب مرتبطون حتى الآن" en="No linked students yet" />
         ) : (
           <div className="space-y-3">
             {teacher.linkedStudents.map((student) => {
@@ -672,14 +672,14 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                 <Link key={student.id} href={"/students/" + student.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold text-foreground">{student.fullName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{student.className ?? t(locale, "\u063a\u064a\u0631 \u0645\u0633\u062c\u0644", "Unassigned")} \u2022 {student.parentName}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{student.className ?? t(locale, "غير مسجل", "Unassigned")} • {student.parentName}</p>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                      {snapshot.ready ? t(locale, "\u062a\u0642\u0631\u064a\u0631 \u062c\u0627\u0647\u0632", "Report ready") : t(locale, "\u0645\u062a\u0627\u0628\u0639\u0629", "Follow-up")}
+                      {snapshot.ready ? t(locale, "تقرير جاهز", "Report ready") : t(locale, "متابعة", "Follow-up")}
                     </span>
                     <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                      {t(locale, "\u0627\u0644\u0645\u062a\u0628\u0642\u064a", "Remaining")}: {snapshot.sessionsUntilNext}
+                      {t(locale, "المتبقي", "Remaining")}: {snapshot.sessionsUntilNext}
                     </span>
                   </div>
                 </Link>
@@ -693,20 +693,20 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
         <div className="rounded-2xl border-2 border-danger-200 bg-danger-50/30 p-5 dark:border-danger-800 dark:bg-danger-950/20">
           <h3 className="mb-1 flex items-center gap-2 font-bold text-danger-700 dark:text-danger-400">
             <AlertTriangle size={18} />
-            {t(locale, "\u0645\u0646\u0637\u0642\u0629 \u062e\u0637\u0631\u0629", "Danger Zone")}
+            {t(locale, "منطقة خطرة", "Danger Zone")}
           </h3>
           <p className="mb-4 text-xs text-danger-600/70 dark:text-danger-400/70">
-            {t(locale, "\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062a\u0631\u0627\u062c\u0639 \u0639\u0646\u0647\u0627. \u062a\u0623\u0643\u062f \u0642\u0628\u0644 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629.", "Irreversible actions. Confirm before proceeding.")}
+            {t(locale, "إجراءات لا يمكن التراجع عنها. تأكد قبل المتابعة.", "Irreversible actions. Confirm before proceeding.")}
           </p>
 
           {hasSessions ? (
             <div className="mb-4 rounded-xl border border-danger-200 bg-white p-4 dark:border-danger-800 dark:bg-card">
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                {t(locale, "\u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635 \u0625\u0644\u0649 \u0645\u062f\u0631\u0633 \u0628\u062f\u064a\u0644", "Move sessions to replacement teacher")}
+                {t(locale, "نقل الحصص إلى مدرس بديل", "Move sessions to replacement teacher")}
               </label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <select value={replacementId} onChange={(event) => setReplacementId(event.target.value)} className="flex-1 rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
-                  <option value="">{t(locale, "\u0627\u062e\u062a\u0631 \u0645\u062f\u0631\u0633\u0627\u064b", "Choose teacher")}</option>
+                  <option value="">{t(locale, "اختر مدرساً", "Choose teacher")}</option>
                   {alternatives.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.fullName}
@@ -715,13 +715,13 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
                 </select>
                 <button onClick={handleReassign} disabled={!replacementId || busy !== null} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50">
                   <CalendarDays size={16} />
-                  {t(locale, "\u0646\u0642\u0644 \u0627\u0644\u062d\u0635\u0635", "Move sessions")}
+                  {t(locale, "نقل الحصص", "Move sessions")}
                 </button>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 {t(
                   locale,
-                  "\u0647\u0630\u0627 \u0627\u0644\u0645\u062f\u0631\u0633 \u0645\u0631\u062a\u0628\u0637 \u0628\u0640 " + teacher.linkedSessions.length + " \u062d\u0635\u0629. \u0627\u0646\u0642\u0644\u0647\u0627 \u0623\u0648\u0644\u0627\u064b \u0644\u062a\u062a\u0645\u0643\u0646 \u0645\u0646 \u0627\u0644\u062d\u0630\u0641.",
+                  "هذا المدرس مرتبط بـ " + teacher.linkedSessions.length + " حصة. انقلها أولاً لتتمكن من الحذف.",
                   "This teacher has " + teacher.linkedSessions.length + " sessions. Move them first to enable deletion.",
                 )}
               </p>
@@ -730,7 +730,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
 
           <button onClick={handleDelete} disabled={busy !== null || hasSessions} className="inline-flex items-center gap-2 rounded-xl bg-danger-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-danger-600 disabled:opacity-50">
             <Trash2 size={16} />
-            {t(locale, "\u062d\u0630\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 \u0646\u0647\u0627\u0626\u064a\u0627\u064b", "Delete teacher permanently")}
+            {t(locale, "حذف المدرس نهائياً", "Delete teacher permanently")}
           </button>
         </div>
       ) : null}

@@ -39,7 +39,7 @@ function asNullableString(value: unknown): string | null {
 function normalizeName(value: string | null | undefined): string {
   return (value ?? "")
     .toLowerCase()
-    .replace(/[\u064B-\u065F]/g, "")
+    .replace(/[ً-ٟ]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -56,11 +56,11 @@ function mapRow(
   const record = row as Record<string, unknown>;
   return {
     id: asString(record.id, crypto.randomUUID()),
-    fullName: asString(record.full_name ?? record.fullName, "\u0637\u0627\u0644\u0628 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f"),
+    fullName: asString(record.full_name ?? record.fullName, "طالب غير محدد"),
     age: asNumber(record.age, 0),
     parentId: asNullableString(record.parent_id ?? record.parentId),
-    parentName: asString(parentLookup?.full_name ?? record.parentName, "\u0648\u0644\u064a \u0623\u0645\u0631 \u063a\u064a\u0631 \u0645\u062d\u062f\u062f"),
-    parentPhone: asString(parentLookup?.phone ?? record.parentPhone, "\u2013"),
+    parentName: asString(parentLookup?.full_name ?? record.parentName, "ولي أمر غير محدد"),
+    parentPhone: asString(parentLookup?.phone ?? record.parentPhone, "–"),
     status: asStatus(record.status),
     currentCourse: (typeof (record.current_course ?? record.currentCourse) === "string"
       ? (record.current_course ?? record.currentCourse)
@@ -173,20 +173,20 @@ export async function createStudent(input: CreateStudentInput): Promise<StudentL
   const fullName = input.fullName.trim();
 
   if (!fullName) {
-    throw new Error("\u0627\u0633\u0645 \u0627\u0644\u0637\u0627\u0644\u0628 \u0645\u0637\u0644\u0648\u0628.");
+    throw new Error("اسم الطالب مطلوب.");
   }
 
   if (!input.parentId) {
-    throw new Error("\u064a\u062c\u0628 \u0631\u0628\u0637 \u0627\u0644\u0637\u0627\u0644\u0628 \u0628\u0648\u0644\u064a \u0623\u0645\u0631.");
+    throw new Error("يجب ربط الطالب بولي أمر.");
   }
 
   if (!Number.isFinite(input.age) || input.age < 4 || input.age > 18) {
-    throw new Error("\u0639\u0645\u0631 \u0627\u0644\u0637\u0627\u0644\u0628 \u064a\u062c\u0628 \u0623\u0646 \u064a\u0643\u0648\u0646 \u0628\u064a\u0646 4 \u064818 \u0633\u0646\u0629.");
+    throw new Error("عمر الطالب يجب أن يكون بين 4 و18 سنة.");
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) {
-    throw new Error("\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.");
+    throw new Error("تعذر الاتصال بقاعدة البيانات.");
   }
 
   const existing = findExistingStudent(await listStudents(), input);
@@ -213,7 +213,7 @@ export async function createStudent(input: CreateStudentInput): Promise<StudentL
 
   if (error || !data) {
     console.error("[students] create failed", error);
-    throw new Error(error?.message || "\u062a\u0639\u0630\u0631 \u0625\u0646\u0634\u0627\u0621 \u0633\u062c\u0644 \u0627\u0644\u0637\u0627\u0644\u0628.");
+    throw new Error(error?.message || "تعذر إنشاء سجل الطالب.");
   }
 
   const { data: parentData } = await supabase
@@ -239,7 +239,7 @@ export async function deleteStudent(id: string): Promise<boolean> {
     .eq("id", id)
     .maybeSingle();
 
-  if (!before) throw new Error("\u0627\u0644\u0637\u0627\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+  if (!before) throw new Error("الطالب غير موجود");
 
   // Delete related enrollments
   await supabase.from("class_enrollments").delete().eq("student_id", id);

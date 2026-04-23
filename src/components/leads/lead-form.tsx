@@ -102,7 +102,7 @@ export function LeadForm({
   }, [initialValues]);
 
   useEffect(() => {
-    const hasEnoughData = form.childName.trim().length > 1 && form.parentName.trim().length > 1 && form.parentPhone.trim().length > 5;
+    const hasEnoughData = form.childName.trim().length > 1 && form.parentName.trim().length > 1;
     if (!hasEnoughData) {
       setDuplicateResult(null);
       return;
@@ -179,7 +179,7 @@ export function LeadForm({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!form.childName || !form.parentName || !form.parentPhone || !form.childAge) {
+    if (!form.childName || !form.parentName || !form.childAge) {
       toast.error(t(locale, "يرجى ملء الحقول المطلوبة", "Please fill in the required fields"));
       return;
     }
@@ -210,7 +210,7 @@ export function LeadForm({
         childName: form.childName,
         childAge: age,
         parentName: form.parentName,
-        parentPhone: form.parentPhone,
+        parentPhone: form.parentPhone || undefined,
         parentWhatsapp: form.parentWhatsapp || undefined,
         source: form.source,
         temperature: form.temperature,
@@ -304,7 +304,7 @@ export function LeadForm({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label={t(locale, "اسم ولي الأمر *", "Parent name *")} value={form.parentName} onChange={(value) => updateField("parentName", value)} placeholder={t(locale, "مثال: أحمد محمد", "Example: Ahmed Mohamed")} />
-            <FormField label={t(locale, "رقم الهاتف *", "Phone number *")} value={form.parentPhone} onChange={(value) => updateField("parentPhone", value)} placeholder="01012345678" type="tel" />
+            <FormField label={t(locale, "رقم الهاتف", "Phone number")} value={form.parentPhone} onChange={(value) => updateField("parentPhone", value)} placeholder="01012345678" type="tel" />
             <FormField label="WhatsApp" value={form.parentWhatsapp} onChange={(value) => updateField("parentWhatsapp", value)} placeholder={t(locale, "إن وجد رقم مختلف", "If different from phone number")} type="tel" />
             <FormSelect label={t(locale, "المصدر", "Source")} value={form.source} onChange={(value) => updateField("source", value)} options={sourceOptions} />
           </div>

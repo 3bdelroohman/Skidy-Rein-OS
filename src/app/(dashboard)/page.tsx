@@ -112,9 +112,9 @@ export default function DashboardPage() {
   if (loading || !overview) {
     return (
       <LoadingState
-        titleAr="\u062c\u0627\u0631\u0650 \u062a\u062d\u0645\u064a\u0644 \u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644"
+        titleAr="جارِ تحميل لوحة التشغيل"
         titleEn="Loading dashboard"
-        descriptionAr="\u064a\u062a\u0645 \u0627\u0644\u0622\u0646 \u062a\u062c\u0647\u064a\u0632 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644\u064a\u0629 \u0648\u0627\u0644\u0645\u0647\u0627\u0645 \u0648\u0627\u0644\u062a\u0646\u0628\u064a\u0647\u0627\u062a."
+        descriptionAr="يتم الآن تجهيز البيانات التشغيلية والمهام والتنبيهات."
         descriptionEn="Preparing operational data, tasks, and alerts."
       />
     );
