@@ -13,6 +13,8 @@ import {
   Save,
   Trash2,
   Users,
+  MessageSquare,
+  Power,
 } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
@@ -23,8 +25,10 @@ import {
   addStudentsToGroup,
   getGroupDetails,
   removeStudentFromGroup,
+  saveGroupNotes,
   saveSessionAttendanceBulk,
   saveSessionOperationsChecklist,
+  updateGroupStatus,
 } from "@/services/group-operations.service";
 import { listStudents } from "@/services/students.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
@@ -81,6 +85,9 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [busyAttendanceSessionId, setBusyAttendanceSessionId] = useState<string | null>(null);
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [groupNotes, setGroupNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, SessionDraft>>({});
   const [attendanceDrafts, setAttendanceDrafts] = useState<Record<string, Record<string, AttendanceDraft>>>({});
 
@@ -92,6 +99,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     setAllStudents(studentRows);
 
     if (groupData) {
+      setGroupNotes(groupData.groupNotes ?? "");
       const nextDrafts = Object.fromEntries(
         groupData.sessions.map((session) => [session.id, createDraft(session)]),
       );
@@ -489,6 +497,84 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
               }
             />
           </div>
+        </div>
+      </div>
+
+      {/* ── Group Notes & Status ── */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-foreground">
+            <MessageSquare size={18} className="text-brand-600" />
+            {t(locale, "ملاحظات الجروب", "Group Notes")}
+          </h2>
+          <textarea
+            value={groupNotes}
+            onChange={(event) => setGroupNotes(event.target.value)}
+            rows={4}
+            placeholder={t(locale, "ملاحظات تشغيلية، feedback، أو تعليمات خاصة بالجروب...", "Operational notes, feedback, or group-specific instructions...")}
+            className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              setSavingNotes(true);
+              try {
+                await saveGroupNotes(group.id, groupNotes);
+                toast.success(t(locale, "تم حفظ الملاحظات", "Notes saved"));
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : t(locale, "تعذر الحفظ", "Could not save"));
+              } finally {
+                setSavingNotes(false);
+              }
+            }}
+            disabled={savingNotes}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
+          >
+            <Save size={16} />
+            {savingNotes ? t(locale, "جارِ الحفظ...", "Saving...") : t(locale, "حفظ الملاحظات", "Save notes")}
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-foreground">
+            <Power size={18} className="text-brand-600" />
+            {t(locale, "حالة الجروب", "Group Status")}
+          </h2>
+          <div className="mb-3 flex items-center gap-3">
+            <span className={"inline-flex rounded-full px-3 py-1 text-xs font-semibold " + (group.groupStatus === "active" ? "bg-success-50 text-success-600 dark:bg-success-950 dark:text-success-300" : group.groupStatus === "planned" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300")}>
+              {group.groupStatus === "active" ? t(locale, "نشط", "Active") : group.groupStatus === "planned" ? t(locale, "مخطط", "Planned") : t(locale, "مكتمل", "Completed")}
+            </span>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {group.groupStatus === "completed"
+              ? t(locale, "هذا الجروب مكتمل. يمكنك إعادة تفعيله.", "This group is completed. You can reactivate it.")
+              : t(locale, "يمكنك إنهاء الجروب عند اكتمال الكورس.", "You can mark the group as completed when the course is done.")}
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              const next = !group.isActive;
+              const msg = next
+                ? t(locale, "هل تريد إعادة تفعيل الجروب؟", "Reactivate this group?")
+                : t(locale, "هل تريد إنهاء هذا الجروب؟", "Mark this group as completed?");
+              if (!window.confirm(msg)) return;
+              setTogglingStatus(true);
+              try {
+                await updateGroupStatus(group.id, next);
+                toast.success(t(locale, "تم تحديث حالة الجروب", "Group status updated"));
+                await load();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : t(locale, "تعذر التحديث", "Could not update"));
+              } finally {
+                setTogglingStatus(false);
+              }
+            }}
+            disabled={togglingStatus}
+            className={"inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 " + (group.isActive ? "border border-danger-300 bg-danger-50 text-danger-700 hover:bg-danger-100 dark:border-danger-800 dark:bg-danger-950/30 dark:text-danger-300" : "bg-success-600 text-white hover:bg-success-500")}
+          >
+            <Power size={16} />
+            {group.isActive ? t(locale, "إنهاء الجروب", "Complete group") : t(locale, "إعادة تفعيل", "Reactivate")}
+          </button>
         </div>
       </div>
 

@@ -43,6 +43,12 @@ function sortSessions(items: GroupSessionItem[]): GroupSessionItem[] {
   });
 }
 
+function computeGroupStatus(isActive: boolean, startDate: string): "planned" | "active" | "completed" {
+  if (!isActive) return "completed";
+  const today = new Date().toISOString().slice(0, 10);
+  return startDate > today ? "planned" : "active";
+}
+
 function mapOperationRow(row: SessionOperationRow): SessionOperationsChecklist {
   return {
     id: row.id,
@@ -501,6 +507,9 @@ export async function listGroups(): Promise<GroupListItem[]> {
       nextSessionDate: nextSession?.session_date ?? null,
       nextSessionStartTime: nextSession?.start_time ?? null,
       startDate: classRow.start_date,
+      endDate: classRow.end_date ?? null,
+      groupNotes: classRow.schedule_notes ?? null,
+      groupStatus: computeGroupStatus(classRow.is_active ?? true, classRow.start_date),
     } satisfies GroupListItem;
   });
 }
@@ -577,6 +586,9 @@ export async function getGroupDetails(groupId: string): Promise<GroupDetails | n
     nextSessionDate: nextSession?.sessionDate ?? null,
     nextSessionStartTime: nextSession?.startTime ?? null,
     startDate: classRow.start_date,
+    endDate: classRow.end_date ?? null,
+    groupNotes: classRow.schedule_notes ?? null,
+    groupStatus: computeGroupStatus(classRow.is_active ?? true, classRow.start_date),
     teacherRecord: teacherMap.get(classRow.teacher_id) ?? null,
     linkedStudents,
     sessions: sortSessions(sessions),
@@ -623,4 +635,32 @@ export async function saveSessionOperationsChecklist(input: {
   }
 
   return mapOperationRow(data as SessionOperationRow);
+}
+
+
+export async function saveGroupNotes(groupId: string, notes: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client is not available.");
+
+  const { error } = await supabase
+    .from("classes")
+    .update({ schedule_notes: notes.trim() || null })
+    .eq("id", groupId);
+
+  if (error) throw new Error(error.message || "Failed to save group notes");
+}
+
+export async function updateGroupStatus(groupId: string, isActive: boolean): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client is not available.");
+
+  const updatePayload: Record<string, unknown> = { is_active: isActive };
+  if (!isActive) updatePayload.end_date = new Date().toISOString().slice(0, 10);
+
+  const { error } = await supabase
+    .from("classes")
+    .update(updatePayload)
+    .eq("id", groupId);
+
+  if (error) throw new Error(error.message || "Failed to update group status");
 }

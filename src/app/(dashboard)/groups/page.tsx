@@ -13,7 +13,7 @@ import { listGroups } from "@/services/group-operations.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
 import type { GroupListItem } from "@/types/crm";
 
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "planned" | "completed";
 
 export default function GroupsPage() {
   const locale = useUIStore((state) => state.locale);
@@ -56,8 +56,7 @@ export default function GroupsPage() {
 
     return items.filter((group) => {
       const matchStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" ? group.isActive : !group.isActive);
+        statusFilter === "all" || group.groupStatus === statusFilter;
 
       const matchSearch =
         !query ||
@@ -162,13 +161,15 @@ export default function GroupsPage() {
         </div>
 
         <div className="flex gap-2">
-          {(["all", "active", "inactive"] as StatusFilter[]).map((value) => {
+          {(["all", "active", "planned", "completed"] as StatusFilter[]).map((value) => {
             const label =
               value === "all"
                 ? t(locale, "الكل", "All")
                 : value === "active"
                   ? t(locale, "نشط", "Active")
-                  : t(locale, "غير نشط", "Inactive");
+                  : value === "planned"
+                    ? t(locale, "مخطط", "Planned")
+                    : t(locale, "مكتمل", "Completed");
 
             return (
               <button
@@ -217,15 +218,9 @@ export default function GroupsPage() {
                     <h3 className="truncate text-base font-bold text-foreground group-hover:text-brand-700 transition-colors">
                       {group.name}
                     </h3>
-                    {!group.isActive ? (
-                      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                        {t(locale, "غير نشط", "Inactive")}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold text-success-600 dark:bg-success-950 dark:text-success-300">
-                        {t(locale, "نشط", "Active")}
-                      </span>
-                    )}
+                    <span className={"shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold " + (group.groupStatus === "active" ? "bg-success-50 text-success-600 dark:bg-success-950 dark:text-success-300" : group.groupStatus === "planned" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300")}>
+                      {group.groupStatus === "active" ? t(locale, "نشط", "Active") : group.groupStatus === "planned" ? t(locale, "مخطط", "Planned") : t(locale, "مكتمل", "Completed")}
+                    </span>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {group.teacherName} • {formatCourseLabel(group.course, locale)}

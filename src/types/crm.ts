@@ -205,6 +205,9 @@ export interface GroupListItem {
   nextSessionDate: string | null;
   nextSessionStartTime: string | null;
   startDate: string;
+  endDate: string | null;
+  groupNotes: string | null;
+  groupStatus: "planned" | "active" | "completed";
 }
 
 export interface GroupSessionAttendanceItem {
