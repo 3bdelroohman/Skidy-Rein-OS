@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Power,
 } from "lucide-react";
+import GroupTasksPanel from "@/components/groups/group-tasks-panel";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessTeachersForUser } from "@/config/roles";
@@ -578,7 +579,10 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
+            {/* ─── Group Tasks ─── */}
+      <GroupTasksPanel groupId={id} />
+
+<div className="rounded-2xl border border-border bg-card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
           <ClipboardList size={18} className="text-brand-600" />
           {t(locale, "تشغيل الحصص", "Session operations")}

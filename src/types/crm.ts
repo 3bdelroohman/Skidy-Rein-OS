@@ -493,4 +493,24 @@ export interface CreateTeacherInput {
 }
 
 
+// ─── Group Tasks ─────────────────────────────────────────────
+export type TaskTargetType = "teacher" | "student";
+export type TaskStatus = "pending" | "done";
 
+export interface GroupTask {
+  id: string;
+  groupId: string;
+  targetType: TaskTargetType;
+  title: string;
+  status: TaskStatus;
+  notes: string;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface CreateGroupTaskInput {
+  groupId: string;
+  targetType: TaskTargetType;
+  title: string;
+  notes?: string;
+}
