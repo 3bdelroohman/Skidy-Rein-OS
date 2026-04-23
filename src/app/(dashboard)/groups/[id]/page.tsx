@@ -9,7 +9,9 @@ import {
   BookOpen,
   CheckSquare,
   ClipboardList,
+  PlusCircle,
   Save,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
@@ -17,9 +19,16 @@ import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessTeachersForUser } from "@/config/roles";
 import { formatCourseLabel } from "@/lib/formatters";
 import { t } from "@/lib/locale";
-import { getGroupDetails, saveSessionOperationsChecklist } from "@/services/group-operations.service";
+import {
+  addStudentsToGroup,
+  getGroupDetails,
+  removeStudentFromGroup,
+  saveSessionAttendanceBulk,
+  saveSessionOperationsChecklist,
+} from "@/services/group-operations.service";
+import { listStudents } from "@/services/students.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
-import type { GroupDetails } from "@/types/crm";
+import type { AttendanceStatus, GroupDetails, StudentListItem } from "@/types/crm";
 
 interface SessionDraft {
   attendanceTaken: boolean;
@@ -28,6 +37,11 @@ interface SessionDraft {
   telegramPosted: boolean;
   homeworkShared: boolean;
   operationsNotes: string;
+}
+
+interface AttendanceDraft {
+  status: AttendanceStatus | null;
+  notes: string;
 }
 
 function createDraft(session: GroupDetails["sessions"][number]): SessionDraft {
@@ -41,6 +55,18 @@ function createDraft(session: GroupDetails["sessions"][number]): SessionDraft {
   };
 }
 
+function createAttendanceDrafts(session: GroupDetails["sessions"][number]): Record<string, AttendanceDraft> {
+  return Object.fromEntries(
+    session.attendanceEntries.map((entry) => [
+      entry.studentId,
+      {
+        status: entry.status,
+        notes: entry.notes ?? "",
+      },
+    ]),
+  );
+}
+
 export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const locale = useUIStore((state) => state.locale);
@@ -49,20 +75,32 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const canAccess = canAccessTeachersForUser(user);
 
   const [group, setGroup] = useState<GroupDetails | null>(null);
+  const [allStudents, setAllStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
+  const [busyAttendanceSessionId, setBusyAttendanceSessionId] = useState<string | null>(null);
+  const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [drafts, setDrafts] = useState<Record<string, SessionDraft>>({});
+  const [attendanceDrafts, setAttendanceDrafts] = useState<Record<string, Record<string, AttendanceDraft>>>({});
 
   async function load() {
     setLoading(true);
-    const data = await getGroupDetails(id);
-    setGroup(data);
 
-    if (data) {
+    const [groupData, studentRows] = await Promise.all([getGroupDetails(id), listStudents()]);
+    setGroup(groupData);
+    setAllStudents(studentRows);
+
+    if (groupData) {
       const nextDrafts = Object.fromEntries(
-        data.sessions.map((session) => [session.id, createDraft(session)]),
+        groupData.sessions.map((session) => [session.id, createDraft(session)]),
       );
       setDrafts(nextDrafts);
+
+      const nextAttendanceDrafts = Object.fromEntries(
+        groupData.sessions.map((session) => [session.id, createAttendanceDrafts(session)]),
+      );
+      setAttendanceDrafts(nextAttendanceDrafts);
     }
 
     setLoading(false);
@@ -71,19 +109,30 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     let mounted = true;
 
-    if (!canAccess) return () => { mounted = false; };
+    if (!canAccess) {
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
 
     (async () => {
-      const data = await getGroupDetails(id);
+      const [groupData, studentRows] = await Promise.all([getGroupDetails(id), listStudents()]);
       if (!mounted) return;
 
-      setGroup(data);
+      setGroup(groupData);
+      setAllStudents(studentRows);
 
-      if (data) {
+      if (groupData) {
         const nextDrafts = Object.fromEntries(
-          data.sessions.map((session) => [session.id, createDraft(session)]),
+          groupData.sessions.map((session) => [session.id, createDraft(session)]),
         );
         setDrafts(nextDrafts);
+
+        const nextAttendanceDrafts = Object.fromEntries(
+          groupData.sessions.map((session) => [session.id, createAttendanceDrafts(session)]),
+        );
+        setAttendanceDrafts(nextAttendanceDrafts);
       }
 
       setLoading(false);
@@ -96,6 +145,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
 
   const completedSessions = useMemo(() => {
     if (!group) return 0;
+
     return group.sessions.filter((session) => {
       const operations = session.operations;
       return (
@@ -108,6 +158,13 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }).length;
   }, [group]);
 
+  const availableStudents = useMemo(() => {
+    if (!group) return [];
+
+    const linkedIds = new Set(group.linkedStudents.map((student) => student.id));
+    return allStudents.filter((student) => !linkedIds.has(student.id));
+  }, [allStudents, group]);
+
   function updateDraft(sessionId: string, patch: Partial<SessionDraft>) {
     setDrafts((prev) => ({
       ...prev,
@@ -116,6 +173,90 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
         ...patch,
       },
     }));
+  }
+
+  function updateAttendanceDraft(
+    sessionId: string,
+    studentId: string,
+    patch: Partial<AttendanceDraft>,
+  ) {
+    setAttendanceDrafts((prev) => ({
+      ...prev,
+      [sessionId]: {
+        ...(prev[sessionId] ?? {}),
+        [studentId]: {
+          ...(prev[sessionId]?.[studentId] ?? { status: null, notes: "" }),
+          ...patch,
+        },
+      },
+    }));
+  }
+
+  async function handleAddStudent() {
+    if (!group || !selectedStudentId) return;
+
+    setBusyStudentId(selectedStudentId);
+
+    try {
+      await addStudentsToGroup(group.id, group.course, [selectedStudentId]);
+      toast.success(t(locale, "تمت إضافة الطالب إلى الجروب", "Student added to the group"));
+      setSelectedStudentId("");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر إضافة الطالب", "Could not add student"));
+    } finally {
+      setBusyStudentId(null);
+    }
+  }
+
+  async function handleRemoveStudent(studentId: string) {
+    if (!group) return;
+
+    const confirmed = window.confirm(
+      t(locale, "هل تريد حذف هذا الطالب من الجروب؟", "Remove this student from the group?"),
+    );
+    if (!confirmed) return;
+
+    setBusyStudentId(studentId);
+
+    try {
+      await removeStudentFromGroup(group.id, studentId);
+      toast.success(t(locale, "تم حذف الطالب من الجروب", "Student removed from the group"));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر حذف الطالب", "Could not remove student"));
+    } finally {
+      setBusyStudentId(null);
+    }
+  }
+
+  async function handleSaveAttendance(sessionId: string) {
+    if (!group) return;
+
+    const session = group.sessions.find((item) => item.id === sessionId);
+    if (!session) return;
+
+    const sessionDrafts = attendanceDrafts[sessionId] ?? {};
+
+    setBusyAttendanceSessionId(sessionId);
+
+    try {
+      await saveSessionAttendanceBulk({
+        sessionId,
+        entries: session.attendanceEntries.map((entry) => ({
+          studentId: entry.studentId,
+          status: sessionDrafts[entry.studentId]?.status ?? entry.status ?? null,
+          notes: sessionDrafts[entry.studentId]?.notes ?? entry.notes ?? "",
+        })),
+      });
+
+      toast.success(t(locale, "تم حفظ حضور الحصة بنجاح", "Session attendance saved successfully"));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر حفظ الحضور", "Could not save attendance"));
+    } finally {
+      setBusyAttendanceSessionId(null);
+    }
   }
 
   async function handleSaveSession(sessionId: string) {
@@ -176,7 +317,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     return (
       <PageStateCard
         variant="warning"
-        titleAr="هذا القسم خاص بمسؤول تشغيل المدرسين"
+        titleAr="هذا القسم خاص بتشغيل المدرسين"
         titleEn="This section is restricted to teacher operations"
         descriptionAr="تفاصيل الجروبات وتشغيل الحصص متاحة فقط للمستخدم المسؤول عن تشغيل المدرسين."
         descriptionEn="Group details and session operations are restricted to the assigned teacher operations owner."
@@ -190,7 +331,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   if (loading) {
     return (
       <LoadingState
-        titleAr="جارٍ تحميل تفاصيل الجروب"
+        titleAr="جارِ تحميل تفاصيل الجروب"
         titleEn="Loading group details"
         descriptionAr="يتم الآن تجهيز الطلاب والحصص وبيانات التشغيل الخاصة بالجروب."
         descriptionEn="Preparing students, sessions, and operational group data."
@@ -253,8 +394,39 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
         <div className="rounded-2xl border border-border bg-card p-5">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
             <Users size={18} className="text-brand-600" />
-            {t(locale, "الطلاب المرتبطون", "Linked students")}
+            {t(locale, "الطلاب داخل الجروب", "Students inside the group")}
           </h2>
+
+          <div className="mb-4 rounded-2xl border border-dashed border-border bg-muted/20 p-4">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              {t(locale, "إضافة طالب إلى الجروب", "Add a student to the group")}
+            </label>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
+              <select
+                value={selectedStudentId}
+                onChange={(event) => setSelectedStudentId(event.target.value)}
+                className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+              >
+                <option value="">{t(locale, "اختر طالبًا", "Choose a student")}</option>
+                {availableStudents.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.fullName} — {student.parentName}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={handleAddStudent}
+                disabled={!selectedStudentId || busyStudentId !== null}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
+              >
+                <PlusCircle size={16} />
+                {t(locale, "إضافة الطالب", "Add student")}
+              </button>
+            </div>
+          </div>
 
           {group.linkedStudents.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -263,21 +435,33 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           ) : (
             <div className="space-y-3">
               {group.linkedStudents.map((student) => (
-                <Link
+                <div
                   key={student.id}
-                  href={"/students/" + student.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-muted/40"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4"
                 >
-                  <div className="min-w-0">
+                  <Link href={"/students/" + student.id} className="min-w-0 flex-1 transition-colors hover:text-brand-700">
                     <p className="truncate font-semibold text-foreground">{student.fullName}</p>
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       {student.parentName} • {student.parentPhone}
                     </p>
+                  </Link>
+
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                      {student.sessionsAttended} {t(locale, "حصة", "sessions")}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveStudent(student.id)}
+                      disabled={busyStudentId !== null}
+                      className="inline-flex items-center gap-1 rounded-xl border border-danger-300 bg-danger-50 px-3 py-2 text-xs font-semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:opacity-50 dark:border-danger-800 dark:bg-danger-950/30 dark:text-danger-300"
+                    >
+                      <Trash2 size={14} />
+                      {busyStudentId === student.id ? t(locale, "جارٍ الحذف...", "Removing...") : t(locale, "حذف", "Remove")}
+                    </button>
                   </div>
-                  <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
-                    {student.sessionsAttended} {t(locale, "حصة", "sessions")}
-                  </span>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -293,6 +477,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
             <InfoRow label={t(locale, "اسم الجروب", "Group name")} value={group.name} />
             <InfoRow label={t(locale, "المدرس", "Teacher")} value={group.teacherName} />
             <InfoRow label={t(locale, "الكورس", "Course")} value={formatCourseLabel(group.course, locale)} />
+            <InfoRow label={t(locale, "تاريخ البداية", "Start date")} value={group.startDate} />
             <InfoRow label={t(locale, "عدد الطلاب", "Students count")} value={String(group.studentsCount)} />
             <InfoRow label={t(locale, "عدد الحصص", "Sessions count")} value={String(group.sessionsCount)} />
             <InfoRow
@@ -322,6 +507,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
             {group.sessions.map((session) => {
               const draft = drafts[session.id] ?? createDraft(session);
               const isSaving = busySessionId === session.id;
+              const isSavingAttendance = busyAttendanceSessionId === session.id;
 
               return (
                 <div key={session.id} className="rounded-2xl border border-border bg-background p-4">
@@ -343,7 +529,84 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                       <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                         {t(locale, "تأخير", "Late")}: {session.attendanceSummary.late}
                       </span>
+                      <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                        {t(locale, "معذور", "Excused")}: {session.attendanceSummary.excused}
+                      </span>
                     </div>
+                  </div>
+
+                  <div className="mb-4 rounded-2xl border border-border bg-card p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-bold text-foreground">
+                        {t(locale, "جدول الحضور والغياب", "Attendance table")}
+                      </h3>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSaveAttendance(session.id)}
+                        disabled={isSavingAttendance}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        <Save size={16} />
+                        {isSavingAttendance
+                          ? t(locale, "جارِ حفظ الحضور...", "Saving attendance...")
+                          : t(locale, "حفظ الحضور", "Save attendance")}
+                      </button>
+                    </div>
+
+                    {session.attendanceEntries.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                        {t(locale, "لا يوجد طلاب داخل هذه الحصة بعد", "No students are attached to this session yet")}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {session.attendanceEntries.map((entry) => {
+                          const current = attendanceDrafts[session.id]?.[entry.studentId] ?? {
+                            status: entry.status,
+                            notes: entry.notes ?? "",
+                          };
+
+                          return (
+                            <div
+                              key={entry.studentId}
+                              className="grid grid-cols-1 gap-3 rounded-2xl border border-border p-4 lg:grid-cols-[1.2fr_0.7fr_1fr]"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-foreground">{entry.studentName}</p>
+                                <p className="mt-1 truncate text-xs text-muted-foreground">{entry.parentName}</p>
+                              </div>
+
+                              <select
+                                value={current.status ?? ""}
+                                onChange={(event) =>
+                                  updateAttendanceDraft(session.id, entry.studentId, {
+                                    status: event.target.value ? (event.target.value as AttendanceStatus) : null,
+                                  })
+                                }
+                                className="rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                              >
+                                <option value="">{t(locale, "غير محدد", "Unmarked")}</option>
+                                <option value="present">{t(locale, "حضور", "Present")}</option>
+                                <option value="absent">{t(locale, "غياب", "Absent")}</option>
+                                <option value="late">{t(locale, "تأخير", "Late")}</option>
+                                <option value="excused">{t(locale, "معذور", "Excused")}</option>
+                              </select>
+
+                              <input
+                                value={current.notes}
+                                onChange={(event) =>
+                                  updateAttendanceDraft(session.id, entry.studentId, {
+                                    notes: event.target.value,
+                                  })
+                                }
+                                placeholder={t(locale, "ملاحظة اختيارية", "Optional note")}
+                                className="rounded-xl border border-input bg-muted/50 px-3 py-2 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -395,7 +658,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                     >
                       <Save size={16} />
                       {isSaving
-                        ? t(locale, "جارٍ الحفظ...", "Saving...")
+                        ? t(locale, "جارِ الحفظ...", "Saving...")
                         : t(locale, "حفظ checklist الحصة", "Save session checklist")}
                     </button>
                   </div>

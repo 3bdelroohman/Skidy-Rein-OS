@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   CommChannel,
   CourseType,
   EmploymentType,
@@ -11,10 +11,11 @@
   PaymentStatus,
   Priority,
   StudentStatus,
-  UserRole,
+  AttendanceStatus,
+  UserRole
 } from "@/types/common.types";
 import type { DashboardTaskStatus, FollowUpStatus } from "@/config/status-meta";
-export type { CourseType, CourseStage, StudentStatus, EmploymentType, PaymentStatus, PaymentMethod, LeadSource, LeadStage, LeadTemperature, LossReason, Priority, FollowUpType, CommChannel, UserRole } from "@/types/common.types";
+export type { CourseType, CourseStage, StudentStatus, EmploymentType, PaymentStatus, PaymentMethod, LeadSource, LeadStage, LeadTemperature, LossReason, Priority, FollowUpType, CommChannel, AttendanceStatus, UserRole } from "@/types/common.types";
 export { COURSE_STAGE_MAP, COURSE_STAGE_LABELS } from "@/types/common.types";
 
 
@@ -203,6 +204,15 @@ export interface GroupListItem {
   sessionsCount: number;
   nextSessionDate: string | null;
   nextSessionStartTime: string | null;
+  startDate: string;
+}
+
+export interface GroupSessionAttendanceItem {
+  studentId: string;
+  studentName: string;
+  parentName: string;
+  status: AttendanceStatus | null;
+  notes: string | null;
 }
 
 export interface GroupSessionItem extends ScheduleSessionItem {
@@ -213,6 +223,7 @@ export interface GroupSessionItem extends ScheduleSessionItem {
     late: number;
     excused: number;
   };
+  attendanceEntries: GroupSessionAttendanceItem[];
   operations: SessionOperationsChecklist | null;
 }
 
