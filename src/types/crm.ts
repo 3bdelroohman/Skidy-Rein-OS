@@ -514,3 +514,19 @@ export interface CreateGroupTaskInput {
   title: string;
   notes?: string;
 }
+
+
+// ─── Student Progress Notes ─────────────────────────────────
+export interface StudentProgressNote {
+  id: string;
+  groupId: string;
+  studentId: string;
+  note: string;
+  createdAt: string;
+}
+
+export interface CreateStudentProgressNoteInput {
+  groupId: string;
+  studentId: string;
+  note: string;
+}

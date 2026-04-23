@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Power,
 } from "lucide-react";
+import StudentNotesInline from "@/components/groups/student-notes-inline";
 import GroupTasksPanel from "@/components/groups/group-tasks-panel";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
@@ -470,6 +471,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                       {busyStudentId === student.id ? t(locale, "جارٍ الحذف...", "Removing...") : t(locale, "حذف", "Remove")}
                     </button>
                   </div>
+                  <StudentNotesInline groupId={id} studentId={student.id} />
                 </div>
               ))}
             </div>
