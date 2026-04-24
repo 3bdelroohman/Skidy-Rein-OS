@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Layers3, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
@@ -44,43 +44,7 @@ export function Sidebar() {
     }))
     .filter((group) => group.items.length > 0);
 
-  const filteredGroups = (() => {
-    if (!canAccessTeachersForUser(user)) return filteredGroupsBase;
-
-    const groupsItem = {
-      href: "/groups",
-      titleAr: "الجروبات",
-      titleEn: "Groups",
-      icon: Layers3,
-      roles: [user.role],
-    };
-
-    let inserted = false;
-
-    const next = filteredGroupsBase.map((group) => {
-      const hasTeacherSection = group.items.some((item) => item.href.startsWith("/teachers"));
-      const hasGroupsAlready = group.items.some((item) => item.href === "/groups");
-
-      if (!hasTeacherSection || hasGroupsAlready) return group;
-
-      inserted = true;
-      return {
-        ...group,
-        items: [...group.items, groupsItem],
-      };
-    });
-
-    if (inserted) return next;
-
-    return [
-      ...next,
-      {
-        labelAr: "تشغيل الأكاديمية",
-        labelEn: "Academy Ops",
-        items: [groupsItem],
-      },
-    ];
-  })();
+  const filteredGroups = filteredGroupsBase;
 
   const isActive = (href: string): boolean => {
     if (href === "/") return pathname === "/";

@@ -1,5 +1,7 @@
 import {
+  Layers3,
   LayoutDashboard,
+  Zap,
   Users,
   GraduationCap,
   UserCircle,
@@ -66,6 +68,13 @@ export const navigationGroups: NavigationGroup[] = [
         icon: ClipboardCheck,
         roles: ["admin", "owner", "sales", "ops"],
       },
+      {
+        titleAr: "مركز الإجراءات",
+        titleEn: "Action Center",
+        href: "/action-center",
+        icon: Zap,
+        roles: ["admin", "owner", "sales", "ops"],
+      },
     ],
   },
   {
@@ -98,6 +107,13 @@ export const navigationGroups: NavigationGroup[] = [
         titleEn: "Schedule",
         href: "/schedule",
         icon: CalendarDays,
+        roles: ["admin", "owner", "ops"],
+      },
+      {
+        titleAr: "الجروبات",
+        titleEn: "Groups",
+        href: "/groups",
+        icon: Layers3,
         roles: ["admin", "owner", "ops"],
       },
     ],
