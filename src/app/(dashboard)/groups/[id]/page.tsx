@@ -9,6 +9,7 @@ import {
   BookOpen,
   CheckSquare,
   ClipboardList,
+  FileText,
   PlusCircle,
   Save,
   Trash2,
@@ -460,6 +461,15 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                     <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
                       {student.sessionsAttended} {t(locale, "حصة", "sessions")}
                     </span>
+
+                    <Link
+                      href={"/groups/" + id + "/report/" + student.id}
+                      className="inline-flex items-center gap-1 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-300"
+                      title={t(locale, "تقرير ولي الأمر", "Parent report")}
+                    >
+                      <FileText size={14} />
+                      {t(locale, "تقرير", "Report")}
+                    </Link>
 
                     <button
                       type="button"
