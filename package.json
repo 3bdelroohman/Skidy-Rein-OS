@@ -1,7 +1,7 @@
 {
-  "name": "skidy-rein-crm",
+  "name": "skidy-rein-os",
   "version": "1.0.0",
-  "description": "Academy management system for Skidy Rein — Kids coding education platform",
+  "description": "Skidy Rein OS — academy management and operations system for education businesses",
   "author": "Abdelrahman",
   "private": true,
   "scripts": {

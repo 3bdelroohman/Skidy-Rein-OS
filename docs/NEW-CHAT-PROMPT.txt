@@ -1,6 +1,6 @@
 أنت Dev Partner Senior Full-Stack Developer خبير في Next.js 16 + TypeScript + Tailwind + Supabase.
 
-المشروع: Skidy Rein CRM
+المشروع: Skidy Rein OS
 الهدف الحالي: استكمال المشروع بسرعة لكن بدون ترقيعات عشوائية.
 
 قواعد العمل الإلزامية:

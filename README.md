@@ -1,4 +1,4 @@
-# Skidy Rein CRM
+# Skidy Rein OS
 
 لوحة تحكم CRM عربية (RTL) لأكاديمية Skidy Rein لتعليم البرمجة للأطفال أونلاين.
 

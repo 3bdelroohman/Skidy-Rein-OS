@@ -1,7 +1,7 @@
-# Run from the project root: C:\Users\3bdel\Documents\skidy-rein-crm
+﻿# Run from the project root: C:\Users\3bdel\Documents\skidy-rein-os
 
 $artifactFolders = @(
-  "skidy-rein-crm-phase8-9-action-center-live-notifications",
+  "skidy-rein-os-phase8-9-action-center-live-notifications",
   "password_note_fix",
   "actioncenter_fix_full",
   "final_rolefix",
@@ -26,8 +26,9 @@ foreach ($folder in $artifactFolders) {
 }
 
 # Remove phase zip files and helper notes accidentally committed in the repo root
-Get-ChildItem -File -Filter "skidy-rein-crm-*.zip" | Remove-Item -Force -ErrorAction SilentlyContinue
+Get-ChildItem -File -Filter "skidy-rein-os-*.zip" | Remove-Item -Force -ErrorAction SilentlyContinue
 Get-ChildItem -File -Filter "PHASE*.md" | Remove-Item -Force -ErrorAction SilentlyContinue
 Get-ChildItem -File -Filter "*.zip" | Where-Object { $_.Name -like "skidy-*" } | Remove-Item -Force -ErrorAction SilentlyContinue
 
 Write-Host "Artifact cleanup finished."
+

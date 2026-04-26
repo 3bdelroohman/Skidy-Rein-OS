@@ -1,8 +1,8 @@
-﻿# Skidy Rein CRM — Full Context for New Chat
+﻿# Skidy Rein OS — Full Context for New Chat
 
 ## Tech
 Next.js 16 + TypeScript strict + Supabase + Tailwind + Zustand
-Repo: 3bdelroohman/Skidy-Rein-CRM
+Repo: 3bdelroohman/Skidy-Rein-OS
 
 ## DB Tables (Supabase)
 app_settings, attendance, audit_log, class_enrollments, classes,
@@ -63,3 +63,4 @@ node -e "let o='';['file1','file2'].forEach(f=>{o+='\n=== '+f+' ===\n';try{o+=re
 
 ## How to list all pages
 node -e "const{readdirSync:r,statSync:s}=require('fs'),{join:j}=require('path');function walk(d,f=[]){try{r(d).forEach(e=>{const p=j(d,e);s(p).isDirectory()?walk(p,f):e==='page.tsx'&&f.push(p)})}catch(e){}return f}console.log(walk('src').join('\n'))"
+

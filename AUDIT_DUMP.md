@@ -6084,7 +6084,7 @@ export default function LoginPage() {
       </div>
 
       <p className="text-center text-muted-foreground text-xs mt-6">
-        Skidy Rein CRM &copy; {new Date().getFullYear()}
+        Skidy Rein OS &copy; {new Date().getFullYear()}
       </p>
     </motion.div>
   );
@@ -10321,7 +10321,7 @@ export function TopNavbar() {
           </button>
           <div>
             <h1 className="text-base font-bold text-foreground lg:text-lg">{isAr ? pageTitle.ar : pageTitle.en}</h1>
-            <p className="hidden text-xs text-muted-foreground sm:block">Skidy Rein CRM</p>
+            <p className="hidden text-xs text-muted-foreground sm:block">Skidy Rein OS</p>
           </div>
         </div>
 
@@ -12575,7 +12575,7 @@ export default function RootPage() {
     >
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold text-foreground">
-          Skidy Rein CRM
+          Skidy Rein OS
         </h1>
         <p className="text-muted-foreground text-lg">
           Ù…Ø±Ø­Ø¨Ø§Ù‹ â€” Ø§Ù„Ù†Ø¸Ø§Ù… ÙŠØ¹Ù…Ù„ Ø¨Ù†Ø¬Ø§Ø­

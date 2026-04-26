@@ -6,7 +6,7 @@ export default function RootPage() {
     >
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold text-foreground">
-          Skidy Rein CRM
+          Skidy Rein OS
         </h1>
         <p className="text-muted-foreground text-lg">
           مرحباً — النظام يعمل بنجاح
