@@ -217,6 +217,9 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href={"/students/" + student.id + "/edit"} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+            {t(locale, "تعديل البيانات", "Edit data")}
+          </Link>
           {sourceLeadId ? (
             <>
               <Link href={"/leads/" + sourceLeadId} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
