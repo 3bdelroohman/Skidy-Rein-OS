@@ -15,6 +15,7 @@ import { getTeacherEvaluation, saveTeacherEvaluation, computeAverageRating, type
 import { computeTeacherFinanceSummary, getTeacherFinanceConfig, saveTeacherFinanceConfig, type LessonDuration, type TeacherCourseRate } from "@/services/teacher-finance.service";
 import { reassignTeacherRelations } from "@/services/teacher-reassignment.service";
 import { deleteTeacher, listTeachers } from "@/services/teachers.service";
+import { updateTeacherSpecialization } from "@/services/teacher-specialization.service";
 import { buildStudentReportSnapshot } from "@/services/student-report.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
 import type { CourseType, TeacherDetails, TeacherListItem } from "@/types/crm";
@@ -97,6 +98,8 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
   const [draftCourse, setDraftCourse] = useState<CourseType>("scratch");
   const [draftDuration, setDraftDuration] = useState<LessonDuration>(60);
   const [draftPrice, setDraftPrice] = useState("120");
+  const [specializationOpen, setSpecializationOpen] = useState(false);
+  const [specializationDraft, setSpecializationDraft] = useState<CourseType[]>([]);
 
   async function load() {
     setLoading(true);
@@ -113,6 +116,7 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       if (evaluation?.axes) setAxes(evaluation.axes);
       setNotes(evaluation?.notes ?? "");
       setRateRows(finance.rates.length > 0 ? sortRateRows(finance.rates) : [createRateRow()]);
+      setSpecializationDraft(data.specialization);
       setReplacementId((prev) => prev || teachers.find((item) => item.id !== id)?.id || "");
     }
 
@@ -188,6 +192,54 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
       }];
     });
   }, [teacher]);
+
+  const uncoveredActiveCourses = useMemo(() => {
+    if (!teacher) return [];
+
+    return teacher.activeCourses.filter((course) => !specializationDraft.includes(course));
+  }, [specializationDraft, teacher]);
+
+  function toggleSpecializationCourse(course: CourseType) {
+    setSpecializationDraft((prev) =>
+      prev.includes(course)
+        ? prev.filter((item) => item !== course)
+        : [...prev, course],
+    );
+  }
+
+  async function handleSaveSpecialization() {
+    if (!teacher) return;
+
+    if (specializationDraft.length === 0) {
+      toast.error(t(locale, "اختر تخصصًا واحدًا على الأقل", "Choose at least one specialization"));
+      return;
+    }
+
+    if (uncoveredActiveCourses.length > 0) {
+      const confirmed = window.confirm(
+        t(
+          locale,
+          "توجد كورسات نشطة خارج التخصصات المختارة. هل تريد الحفظ؟",
+          "Some active courses are outside the selected specializations. Save anyway?",
+        ),
+      );
+
+      if (!confirmed) return;
+    }
+
+    setBusy("specialization");
+
+    try {
+      await updateTeacherSpecialization(teacher.id, specializationDraft);
+      toast.success(t(locale, "تم تحديث تخصصات المدرس", "Teacher specializations updated"));
+      await load();
+      setSpecializationOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر تحديث التخصصات", "Could not update specializations"));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   function handleAddRateRow() {
     const price = Number(draftPrice);
@@ -430,6 +482,117 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
               </span>
             ))}
           </div>
+
+          {/* BATCH13_SPECIALIZATION_EDITOR */}
+          {canManage ? (
+            <div className="mb-6 rounded-2xl border border-dashed border-border bg-muted/20 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-bold text-foreground">
+                    {t(locale, "تعديل تخصصات المدرس", "Edit teacher specializations")}
+                  </h3>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    {t(
+                      locale,
+                      "تغيير التخصص لا ينقل الجروبات أو الحصص تلقائيًا.",
+                      "Changing specializations does not move groups or sessions automatically.",
+                    )}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSpecializationDraft(teacher.specialization);
+                    setSpecializationOpen((value) => !value);
+                  }}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                >
+                  {specializationOpen
+                    ? t(locale, "إغلاق", "Close")
+                    : t(locale, "تعديل التخصصات", "Edit specializations")}
+                </button>
+              </div>
+
+              {specializationOpen ? (
+                <div className="mt-4 space-y-4">
+                  {uncoveredActiveCourses.length > 0 ? (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                      {t(
+                        locale,
+                        "تنبيه: توجد كورسات نشطة خارج التخصصات المختارة.",
+                        "Warning: some active courses are outside the selected specializations.",
+                      )}
+                    </p>
+                  ) : null}
+
+                  <div className="space-y-4">
+                    {COURSE_OPTIONS_BY_STAGE.map((group) => (
+                      <div key={group.stage} className="rounded-xl border border-border bg-background p-3">
+                        <p className="mb-3 text-xs font-bold text-muted-foreground">
+                          {COURSE_STAGE_LABELS[group.stage][locale]}
+                        </p>
+
+                        <div className="flex flex-wrap gap-2">
+                          {group.courses.map((course) => {
+                            const checked = specializationDraft.includes(course);
+                            const active = teacher.activeCourses.includes(course);
+
+                            return (
+                              <button
+                                key={course}
+                                type="button"
+                                onClick={() => toggleSpecializationCourse(course)}
+                                className={
+                                  "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors " +
+                                  (checked
+                                    ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300"
+                                    : "border-border bg-card text-muted-foreground hover:bg-muted")
+                                }
+                                title={
+                                  active
+                                    ? t(locale, "كورس نشط مع هذا المدرس", "Active course for this teacher")
+                                    : undefined
+                                }
+                              >
+                                {formatCourseLabel(course, locale)}
+                                {active ? " •" : ""}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveSpecialization}
+                      disabled={busy === "specialization" || specializationDraft.length === 0}
+                      className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      <Save size={16} />
+                      {busy === "specialization"
+                        ? t(locale, "جارٍ الحفظ...", "Saving...")
+                        : t(locale, "حفظ التخصصات", "Save specializations")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpecializationDraft(teacher.specialization);
+                        setSpecializationOpen(false);
+                      }}
+                      className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                    >
+                      {t(locale, "إلغاء", "Cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <h3 className="mb-3 text-sm font-bold text-foreground">{t(locale, "الدورات المفعلة", "Active courses")}</h3>

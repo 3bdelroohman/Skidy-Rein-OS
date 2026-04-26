@@ -11,27 +11,60 @@ import { getCourseLabel, t } from "@/lib/locale";
 import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
 import { extractLeadIdFromProjectionId, getStudentDetails } from "@/services/relations.service";
 import { deleteStudent } from "@/services/students.service";
+import { listGroups } from "@/services/group-operations.service";
+import { transferStudentToGroup } from "@/services/academic-transfer.service";
+import {
+  getStudentPaymentSessionsCounter,
+  type StudentPaymentSessionsCounter,
+} from "@/services/student-payment-sessions.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
-import type { StudentDetails } from "@/types/crm";
+import type { CourseType, GroupListItem, StudentDetails } from "@/types/crm";
 
 export default function StudentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const locale = useUIStore((state) => state.locale);
   const isAr = locale === "ar";
   const [student, setStudent] = useState<StudentDetails | null>(null);
+  const [groups, setGroups] = useState<GroupListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferCourse, setTransferCourse] = useState<CourseType | "">("");
+  const [targetGroupId, setTargetGroupId] = useState("");
+  const [transferring, setTransferring] = useState(false);
+  const [paymentCounter, setPaymentCounter] = useState<StudentPaymentSessionsCounter | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
-    getStudentDetails(id).then((data) => {
-      if (mounted) {
-        setStudent(data);
-        setLoading(false);
+
+    async function load() {
+      setLoading(true);
+
+      const [studentData, groupRows, counterData] = await Promise.all([
+        getStudentDetails(id),
+        listGroups(),
+        getStudentPaymentSessionsCounter(id),
+      ]);
+
+      if (!mounted) return;
+
+      setStudent(studentData);
+      setGroups(groupRows);
+      setPaymentCounter(counterData);
+
+      if (studentData?.currentCourse) {
+        setTransferCourse(studentData.currentCourse);
       }
-    });
-    return () => { mounted = false; };
+
+      setLoading(false);
+    }
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const handleDeleteStudent = async () => {
@@ -83,6 +116,92 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
   const hasSessions = student.relatedSessions.length > 0;
   const scheduleHref = "/schedule/new?className=" + encodeURIComponent(linkedClassName) + (student.currentCourse ? "&course=" + student.currentCourse : "") + (primaryTeacher ? "&teacherId=" + primaryTeacher.id : "");
   const createActualHref = "/students/new?parentName=" + encodeURIComponent(student.parentName) + "&parentPhone=" + encodeURIComponent(student.parentPhone) + "&childName=" + encodeURIComponent(student.fullName) + (student.age > 0 ? "&childAge=" + student.age : "") + (student.currentCourse ? "&currentCourse=" + student.currentCourse : "") + (student.className ? "&className=" + encodeURIComponent(student.className) : "");
+
+  const activeGroups = groups.filter((group) => group.isActive);
+
+  const transferCourseOptions = [...new Set(activeGroups.map((group) => group.course))];
+
+  const targetGroups = activeGroups.filter((group) =>
+    transferCourse ? group.course === transferCourse : true,
+  );
+
+  const sessionClassIds = student.relatedSessions
+    .map((session) => session.classId ?? null)
+    .filter((classId): classId is string => Boolean(classId));
+
+  const groupIdsByName = activeGroups
+    .filter((group) => group.name === student.className)
+    .map((group) => group.id);
+
+  const currentGroupIds = [...new Set([...sessionClassIds, ...groupIdsByName])];
+
+  const selectedTargetGroup =
+    groups.find((group) => group.id === targetGroupId) ?? null;
+
+  async function handleAcademicTransfer() {
+    if (!student) return;
+
+    if (!transferCourse) {
+      toast.error(t(locale, "اختر الكورس أولًا", "Choose the course first"));
+      return;
+    }
+
+    if (!targetGroupId || !selectedTargetGroup) {
+      toast.error(t(locale, "اختر الجروب الجديد", "Choose the new group"));
+      return;
+    }
+
+    if (selectedTargetGroup.course !== transferCourse) {
+      toast.error(t(locale, "الجروب لا يطابق الكورس المختار", "The group does not match the selected course"));
+      return;
+    }
+
+    if (currentGroupIds.includes(targetGroupId)) {
+      toast.error(t(locale, "الطالب موجود بالفعل في هذا الجروب", "The student is already in this group"));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      t(
+        locale,
+        "سيتم نقل الطالب إلى الجروب الجديد وتحديث الكورس الحالي. هل تريد المتابعة؟",
+        "The student will be moved to the new group and the current course will be updated. Continue?",
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setTransferring(true);
+
+    try {
+      await transferStudentToGroup({
+        studentId: student.id,
+        targetGroupId,
+      });
+
+      const [studentData, groupRows, freshCounterData] = await Promise.all([
+        getStudentDetails(id),
+        listGroups(),
+        getStudentPaymentSessionsCounter(id),
+      ]);
+
+      setStudent(studentData);
+      setGroups(groupRows);
+      setPaymentCounter(freshCounterData);
+      setTransferOpen(false);
+      setTargetGroupId("");
+
+      if (studentData?.currentCourse) {
+        setTransferCourse(studentData.currentCourse);
+      }
+
+      toast.success(t(locale, "تم نقل الطالب بنجاح", "Student transferred successfully"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t(locale, "تعذر نقل الطالب", "Could not transfer student"));
+    } finally {
+      setTransferring(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -136,6 +255,101 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
         <QuickStat title={t(locale, "المسؤول", "Owner")} value={student.ownerName ?? t(locale, "غير مخصص", "Unassigned")} />
       </div>
 
+      {/* BATCH14_PAYMENT_SESSIONS_COUNTER */}
+      {paymentCounter ? (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
+                <ReceiptText size={18} className="text-brand-600" />
+                {t(locale, "عداد حصص آخر دفعة", "Latest payment sessions counter")}
+              </h2>
+              <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                {t(
+                  locale,
+                  "يتم احتساب الحضور والتأخير فقط منذ بداية آخر باقة مدفوعة.",
+                  "Only present and late sessions are counted since the latest paid block start.",
+                )}
+              </p>
+            </div>
+
+            <span
+              className={
+                "rounded-full px-3 py-1 text-xs font-semibold " +
+                (paymentCounter.status === "ok"
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+                  : paymentCounter.status === "near_renewal"
+                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+                    : "bg-danger-50 text-danger-700 dark:bg-danger-950/30 dark:text-danger-300")
+              }
+            >
+              {paymentCounter.status === "no_payment"
+                ? t(locale, "لا توجد دفعة", "No payment")
+                : paymentCounter.status === "ok"
+                  ? t(locale, "جيد", "OK")
+                  : paymentCounter.status === "near_renewal"
+                    ? t(locale, "قرب التجديد", "Near renewal")
+                    : t(locale, "يحتاج تجديد", "Needs renewal")}
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+            <Info
+              label={t(locale, "بداية العد", "Start date")}
+              value={paymentCounter.startDate ? formatDate(paymentCounter.startDate, locale) : "—"}
+            />
+            <Info
+              label={t(locale, "المستخدم", "Used")}
+              value={String(paymentCounter.usedSessions)}
+            />
+            <Info
+              label={t(locale, "المغطى", "Covered")}
+              value={String(paymentCounter.sessionsCovered)}
+            />
+            <Info
+              label={t(locale, "المتبقي", "Remaining")}
+              value={String(paymentCounter.remainingSessions)}
+            />
+            <Info
+              label={t(locale, "زيادة", "Overused")}
+              value={String(paymentCounter.overusedSessions)}
+            />
+          </div>
+
+          {paymentCounter.latestPayment ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                {t(locale, "آخر دفعة", "Latest payment")}:{" "}
+                {formatCurrencyEgp(paymentCounter.latestPayment.amount, locale)}
+              </span>
+              <span>•</span>
+              <span>
+                {paymentCounter.latestPayment.paidAt
+                  ? formatDate(paymentCounter.latestPayment.paidAt, locale)
+                  : formatDate(paymentCounter.latestPayment.dueDate, locale)}
+              </span>
+              <Link
+                href={"/payments/" + paymentCounter.latestPayment.id}
+                className="font-semibold text-brand-700 hover:text-brand-600"
+              >
+                {t(locale, "فتح الدفعة", "Open payment")}
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <Link
+                href={"/payments/new?studentId=" + student.id}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                <ReceiptText size={16} />
+                {t(locale, "إضافة دفعة", "Add payment")}
+              </Link>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+
       {/* ── Profile + Parent + Teachers ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
@@ -152,6 +366,94 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
             <Info label={t(locale, "عدد الحصص", "Sessions attended")} value={student.sessionsAttended.toString()} />
             <Info label={t(locale, "إجمالي المدفوع", "Total paid")} value={formatCurrencyEgp(student.totalPaid, locale)} />
             <Info label={t(locale, "المسؤول", "Owner")} value={student.ownerName ?? t(locale, "غير مخصص", "Unassigned")} />
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-dashed border-border bg-muted/20 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-bold text-foreground">
+                  {t(locale, "نقل / ترقية الطالب", "Transfer / promote student")}
+                </h3>
+                <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                  {t(
+                    locale,
+                    "لا يتم تغيير الكورس وحده. اختر جروبًا مناسبًا للحفاظ على اتساق البيانات.",
+                    "The course is not changed alone. Choose a matching group to keep data consistent.",
+                  )}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setTransferOpen((value) => !value)}
+                className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              >
+                {transferOpen
+                  ? t(locale, "إغلاق", "Close")
+                  : t(locale, "اختيار جروب جديد", "Choose new group")}
+              </button>
+            </div>
+
+            {transferOpen ? (
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    {t(locale, "الكورس", "Course")}
+                  </span>
+                  <select
+                    value={transferCourse}
+                    onChange={(event) => {
+                      setTransferCourse(event.target.value as CourseType);
+                      setTargetGroupId("");
+                    }}
+                    className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">{t(locale, "اختر الكورس", "Choose course")}</option>
+                    {transferCourseOptions.map((course) => (
+                      <option key={course} value={course}>
+                        {getCourseLabel(course, locale)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    {t(locale, "الجروب الجديد", "New group")}
+                  </span>
+                  <select
+                    value={targetGroupId}
+                    onChange={(event) => setTargetGroupId(event.target.value)}
+                    disabled={!transferCourse}
+                    className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring disabled:opacity-50"
+                  >
+                    <option value="">
+                      {transferCourse
+                        ? t(locale, "اختر الجروب", "Choose group")
+                        : t(locale, "اختر الكورس أولًا", "Choose course first")}
+                    </option>
+                    {targetGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name} — {group.studentsCount} {t(locale, "طالب", "students")}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={handleAcademicTransfer}
+                    disabled={transferring || !transferCourse || !targetGroupId}
+                    className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 md:w-auto"
+                  >
+                    {transferring
+                      ? t(locale, "جارٍ النقل...", "Transferring...")
+                      : t(locale, "نقل الطالب", "Transfer")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
