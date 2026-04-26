@@ -20,6 +20,26 @@ import {
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
 import type { CourseType, GroupListItem, StudentDetails } from "@/types/crm";
 
+const TRANSFER_COURSE_OPTIONS: CourseType[] = [
+  "scratch",
+  "app_inventor",
+  "robotics_basic",
+  "ai_intro",
+  "python",
+  "godot",
+  "robotics_iot",
+  "fastapi",
+  "html_css",
+  "javascript_tailwind",
+  "front_end",
+  "ai_ml",
+  "data_science",
+  "back_end",
+  "raspberry_pi",
+  "web",
+  "ai",
+];
+
 export default function StudentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const locale = useUIStore((state) => state.locale);
@@ -119,7 +139,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
 
   const activeGroups = groups.filter((group) => group.isActive);
 
-  const transferCourseOptions = [...new Set(activeGroups.map((group) => group.course))];
+  const transferCourseOptions = TRANSFER_COURSE_OPTIONS;
 
   const targetGroups = activeGroups.filter((group) =>
     transferCourse ? group.course === transferCourse : true,
