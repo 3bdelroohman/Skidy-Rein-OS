@@ -116,6 +116,9 @@ export default function ParentDetailsPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Link href={"/parents/" + parent.id + "/edit"} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+            {t(locale, "تعديل البيانات", "Edit data")}
+          </Link>
           <Link href={`/students/new?parentName=${encodeURIComponent(parent.fullName)}&parentPhone=${encodeURIComponent(parent.phone)}`} className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
             <UserPlus size={16} />
             {t(locale, "إضافة طالب لهذا ولي الأمر", "Add student for this parent")}

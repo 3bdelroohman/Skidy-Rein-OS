@@ -382,6 +382,9 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           </div>
 
           <div className="flex flex-wrap gap-2">
+          <Link href={"/groups/" + group.id + "/edit"} className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+            {t(locale, "تعديل البيانات", "Edit data")}
+          </Link>
             <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
               {formatCourseLabel(group.course, locale)}
             </span>
