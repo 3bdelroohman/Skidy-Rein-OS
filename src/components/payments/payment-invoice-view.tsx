@@ -256,8 +256,8 @@ export function PaymentInvoiceView({ paymentId }: { paymentId: string }) {
                 <p className="mt-2 leading-7">
                   {t(
                     locale,
-                    "هذه الفاتورة مرتبطة بباقة جلسات وليست باشتراك شهري ثابت. لذلك قد تنتهي الأربع جلسات خلال شهر واحد أو أكثر من شهر، كما يمكن تأجيل الاستحقاق بالاتفاق مع ولي الأمر.",
-                    "This invoice is tied to a session block, not a fixed monthly subscription. The four sessions may finish within one month or over several months, and the due date can be deferred by agreement with the parent.",
+                    "هذه الفاتورة مرتبطة بباقة جلسات وليست باشتراك شهري ثابت. لذلك قد تنتهي الثماني جلسات خلال شهر واحد أو أكثر من شهر، كما يمكن تأجيل الاستحقاق بالاتفاق مع ولي الأمر.",
+                    "This invoice is tied to a session block, not a fixed monthly subscription. The eight sessions may finish within one month or over several months, and the due date can be deferred by agreement with the parent.",
                   )}
                 </p>
               </div>

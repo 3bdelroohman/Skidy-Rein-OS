@@ -10,7 +10,7 @@ const VALID_EMPLOYMENTS: EmploymentType[] = ["full_time", "part_time", "freelanc
 const VALID_PAYMENT_STATUSES: PaymentStatus[] = ["paid", "pending", "overdue", "refunded", "partial"];
 const VALID_PAYMENT_METHODS: PaymentMethod[] = ["bank_transfer", "card", "wallet", "cash", "instapay"];
 const PAYMENT_META_PREFIX = "__SKIDY_PAYMENT_META__:";
-const DEFAULT_SESSION_BLOCK = 4;
+const DEFAULT_SESSION_BLOCK = 8;
 
 interface PaymentMeta {
   sessionsCovered?: number;

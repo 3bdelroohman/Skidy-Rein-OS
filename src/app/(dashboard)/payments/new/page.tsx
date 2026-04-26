@@ -42,9 +42,9 @@ function methodLabel(m: PaymentMethod, locale: Locale): string {
 }
 
 function normalizeSessionBlock(value: string): number {
-  const parsed = Number(value || 4);
-  if (!Number.isFinite(parsed)) return 4;
-  return Math.max(4, Math.ceil(parsed / 4) * 4);
+  const parsed = Number(value || 8);
+  if (!Number.isFinite(parsed)) return 8;
+  return Math.max(8, Math.ceil(parsed / 8) * 8);
 }
 
 function studentOptionLabel(s: StudentListItem): string {
@@ -70,7 +70,7 @@ export default function NewPaymentPage() {
     blockEndDate: "",
     deferredUntil: "",
     notes: "",
-    sessionsCovered: "4",
+    sessionsCovered: "8",
   });
 
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function NewPaymentPage() {
         </button>
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><ReceiptText size={24} className="text-brand-600" />{t(locale, "إضافة دفعة جديدة", "Add new payment")}</h1>
-          <p className="text-sm text-muted-foreground">{t(locale, "الفاتورة الافتراضية تغطي 4 جلسات. إذا أدخلت عدداً مختلفاً فسيتم تقريبه إلى أقرب مضاعف لـ 4.", "Default invoice covers 4 sessions. Different counts are rounded up to the nearest multiple of 4.")}</p>
+          <p className="text-sm text-muted-foreground">{t(locale, "الفاتورة الافتراضية تغطي 8 جلسات. إذا أدخلت عدداً مختلفاً فسيتم تقريبه إلى أقرب مضاعف لـ 8.", "Default invoice covers 8 sessions. Different counts are rounded up to the nearest multiple of 8.")}</p>
         </div>
       </div>
 
@@ -188,7 +188,7 @@ export default function NewPaymentPage() {
               <input type="number" min="1" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
             <Field label={t(locale, "عدد الجلسات", "Sessions covered")}>
-              <input type="number" min="4" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+              <input type="number" min="8" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
           </div>
 
@@ -196,7 +196,7 @@ export default function NewPaymentPage() {
             <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
               <TriangleAlert size={18} className="mt-0.5 shrink-0" />
               <p>
-                {t(locale, "سيتم إصدار الفاتورة على " + normalizedSessions + " جلسات بدل " + form.sessionsCovered + " لأن دورة الفوترة معتمدة على مضاعفات 4 جلسات.", "The invoice will be issued for " + normalizedSessions + " sessions instead of " + form.sessionsCovered + ", because the billing cycle is locked to multiples of 4 sessions.")}
+                {t(locale, "سيتم إصدار الفاتورة على " + normalizedSessions + " جلسات بدل " + form.sessionsCovered + " لأن دورة الفوترة معتمدة على مضاعفات 8 جلسات.", "The invoice will be issued for " + normalizedSessions + " sessions instead of " + form.sessionsCovered + ", because the billing cycle is locked to multiples of 8 sessions.")}
               </p>
             </div>
           ) : null}
@@ -232,7 +232,7 @@ export default function NewPaymentPage() {
           </Field>
 
           <Field label={t(locale, "ملاحظة", "Note")}>
-            <textarea value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} rows={4} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" placeholder={t(locale, "مثال: اتفقنا أن يتم السداد بعد انتهاء الأربع جلسات", "Example: the parent will pay after the four sessions are completed")} />
+            <textarea value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} rows={4} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" placeholder={t(locale, "مثال: اتفقنا أن يتم السداد بعد انتهاء الثماني جلسات", "Example: the parent will pay after the eight sessions are completed")} />
           </Field>
         </div>
 

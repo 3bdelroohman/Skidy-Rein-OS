@@ -10,7 +10,7 @@ import { listStudents } from "@/services/students.service";
 const VALID_METHODS: PaymentMethod[] = ["bank_transfer", "card", "wallet", "cash", "instapay"];
 const VALID_STATUSES: PaymentStatus[] = ["paid", "pending", "overdue", "refunded", "partial"];
 const PAYMENT_META_PREFIX = "__SKIDY_PAYMENT_META__:";
-const DEFAULT_SESSION_BLOCK = 4;
+const DEFAULT_SESSION_BLOCK = 8;
 
 type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 type PaymentInsert = Database["public"]["Tables"]["payments"]["Insert"];

@@ -63,7 +63,7 @@ function resolveStatus(params: {
   if (!latestPayment) return "no_payment";
   if (sessionsCovered <= 0) return "needs_renewal";
   if (usedSessions >= sessionsCovered) return "needs_renewal";
-  if (remainingSessions <= 1) return "near_renewal";
+  if (remainingSessions <= 2) return "near_renewal";
   return "ok";
 }
 

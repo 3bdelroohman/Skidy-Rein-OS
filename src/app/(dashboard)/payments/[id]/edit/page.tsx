@@ -36,7 +36,7 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
   const [method, setMethod] = useState<PaymentMethod | "">("");
   const [dueDate, setDueDate] = useState("");
   const [paidAt, setPaidAt] = useState("");
-  const [sessionsCovered, setSessionsCovered] = useState("4");
+  const [sessionsCovered, setSessionsCovered] = useState("8");
   const [blockStartDate, setBlockStartDate] = useState("");
   const [blockEndDate, setBlockEndDate] = useState("");
   const [deferredUntil, setDeferredUntil] = useState("");
@@ -168,7 +168,7 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
 
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "عدد الحصص المغطاة", "Sessions covered")}</span>
-            <input type="number" min={1} value={sessionsCovered} onChange={(event) => setSessionsCovered(event.target.value)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring" required />
+            <input type="number" min={8} value={sessionsCovered} onChange={(event) => setSessionsCovered(event.target.value)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring" required />
           </label>
 
           <DateField label={t(locale, "تاريخ الاستحقاق", "Due date")} value={dueDate} onChange={setDueDate} required />

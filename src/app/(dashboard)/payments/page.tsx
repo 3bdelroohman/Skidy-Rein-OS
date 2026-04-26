@@ -132,8 +132,8 @@ export default function PaymentsPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {t(
                 locale,
-                "الفاتورة الافتراضية مبنية على كل 4 جلسات، ويمكن تأجيل الاستحقاق عند الاتفاق مع ولي الأمر. السجلات المؤرشفة لا تظهر هنا حتى يبقى التشغيل اليومي نظيفًا.",
-                "The default billing cycle is one invoice for every 4 sessions, with flexible deferral when agreed with the parent. Archived records are hidden from this list to keep daily operations clean.",
+                "الفاتورة الافتراضية مبنية على كل 8 جلسات، ويمكن تأجيل الاستحقاق عند الاتفاق مع ولي الأمر. السجلات المؤرشفة لا تظهر هنا حتى يبقى التشغيل اليومي نظيفًا.",
+                "The default billing cycle is one invoice for every 8 sessions, with flexible deferral when agreed with the parent. Archived records are hidden from this list to keep daily operations clean.",
               )}
             </p>
           </div>
