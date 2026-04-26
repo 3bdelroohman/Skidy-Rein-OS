@@ -7,6 +7,7 @@ import {
   UserCircle,
   BookOpen,
   Wallet,
+  CircleDollarSign,
   CalendarDays,
   ClipboardCheck,
   BarChart3,
@@ -122,6 +123,14 @@ export const navigationGroups: NavigationGroup[] = [
     labelAr: "المالية",
     labelEn: "Finance",
     items: [
+      {
+        titleAr: "Ù…Ø±ÙƒØ² Ø§Ù„Ø£ÙƒØ§ÙˆÙ†Øª",
+        titleEn: "Account Center",
+        href: "/account-center",
+        icon: CircleDollarSign,
+        roles: ["admin", "owner", "sales"],
+      },
+
       {
         titleAr: "المدفوعات",
         titleEn: "Payments",
