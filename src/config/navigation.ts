@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   BarChart3,
+  ShieldCheck,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -158,6 +159,13 @@ export const navigationGroups: NavigationGroup[] = [
         titleEn: "Reports",
         href: "/reports",
         icon: BarChart3,
+        roles: ["admin", "owner"],
+      },
+      {
+        titleAr: "مركز الملكية",
+        titleEn: "Ownership Center",
+        href: "/ownership-center",
+        icon: ShieldCheck,
         roles: ["admin", "owner"],
       },
     ],
