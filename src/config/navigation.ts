@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   CalendarDays,
   ClipboardCheck,
+  ClipboardList,
   BarChart3,
   Settings,
   type LucideIcon,
@@ -110,6 +111,14 @@ export const navigationGroups: NavigationGroup[] = [
         icon: CalendarDays,
         roles: ["admin", "owner", "ops"],
       },
+      {
+        titleAr: "Ù…Ø±ÙƒØ² Ø§Ù„Ø£ÙˆØ¨Ø±ÙŠØ´Ù†",
+        titleEn: "Operations Center",
+        href: "/operations-center",
+        icon: ClipboardList,
+        roles: ["admin", "owner", "ops"],
+      },
+
       {
         titleAr: "الجروبات",
         titleEn: "Groups",
