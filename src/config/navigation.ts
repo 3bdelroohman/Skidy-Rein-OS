@@ -112,7 +112,7 @@ export const navigationGroups: NavigationGroup[] = [
         roles: ["admin", "owner", "ops"],
       },
       {
-        titleAr: "Ù…Ø±ÙƒØ² Ø§Ù„Ø£ÙˆØ¨Ø±ÙŠØ´Ù†",
+        titleAr: "مركز الأوبريشن",
         titleEn: "Operations Center",
         href: "/operations-center",
         icon: ClipboardList,
@@ -133,7 +133,7 @@ export const navigationGroups: NavigationGroup[] = [
     labelEn: "Finance",
     items: [
       {
-        titleAr: "Ù…Ø±ÙƒØ² Ø§Ù„Ø£ÙƒØ§ÙˆÙ†Øª",
+        titleAr: "مركز الأكاونت",
         titleEn: "Account Center",
         href: "/account-center",
         icon: CircleDollarSign,
