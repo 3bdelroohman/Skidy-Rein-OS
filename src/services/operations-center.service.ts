@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { listGroups } from "@/services/group-operations.service";
 import { listPayments } from "@/services/payments.service";
@@ -46,12 +46,7 @@ function isProjectedStudent(id: string): boolean {
 }
 
 function getPaymentSortDate(payment: PaymentItem): string {
-  return (
-    payment.paidAt?.slice(0, 10) ??
-    payment.blockStartDate?.slice(0, 10) ??
-    payment.dueDate?.slice(0, 10) ??
-    ""
-  );
+  return payment.paidAt?.slice(0, 10) ?? payment.blockStartDate?.slice(0, 10) ?? payment.dueDate?.slice(0, 10) ?? "";
 }
 
 function getLatestPaidPayment(payments: PaymentItem[]): PaymentItem | null {
@@ -141,49 +136,12 @@ export async function getOperationsCenterData(): Promise<OperationsCenterData> {
   const ready = all.filter((item) => item.status === "ready");
 
   const metrics: OperationsCenterMetric[] = [
-    {
-      key: "total",
-      labelAr: "Ø·Ù„Ø§Ø¨ Ù…Ø¯ÙÙˆØ¹ÙŠÙ†",
-      labelEn: "Paid students",
-      value: all.length,
-      tone: "brand",
-    },
-    {
-      key: "paid_without_group",
-      labelAr: "Ø¯ÙØ¹ÙˆØ§ Ø¨Ù„Ø§ Ø¬Ø±ÙˆØ¨",
-      labelEn: "Paid without group",
-      value: paidWithoutGroup.length,
-      tone: "danger",
-    },
-    {
-      key: "paid_without_active_group",
-      labelAr: "Ø¨Ù„Ø§ Ø¬Ø±ÙˆØ¨ Ù†Ø´Ø· Ù…Ø·Ø§Ø¨Ù‚",
-      labelEn: "No matching active group",
-      value: paidWithoutActiveGroup.length,
-      tone: "warning",
-    },
-    {
-      key: "needs_first_session_check",
-      labelAr: "ÙŠØ­ØªØ§Ø¬ ØªØ£ÙƒÙŠØ¯ Ø£ÙˆÙ„ Ø­ØµØ©",
-      labelEn: "Needs first-session check",
-      value: needsFirstSessionCheck.length,
-      tone: "info",
-    },
-    {
-      key: "ready",
-      labelAr: "ØªØ´ØºÙŠÙ„ Ù…Ø³ØªÙ‚Ø±",
-      labelEn: "Operationally ready",
-      value: ready.length,
-      tone: "success",
-    },
+    { key: "total", labelAr: "طلاب مدفوعين", labelEn: "Paid students", value: all.length, tone: "brand" },
+    { key: "paid_without_group", labelAr: "دفعوا بلا جروب", labelEn: "Paid without group", value: paidWithoutGroup.length, tone: "danger" },
+    { key: "paid_without_active_group", labelAr: "بلا جروب نشط مطابق", labelEn: "No matching active group", value: paidWithoutActiveGroup.length, tone: "warning" },
+    { key: "needs_first_session_check", labelAr: "يحتاج تأكيد أول حصة", labelEn: "Needs first-session check", value: needsFirstSessionCheck.length, tone: "info" },
+    { key: "ready", labelAr: "تشغيل مستقر", labelEn: "Operationally ready", value: ready.length, tone: "success" },
   ];
 
-  return {
-    metrics,
-    paidWithoutGroup,
-    paidWithoutActiveGroup,
-    needsFirstSessionCheck,
-    ready,
-    all,
-  };
+  return { metrics, paidWithoutGroup, paidWithoutActiveGroup, needsFirstSessionCheck, ready, all };
 }

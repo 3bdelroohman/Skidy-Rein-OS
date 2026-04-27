@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { listStudentsWithRelations } from "@/services/relations.service";
 import { getStudentPaymentSessionsCounter } from "@/services/student-payment-sessions.service";
@@ -126,58 +126,13 @@ export async function getAccountCenterData(): Promise<AccountCenterData> {
   const healthy = all.filter((item) => item.status === "ok");
 
   const metrics: AccountCenterMetric[] = [
-    {
-      key: "total",
-      labelAr: "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø·Ù„Ø§Ø¨",
-      labelEn: "Total students",
-      value: all.length,
-      tone: "brand",
-    },
-    {
-      key: "near_renewal",
-      labelAr: "Ù‚Ø±Ø¨ Ø§Ù„ØªØ¬Ø¯ÙŠØ¯",
-      labelEn: "Near renewal",
-      value: nearRenewal.length,
-      tone: "warning",
-    },
-    {
-      key: "needs_renewal",
-      labelAr: "ÙŠØ­ØªØ§Ø¬ ØªØ¬Ø¯ÙŠØ¯",
-      labelEn: "Needs renewal",
-      value: needsRenewal.length,
-      tone: "danger",
-    },
-    {
-      key: "overused",
-      labelAr: "Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø²Ø§Ø¦Ø¯",
-      labelEn: "Overused",
-      value: overused.length,
-      tone: "danger",
-    },
-    {
-      key: "pending_handoff",
-      labelAr: "ÙŠØ­ØªØ§Ø¬ ØªØ³Ù„ÙŠÙ… Ù„Ù„Ø£ÙˆØ¨Ø±ÙŠØ´Ù†",
-      labelEn: "Pending ops handoff",
-      value: pendingHandoff.length,
-      tone: "info",
-    },
-    {
-      key: "no_payment",
-      labelAr: "Ø¨Ù„Ø§ Ø¯ÙØ¹Ø©",
-      labelEn: "No payment",
-      value: noPayment.length,
-      tone: "warning",
-    },
+    { key: "total", labelAr: "إجمالي الطلاب", labelEn: "Total students", value: all.length, tone: "brand" },
+    { key: "near_renewal", labelAr: "قرب التجديد", labelEn: "Near renewal", value: nearRenewal.length, tone: "warning" },
+    { key: "needs_renewal", labelAr: "يحتاج تجديد", labelEn: "Needs renewal", value: needsRenewal.length, tone: "danger" },
+    { key: "overused", labelAr: "استخدام زائد", labelEn: "Overused", value: overused.length, tone: "danger" },
+    { key: "pending_handoff", labelAr: "تسليم للأوبريشن", labelEn: "Pending ops handoff", value: pendingHandoff.length, tone: "info" },
+    { key: "no_payment", labelAr: "بلا دفعة", labelEn: "No payment", value: noPayment.length, tone: "warning" },
   ];
 
-  return {
-    metrics,
-    noPayment,
-    nearRenewal,
-    needsRenewal,
-    overused,
-    pendingHandoff,
-    healthy,
-    all,
-  };
+  return { metrics, noPayment, nearRenewal, needsRenewal, overused, pendingHandoff, healthy, all };
 }
