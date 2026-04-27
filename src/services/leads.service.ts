@@ -15,6 +15,12 @@ import { ensureLeadEnrollment } from "./enrollment.service";
 const LEADS_KEY = "skidy.crm.leads";
 const ACTIVITIES_KEY = "skidy.crm.lead-activities";
 
+interface ProfileLookup {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
 const VALID_STAGES: LeadStage[] = [
   "new",
   "qualified",
@@ -122,6 +128,50 @@ function isUuid(value: string | null | undefined): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+
+async function loadProfilesMap(): Promise<Map<string, ProfileLookup>> {
+  const supabase = getSupabaseClient();
+  const map = new Map<string, ProfileLookup>();
+  if (!supabase) return map;
+
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, email");
+
+    if (error || !data) {
+      console.warn("[leads] profiles lookup failed", error);
+      return map;
+    }
+
+    for (const profile of data) {
+      map.set(profile.id, {
+        id: profile.id,
+        full_name: profile.full_name ?? null,
+        email: profile.email ?? null,
+      });
+    }
+
+    return map;
+  } catch (error) {
+    console.warn("[leads] profiles lookup unexpected failure", error);
+    return map;
+  }
+}
+
+function resolveAssignedToName(
+  assignedTo: string | null | undefined,
+  profilesMap: Map<string, ProfileLookup>,
+  fallback = "غير مخصص",
+): string {
+  if (!assignedTo) return fallback;
+
+  const profile = profilesMap.get(assignedTo);
+  if (!profile) return fallback;
+
+  return profile.full_name?.trim() || profile.email?.trim() || fallback;
+}
+
 async function resolveAssignedToUuid(preferred: string): Promise<string | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return isUuid(preferred) ? preferred : null;
@@ -141,7 +191,10 @@ async function resolveAssignedToUuid(preferred: string): Promise<string | null> 
   }
 }
 
-function mapLeadRow(row: Database["public"]["Tables"]["leads"]["Row"] | Record<string, unknown>): LeadListItem {
+function mapLeadRow(
+  row: Database["public"]["Tables"]["leads"]["Row"] | Record<string, unknown>,
+  profilesMap = new Map<string, ProfileLookup>(),
+): LeadListItem {
   const record = row as Record<string, unknown>;
   return {
     id: asString(record.id, crypto.randomUUID()),
@@ -154,7 +207,7 @@ function mapLeadRow(row: Database["public"]["Tables"]["leads"]["Row"] | Record<s
     source: asString(record.source, "other") as LeadListItem["source"],
     suggestedCourse: asNullableString(record.suggested_course ?? record.suggestedCourse) as LeadListItem["suggestedCourse"],
     assignedTo: asString(record.assigned_to ?? record.assignedTo, ""),
-    assignedToName: asString(record.assignedToName, "غير مخصص"),
+    assignedToName: resolveAssignedToName(asNullableString(record.assigned_to ?? record.assignedTo), profilesMap),
     lastContactAt: asNullableString(record.last_contact_at ?? record.lastContactAt),
     nextFollowUpAt: asNullableString(record.next_follow_up_at ?? record.nextFollowUpAt),
     notes: asNullableString(record.notes),
@@ -195,7 +248,8 @@ async function syncLeadsFromSupabase(): Promise<LeadListItem[] | null> {
     return [];
   }
 
-  const mapped = data.map((row: Database["public"]["Tables"]["leads"]["Row"]) => mapLeadRow(row));
+  const profilesMap = await loadProfilesMap();
+  const mapped = data.map((row: Database["public"]["Tables"]["leads"]["Row"]) => mapLeadRow(row, profilesMap));
   saveLocalLeads(mapped);
   return mapped;
 }
@@ -254,7 +308,8 @@ export async function getLeadById(id: string): Promise<LeadListItem | null> {
     const { data, error } = await supabase.from("leads").select("*").eq("id", id).maybeSingle();
     if (error || !data) return null;
 
-    const mapped = mapLeadRow(data);
+    const profilesMap = await loadProfilesMap();
+    const mapped = mapLeadRow(data, profilesMap);
     const next = [mapped, ...getLocalLeads().filter((lead) => lead.id !== id)];
     saveLocalLeads(next);
     return mapped;
@@ -383,7 +438,8 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
       throw new Error("تم إرسال طلب الحفظ لكن لم يرجع أي سجل من قاعدة البيانات");
     }
 
-    const synced = mapLeadRow(data);
+    const profilesMap = await loadProfilesMap();
+    const synced = mapLeadRow(data, profilesMap);
     const current = getLocalLeads().filter((item) => item.id !== synced.id);
     saveLocalLeads([{ ...synced, assignedToName: draftLead.assignedToName }, ...current]);
 
