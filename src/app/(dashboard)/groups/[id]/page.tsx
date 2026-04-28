@@ -504,6 +504,9 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
             <InfoRow label={t(locale, "تاريخ البداية", "Start date")} value={group.startDate} />
             <InfoRow label={t(locale, "عدد الطلاب", "Students count")} value={String(group.studentsCount)} />
             <InfoRow label={t(locale, "عدد الحصص", "Sessions count")} value={String(group.sessionsCount)} />
+            <InfoRow label={t(locale, "مدة حصة المدرس", "Teacher session duration")} value={group.teacherSessionDurationMinutes ? String(group.teacherSessionDurationMinutes) + " " + t(locale, "دقيقة", "min") : "—"} />
+            <InfoRow label={t(locale, "حساب المدرس للحصة", "Teacher rate per session")} value={group.teacherSessionRate ? String(group.teacherSessionRate) : "—"} />
+            <InfoRow label={t(locale, "ملاحظات حساب المدرس", "Teacher finance notes")} value={group.teacherFinanceNotes || "—"} />
             <InfoRow
               label={t(locale, "أقرب حصة", "Next session")}
               value={
