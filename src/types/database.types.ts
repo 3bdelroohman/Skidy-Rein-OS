@@ -229,6 +229,12 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
           student_id: string;
+          collection_start_session?: number | null;
+          collection_end_session?: number | null;
+          next_collection_session?: number | null;
+          next_collection_due_date?: string | null;
+          collection_status?: string;
+          collection_notes?: string | null;
           parent_id: string;
           amount: number;
           status: PaymentStatus;
@@ -279,6 +285,9 @@ export interface Database {
           name_ar: string | null;
           course_id: string;
           teacher_id: string;
+          teacher_session_duration_minutes: number | null;
+          teacher_session_rate: number | null;
+          teacher_finance_notes: string | null;
           max_students: number;
           current_students: number;
           start_date: string;
@@ -293,6 +302,9 @@ export interface Database {
           name: string;
           course_id: string;
           teacher_id: string;
+          teacher_session_duration_minutes?: number | null;
+          teacher_session_rate?: number | null;
+          teacher_finance_notes?: string | null;
           max_students: number;
           start_date: string;
         };

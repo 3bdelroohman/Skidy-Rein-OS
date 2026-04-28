@@ -129,6 +129,12 @@ export interface PaymentItem {
   notes?: string | null;
   publicNote?: string | null;
   sessionsCovered: number;
+  collectionStartSession?: number | null;
+  collectionEndSession?: number | null;
+  nextCollectionSession?: number | null;
+  nextCollectionDueDate?: string | null;
+  collectionStatus?: string | null;
+  collectionNotes?: string | null;
   blockStartDate: string | null;
   blockEndDate: string | null;
   deferredUntil: string | null;
@@ -202,6 +208,9 @@ export interface GroupListItem {
   isActive: boolean;
   studentsCount: number;
   sessionsCount: number;
+  teacherSessionDurationMinutes?: number | null;
+  teacherSessionRate?: number | null;
+  teacherFinanceNotes?: string | null;
   nextSessionDate: string | null;
   nextSessionStartTime: string | null;
   startDate: string;
