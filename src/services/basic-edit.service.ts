@@ -62,6 +62,9 @@ export interface UpdateGroupBasicInput {
   startDate: string;
   notes: string | null;
   isActive: boolean;
+  teacherSessionDurationMinutes: number | null;
+  teacherSessionRate: number | null;
+  teacherFinanceNotes: string | null;
 }
 
 function getSupabaseClient() {
@@ -101,6 +104,12 @@ function requiredDate(value: string, label: string): string {
 function nullableText(value: string | null | undefined): string | null {
   const trimmed = value?.trim() ?? "";
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function nullableNumber(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  if (!Number.isFinite(value)) return null;
+  return value;
 }
 
 function normalizeSessionBlock(value: number): number {
@@ -260,6 +269,9 @@ export async function updateGroupBasic(input: UpdateGroupBasicInput): Promise<vo
     start_date: startDate,
     schedule_notes: nullableText(input.notes),
     is_active: input.isActive,
+    teacher_session_duration_minutes: nullableNumber(input.teacherSessionDurationMinutes),
+    teacher_session_rate: nullableNumber(input.teacherSessionRate),
+    teacher_finance_notes: nullableText(input.teacherFinanceNotes),
   };
 
   if (!input.isActive) {

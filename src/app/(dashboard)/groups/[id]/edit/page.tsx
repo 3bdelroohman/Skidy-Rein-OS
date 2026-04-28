@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { type ReactNode, use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Save } from "lucide-react";
@@ -26,6 +26,9 @@ export default function EditGroupPage({ params }: { params: Promise<{ id: string
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [teacherSessionDurationMinutes, setTeacherSessionDurationMinutes] = useState("");
+  const [teacherSessionRate, setTeacherSessionRate] = useState("");
+  const [teacherFinanceNotes, setTeacherFinanceNotes] = useState("");
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
@@ -67,6 +70,9 @@ export default function EditGroupPage({ params }: { params: Promise<{ id: string
         startDate,
         notes,
         isActive,
+        teacherSessionDurationMinutes: teacherSessionDurationMinutes ? Number(teacherSessionDurationMinutes) : null,
+        teacherSessionRate: teacherSessionRate ? Number(teacherSessionRate) : null,
+        teacherFinanceNotes: teacherFinanceNotes || null,
       });
 
       toast.success(t(locale, "تم تحديث بيانات الجروب", "Group data updated"));
@@ -140,6 +146,22 @@ export default function EditGroupPage({ params }: { params: Promise<{ id: string
           <ReadOnlyInfo label={t(locale, "المدرس", "Teacher")} value={group.teacherName} />
           <ReadOnlyInfo label={t(locale, "عدد الطلاب", "Students")} value={String(group.studentsCount)} />
           <ReadOnlyInfo label={t(locale, "عدد الحصص", "Sessions")} value={String(group.sessionsCount)} />
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <h3 className="mb-3 text-sm font-bold text-foreground">{t(locale, "حساب المدرس اليدوي", "Manual teacher finance")}</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label={t(locale, "مدة حصة المدرس بالدقائق", "Teacher session duration in minutes")}>
+                <input type="number" min="0" step="1" value={teacherSessionDurationMinutes} onChange={(event) => setTeacherSessionDurationMinutes(event.target.value)} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground" placeholder="60 / 90" />
+              </Field>
+              <Field label={t(locale, "حساب المدرس للحصة", "Teacher rate per session")}>
+                <input type="number" min="0" step="1" value={teacherSessionRate} onChange={(event) => setTeacherSessionRate(event.target.value)} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground" placeholder="120 / 180 / 200" />
+              </Field>
+            </div>
+            <div className="mt-4">
+              <Field label={t(locale, "ملاحظات حساب المدرس", "Teacher finance notes")}>
+                <textarea value={teacherFinanceNotes} onChange={(event) => setTeacherFinanceNotes(event.target.value)} rows={3} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground" placeholder={t(locale, "مثال: سعر خاص لهذا الجروب", "Example: special rate for this group")} />
+              </Field>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -151,6 +173,15 @@ export default function EditGroupPage({ params }: { params: Promise<{ id: string
         </div>
       </form>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-foreground">{label}</span>
+      {children}
+    </label>
   );
 }
 
