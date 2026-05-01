@@ -60,6 +60,9 @@ export default function NewGroupPage() {
   const [course, setCourse] = useState<CourseType>("scratch");
   const [studentSearch, setStudentSearch] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [teacherSessionDurationMinutes, setTeacherSessionDurationMinutes] = useState("");
+  const [teacherSessionRate, setTeacherSessionRate] = useState("");
+  const [teacherFinanceNotes, setTeacherFinanceNotes] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -146,6 +149,9 @@ export default function NewGroupPage() {
         course,
         studentIds: selectedStudentIds,
         isActive: true,
+        teacherSessionDurationMinutes: teacherSessionDurationMinutes ? Number(teacherSessionDurationMinutes) : null,
+        teacherSessionRate: teacherSessionRate ? Number(teacherSessionRate) : null,
+        teacherFinanceNotes: teacherFinanceNotes || null,
       });
 
       toast.success(t(locale, "تم إنشاء الجروب بنجاح", "Group created successfully"));
@@ -253,6 +259,49 @@ export default function NewGroupPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <h3 className="mb-3 text-sm font-bold text-foreground">{t(locale, "حساب المدرس اليدوي", "Manual teacher finance")}</h3>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "مدة حصة المدرس بالدقائق", "Teacher session duration in minutes")}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={teacherSessionDurationMinutes}
+                    onChange={(event) => setTeacherSessionDurationMinutes(event.target.value)}
+                    placeholder="60 / 90"
+                    className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "حساب المدرس للحصة", "Teacher rate per session")}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={teacherSessionRate}
+                    onChange={(event) => setTeacherSessionRate(event.target.value)}
+                    placeholder="120 / 180 / 200"
+                    className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "ملاحظات حساب المدرس", "Teacher finance notes")}</label>
+                <textarea
+                  value={teacherFinanceNotes}
+                  onChange={(event) => setTeacherFinanceNotes(event.target.value)}
+                  rows={3}
+                  placeholder={t(locale, "مثال: سعر خاص لهذا الجروب", "Example: special rate for this group")}
+                  className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                />
+              </div>
             </div>
 
             <div>

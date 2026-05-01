@@ -259,6 +259,9 @@ export async function createGroup(input: {
   isActive?: boolean;
   studentIds?: string[];
   maxStudents?: number;
+  teacherSessionDurationMinutes?: number | null;
+  teacherSessionRate?: number | null;
+  teacherFinanceNotes?: string | null;
 }): Promise<string> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -284,6 +287,9 @@ export async function createGroup(input: {
       current_students: 0,
       start_date: input.startDate,
       is_active: input.isActive ?? true,
+      teacher_session_duration_minutes: input.teacherSessionDurationMinutes ?? null,
+      teacher_session_rate: input.teacherSessionRate ?? null,
+      teacher_finance_notes: input.teacherFinanceNotes?.trim() ? input.teacherFinanceNotes.trim() : null,
     })
     .select("*")
     .single();
