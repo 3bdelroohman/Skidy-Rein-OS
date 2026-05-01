@@ -85,7 +85,7 @@ function normalizeDateKey(value: string | null | undefined): string | null {
 
 function normalizeSessionBlock(value: number | null | undefined): number {
   const numeric = typeof value === "number" && Number.isFinite(value) ? value : DEFAULT_SESSION_BLOCK;
-  return Math.max(DEFAULT_SESSION_BLOCK, Math.ceil(numeric / DEFAULT_SESSION_BLOCK) * DEFAULT_SESSION_BLOCK);
+  return Math.max(1, Math.round(numeric));
 }
 
 function normalizeInputDate(value: string | null | undefined): string | null {
