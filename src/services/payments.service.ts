@@ -10,7 +10,7 @@ import { listStudents } from "@/services/students.service";
 const VALID_METHODS: PaymentMethod[] = ["bank_transfer", "card", "wallet", "cash", "instapay"];
 const VALID_STATUSES: PaymentStatus[] = ["paid", "pending", "overdue", "refunded", "partial"];
 const PAYMENT_META_PREFIX = "__SKIDY_PAYMENT_META__:";
-const DEFAULT_SESSION_BLOCK = 8;
+const DEFAULT_SESSION_BLOCK = 4;
 
 type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 type PaymentInsert = Database["public"]["Tables"]["payments"]["Insert"];
@@ -701,7 +701,7 @@ export function getBillingCycleText(
     ? ` â€” ${payment.blockStartDate?.slice(0, 10) ?? "..."} â†’ ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
     : "";
   const deferred = payment.deferredUntil ? ` â€” deferred until ${payment.deferredUntil.slice(0, 10)}` : "";
-  return `${sessions}-session billing block${dateRange}${deferred}`;
+  return `${sessions}-session covered sessions${dateRange}${deferred}`;
 }
 
 

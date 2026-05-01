@@ -167,7 +167,7 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "عدد الحصص المغطاة", "Sessions covered")}</span>
+            <span className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "عدد الحصص المغطاة", "Covered sessions")}</span>
             <input type="number" min={8} value={sessionsCovered} onChange={(event) => setSessionsCovered(event.target.value)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring" required />
           </label>
 

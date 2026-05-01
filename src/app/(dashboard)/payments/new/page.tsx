@@ -70,7 +70,7 @@ export default function NewPaymentPage() {
     blockEndDate: "",
     deferredUntil: "",
     notes: "",
-    sessionsCovered: "8",
+    sessionsCovered: "4",
   });
 
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function NewPaymentPage() {
             <Field label={t(locale, "المبلغ", "Amount")}>
               <input type="number" min="1" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
-            <Field label={t(locale, "عدد الجلسات", "Sessions covered")}>
+            <Field label={t(locale, "عدد الحصص", "Covered sessions")}>
               <input type="number" min="8" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
           </div>
