@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    Skidy Rein OS — Design System v1
    Tailwind 4 / @theme directive
    ============================================= */
@@ -172,4 +172,40 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-neutral-400);
   background-clip: padding-box;
+}
+
+
+/* =============================================
+   shadcn/ui compatibility layer
+   Maps shadcn's standard token names to our design system.
+   Uses @theme inline so utilities resolve to CSS vars at build time.
+   ============================================= */
+@theme inline {
+  --color-background:           var(--color-bg);
+  --color-foreground:           var(--color-fg);
+
+  --color-card:                 var(--color-surface);
+  --color-card-foreground:      var(--color-fg);
+
+  --color-popover:              var(--color-surface);
+  --color-popover-foreground:   var(--color-fg);
+
+  --color-primary-foreground:   var(--color-neutral-0);
+
+  --color-secondary:            var(--color-neutral-100);
+  --color-secondary-foreground: var(--color-fg);
+
+  --color-muted:                var(--color-neutral-100);
+  --color-muted-foreground:     var(--color-fg-muted);
+
+  --color-accent:               var(--color-brand-50);
+  --color-accent-foreground:    var(--color-brand-700);
+
+  --color-destructive:          var(--color-danger-500);
+  --color-destructive-foreground: var(--color-neutral-0);
+
+  --color-input:                var(--color-neutral-200);
+  --color-ring:                 var(--color-brand-500);
+
+  --radius: 0.5rem;
 }
