@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+﻿import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@/types/common.types";
@@ -47,23 +47,25 @@ export async function getCurrentUser() {
     .eq("id", user.id)
     .maybeSingle();
 
-  // Debug logging (visible in Vercel Function logs)
+  // Log errors without leaking PII (no email/role in logs)
   if (profileError) {
     console.error("[auth] Profile query error:", profileError.message);
-  }
-  if (!profile) {
-    console.warn("[auth] No profile for:", user.id, user.email);
-  }
-  if (profile) {
-    console.info("[auth] Profile loaded:", user.email, "role:", profile.role);
+    return null;
   }
 
-  // Extract role — fallback "owner" (least privileged) if profile missing
-  const dbRole = profile?.role as string | undefined;
-  const role: UserRole =
-    dbRole && VALID_ROLES.includes(dbRole as UserRole)
-      ? (dbRole as UserRole)
-      : "owner";
+  if (!profile) {
+    console.warn("[auth] No profile found for authenticated user");
+    return null;
+  }
+
+  // Validate role — must exist and be valid; no fallback to elevated roles
+  const dbRole = profile.role as string | undefined;
+  if (!dbRole || !VALID_ROLES.includes(dbRole as UserRole)) {
+    console.error("[auth] Invalid or missing role on profile");
+    return null;
+  }
+
+  const role: UserRole = dbRole as UserRole;
 
   return {
     id: user.id,
