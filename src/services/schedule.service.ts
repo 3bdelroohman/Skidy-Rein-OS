@@ -12,12 +12,12 @@ const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
 const VALID_COURSES: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi", "web", "ai"];
 
 const DEFAULT_SCHEDULE: ScheduleSessionItem[] = [
-  { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTime: "17:00", className: "Scratch A", teacher: "Ø£. Ù…Ø­Ù…ÙˆØ¯", students: 5, course: "scratch", sessionDate: null },
-  { id: "2", classId: "class-2", teacherId: "2", day: 0, startTime: "17:30", endTime: "18:30", className: "Python A", teacher: "Ø£. Ø¯ÙŠÙ†Ø§", students: 4, course: "python", sessionDate: null },
-  { id: "3", classId: "class-3", teacherId: "3", day: 1, startTime: "16:00", endTime: "17:00", className: "Scratch B", teacher: "Ø£. ÙƒØ±ÙŠÙ…", students: 6, course: "scratch", sessionDate: null },
-  { id: "4", classId: "class-4", teacherId: "2", day: 2, startTime: "18:00", endTime: "19:00", className: "AI Intro", teacher: "Ø£. Ø¯ÙŠÙ†Ø§", students: 3, course: "ai", sessionDate: null },
-  { id: "5", classId: "class-5", teacherId: "3", day: 3, startTime: "17:00", endTime: "18:00", className: "Web Starters", teacher: "Ø£. ÙƒØ±ÙŠÙ…", students: 4, course: "web", sessionDate: null },
-  { id: "6", classId: "class-6", teacherId: "1", day: 4, startTime: "16:30", endTime: "17:30", className: "Scratch Trial", teacher: "Ø£. Ù…Ø­Ù…ÙˆØ¯", students: 5, course: "scratch", sessionDate: null },
+  { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTime: "17:00", className: "Scratch A", teacher: "أ. محمود", students: 5, course: "scratch", sessionDate: null },
+  { id: "2", classId: "class-2", teacherId: "2", day: 0, startTime: "17:30", endTime: "18:30", className: "Python A", teacher: "أ. دينا", students: 4, course: "python", sessionDate: null },
+  { id: "3", classId: "class-3", teacherId: "3", day: 1, startTime: "16:00", endTime: "17:00", className: "Scratch B", teacher: "أ. كريم", students: 6, course: "scratch", sessionDate: null },
+  { id: "4", classId: "class-4", teacherId: "2", day: 2, startTime: "18:00", endTime: "19:00", className: "AI Intro", teacher: "أ. دينا", students: 3, course: "ai", sessionDate: null },
+  { id: "5", classId: "class-5", teacherId: "3", day: 3, startTime: "17:00", endTime: "18:00", className: "Web Starters", teacher: "أ. كريم", students: 4, course: "web", sessionDate: null },
+  { id: "6", classId: "class-6", teacherId: "1", day: 4, startTime: "16:30", endTime: "17:30", className: "Scratch Trial", teacher: "أ. محمود", students: 5, course: "scratch", sessionDate: null },
 ];
 
 type RawClassRow = {
@@ -85,8 +85,8 @@ function asCourse(value: unknown, fallback: CourseType = "scratch"): CourseType 
 function normalizeName(value: string | null | undefined): string {
   return (value ?? "")
     .toLowerCase()
-    .replace(/Ø£\.?\s*/g, "")
-    .replace(/[ً-ٟ]/g, "")
+    .replace(/أ\.?\s*/g, "")
+    .replace(/[?-?]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -149,7 +149,7 @@ function mapSessionFromClass(
     startTime: "16:00",
     endTime: "17:00",
     className: cleanClassName(asString(row.name, "Class")),
-    teacher: teacher?.fullName ?? "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    teacher: teacher?.fullName ?? "مدرس غير محدد",
     students: enrollmentCount,
     course: asCourse(row.course_id ? courseMap.get(row.course_id) : null),
     sessionDate: null,
@@ -178,7 +178,7 @@ function mapSessionFromSession(
     startTime: trimTime(asString(row.start_time, "16:00")),
     endTime: trimTime(asString(row.end_time, "17:00")),
     className: cleanClassName(asString(classRow?.name ?? row.topic, "Session")),
-    teacher: teacher?.fullName ?? "Ù…Ø¯Ø±Ø³ ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+    teacher: teacher?.fullName ?? "مدرس غير محدد",
     students: studentsCount,
     course: asCourse(classRow?.course_id ? courseMap.get(classRow.course_id) : null),
     sessionDate: asNullableString(row.session_date),

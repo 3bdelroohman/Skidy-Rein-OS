@@ -1,4 +1,4 @@
-﻿import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
 import { STAGE_LABELS } from "@/config/labels";
 import type { LeadStage, LeadTemperature, LossReason } from "@/types/common.types";
 import type { Database } from "@/types/database.types";
@@ -8,7 +8,7 @@ import type {
   LeadListItem,
   UpdateLeadInput,
 } from "@/types/crm";
-import { MOCK_LEADS, MOCK_LEAD_ACTIVITIES, MOCK_TEAM } from "@/lib/mock-data";
+import { MOCK_LEADS, MOCK_LEAD_ACTIVITIES } from "@/lib/mock-data";
 import { isBrowser, readStorage, sortByDateDesc, writeStorage } from "@/services/storage";
 import { ensureLeadEnrollment } from "./enrollment.service";
 
@@ -125,7 +125,7 @@ function asLossReason(value: unknown): LossReason | null {
 }
 
 function isUuid(value: string | null | undefined): value is string {
-  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 
@@ -343,7 +343,6 @@ export async function createLead(input: CreateLeadInput): Promise<LeadListItem> 
     assignedTo: input.assignedTo,
     assignedToName:
       input.assignedToName ||
-      MOCK_TEAM.find((member) => member.id === input.assignedTo)?.name ||
       "غير مخصص",
     lastContactAt: null,
     nextFollowUpAt: null,

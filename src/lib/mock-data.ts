@@ -7,6 +7,19 @@ import type {
 } from "@/types/common.types";
 import type { FollowUpItem, LeadActivityItem } from "@/types/crm";
 
+// ────────────────────────────────────────────────────────────
+// Production safety guard
+// This module contains demo/seed data and must never silently leak
+// into a real customer environment. If anything imports this file in
+// a production build, log a loud warning so it shows up in monitoring.
+// ────────────────────────────────────────────────────────────
+if (process.env.NODE_ENV === "production") {
+  console.warn(
+    "[mock-data] WARNING: demo data module loaded in a production build. " +
+    "Ensure NEXT_PUBLIC_ALLOW_DEMO_FALLBACK is not set to 'true' in production."
+  );
+}
+
 export interface MockLead {
   id: string;
   parentName: string;
