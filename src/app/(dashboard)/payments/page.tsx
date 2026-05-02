@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, ArrowLeft, ArrowRight, PlusCircle, Search, Wallet } from "lucide-react";
 
-import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import { getPaymentStatusLabel, t } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 import {
@@ -147,9 +147,9 @@ export default function PaymentsPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-        <MetricCard label={t(locale, "إجمالي المستحق", "Total expected")} value={formatCurrencyEgp(summary.totalExpected, locale)} colorClass="text-foreground" />
-        <MetricCard label={t(locale, "إجمالي المحصل", "Total collected")} value={formatCurrencyEgp(summary.totalCollected, locale)} colorClass="text-success-600" />
-        <MetricCard label={t(locale, "إجمالي المتأخر", "Total overdue")} value={formatCurrencyEgp(summary.totalOverdue, locale)} colorClass="text-danger-600" />
+        <MetricCard label={t(locale, "إجمالي المستحق", "Total expected")} value={formatCurrency(summary.totalExpected, locale)} colorClass="text-foreground" />
+        <MetricCard label={t(locale, "إجمالي المحصل", "Total collected")} value={formatCurrency(summary.totalCollected, locale)} colorClass="text-success-600" />
+        <MetricCard label={t(locale, "إجمالي المتأخر", "Total overdue")} value={formatCurrency(summary.totalOverdue, locale)} colorClass="text-danger-600" />
         <MetricCard label={t(locale, "مستحق اليوم", "Due today")} value={String(summary.dueToday)} colorClass="text-amber-600" />
         <MetricCard label={t(locale, "مؤجل حاليًا", "Currently deferred")} value={String(summary.deferredCount)} colorClass="text-violet-600" />
       </div>
@@ -225,7 +225,7 @@ export default function PaymentsPage() {
                           <td className="px-4 py-3"><p className="font-semibold text-foreground">{payment.studentName}</p></td>
                           <td className="px-4 py-3 text-foreground">{payment.parentName}</td>
                           <td className="px-4 py-3 text-xs text-muted-foreground">{getBillingCycleText(payment, locale)}</td>
-                          <td className="px-4 py-3 font-semibold text-foreground">{formatCurrencyEgp(payment.amount, locale)}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{formatCurrency(payment.amount, locale)}</td>
                           <td className="px-4 py-3">
                             <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: meta.bg, color: meta.color }}>
                               {getDisplayStatusLabel(displayStatus, locale)}
@@ -265,7 +265,7 @@ export default function PaymentsPage() {
                         <p className="font-semibold text-foreground">{payment.studentName}</p>
                         <p className="text-xs text-muted-foreground">{getBillingCycleText(payment, locale)}</p>
                       </div>
-                      <span className="text-sm font-bold text-foreground">{formatCurrencyEgp(payment.amount, locale)}</span>
+                      <span className="text-sm font-bold text-foreground">{formatCurrency(payment.amount, locale)}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                       <span>{formatDate(getPaymentEffectiveDueDate(payment), locale)}</span>

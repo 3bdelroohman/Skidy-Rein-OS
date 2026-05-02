@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useUIStore } from "@/stores/ui-store";
 import { STUDENT_STATUS_META, getMetaLabel } from "@/config/status-meta";
 import { getCourseLabel, t } from "@/lib/locale";
-import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import { extractLeadIdFromProjectionId, getStudentDetails } from "@/services/relations.service";
 import { deleteStudent } from "@/services/students.service";
 import { listGroups } from "@/services/group-operations.service";
@@ -343,7 +343,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>
                 {t(locale, "آخر دفعة", "Latest payment")}:{" "}
-                {formatCurrencyEgp(paymentCounter.latestPayment.amount, locale)}
+                {formatCurrency(paymentCounter.latestPayment.amount, locale)}
               </span>
               <span>•</span>
               <span>
@@ -387,7 +387,7 @@ export default function StudentDetailsPage({ params }: { params: Promise<{ id: s
             <Info label={t(locale, "الكلاس", "Class")} value={student.className ?? t(locale, "غير مسجل", "Not assigned")} />
             <Info label={t(locale, "تاريخ الالتحاق", "Enrollment date")} value={formatDate(student.enrollmentDate, locale)} />
             <Info label={t(locale, "عدد الحصص", "Sessions attended")} value={student.sessionsAttended.toString()} />
-            <Info label={t(locale, "إجمالي المدفوع", "Total paid")} value={formatCurrencyEgp(student.totalPaid, locale)} />
+            <Info label={t(locale, "إجمالي المدفوع", "Total paid")} value={formatCurrency(student.totalPaid, locale)} />
             <Info label={t(locale, "المسؤول", "Owner")} value={student.ownerName ?? t(locale, "غير مخصص", "Unassigned")} />
           </div>
 

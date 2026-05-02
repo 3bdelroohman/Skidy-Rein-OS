@@ -11,7 +11,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { formatCurrencyEgp, formatCourseLabel } from "@/lib/formatters";
+import { formatCurrency, formatCourseLabel } from "@/lib/formatters";
 import { t } from "@/lib/locale";
 import { listLeads } from "@/services/leads.service";
 import { listParents } from "@/services/parents.service";
@@ -226,7 +226,7 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
 
               <ResultSection title={t(locale, "المدفوعات", "Payments")} count={filtered.paymentResults.length}>
                 {filtered.paymentResults.map((item) => (
-                  <ResultLink key={item.id} href={`/payments/${item.id}`} title={item.studentName} subtitle={item.parentName} meta={formatCurrencyEgp(item.amount, locale)} icon={Wallet} onSelect={onClose} />
+                  <ResultLink key={item.id} href={`/payments/${item.id}`} title={item.studentName} subtitle={item.parentName} meta={formatCurrency(item.amount, locale)} icon={Wallet} onSelect={onClose} />
                 ))}
               </ResultSection>
 

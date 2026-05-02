@@ -2,29 +2,23 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { type Locale } from "@/types/common.types";
 
+export type CurrencyCode = "EGP" | "SAR";
+
 /**
  * UI state management store
- * Handles sidebar state, locale, and global UI preferences
- * @author Abdelrahman
+ * Handles sidebar state, locale, currency, and global UI preferences
  */
-
 interface UIState {
-  /** Sidebar expanded or collapsed */
   sidebarOpen: boolean;
-  /** Mobile sidebar overlay visible */
   mobileSidebarOpen: boolean;
-  /** Current locale */
   locale: Locale;
-  /** Toggle sidebar */
+  currency: CurrencyCode;
   toggleSidebar: () => void;
-  /** Set sidebar state */
   setSidebarOpen: (open: boolean) => void;
-  /** Toggle mobile sidebar */
   toggleMobileSidebar: () => void;
-  /** Set mobile sidebar state */
   setMobileSidebarOpen: (open: boolean) => void;
-  /** Switch locale */
   setLocale: (locale: Locale) => void;
+  setCurrency: (currency: CurrencyCode) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -33,6 +27,7 @@ export const useUIStore = create<UIState>()(
       sidebarOpen: true,
       mobileSidebarOpen: false,
       locale: "ar",
+      currency: "EGP",
 
       toggleSidebar: () =>
         set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -45,12 +40,15 @@ export const useUIStore = create<UIState>()(
       setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 
       setLocale: (locale) => set({ locale }),
+
+      setCurrency: (currency) => set({ currency }),
     }),
     {
       name: "skidy-rein-ui",
       partialize: (state) => ({
         sidebarOpen: state.sidebarOpen,
         locale: state.locale,
+        currency: state.currency,
       }),
     }
   )

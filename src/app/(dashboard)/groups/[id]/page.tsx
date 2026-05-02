@@ -26,16 +26,20 @@ import { formatCourseLabel } from "@/lib/formatters";
 import { t } from "@/lib/locale";
 import {
   addStudentsToGroup,
+  completeGroupSessionSeries,
   getGroupDetails,
+  listGroups,
+  moveStudentToGroup,
   removeStudentFromGroup,
   saveGroupNotes,
   saveSessionAttendanceBulk,
   saveSessionOperationsChecklist,
+  updateGroupSessionSchedule,
   updateGroupStatus,
 } from "@/services/group-operations.service";
 import { listStudents } from "@/services/students.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
-import type { AttendanceStatus, GroupDetails, StudentListItem } from "@/types/crm";
+import type { AttendanceStatus, GroupDetails, GroupListItem, StudentListItem } from "@/types/crm";
 
 interface SessionDraft {
   attendanceTaken: boolean;
@@ -50,6 +54,12 @@ interface AttendanceDraft {
   status: AttendanceStatus | null;
   notes: string;
 }
+interface SessionDeferDraft {
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+}
+
 
 function createDraft(session: GroupDetails["sessions"][number]): SessionDraft {
   return {
@@ -74,6 +84,74 @@ function createAttendanceDrafts(session: GroupDetails["sessions"][number]): Reco
   );
 }
 
+
+type SessionTimelineStatus = "upcoming" | "today" | "past" | "no_date";
+
+function getSessionTimelineStatus(session: GroupDetails["sessions"][number]): SessionTimelineStatus {
+  if (!session.sessionDate) return "no_date";
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (session.sessionDate === today) return "today";
+  return session.sessionDate > today ? "upcoming" : "past";
+}
+
+function getSessionStatusMeta(session: GroupDetails["sessions"][number], locale: "ar" | "en") {
+  const status = getSessionTimelineStatus(session);
+
+  if (status === "today") {
+    return {
+      label: t(locale, "اليوم", "Today"),
+      className: "border-info-100 bg-info-50 text-info-700",
+    };
+  }
+
+  if (status === "upcoming") {
+    return {
+      label: t(locale, "قادمة", "Upcoming"),
+      className: "border-brand-100 bg-brand-50 text-brand-700",
+    };
+  }
+
+  if (status === "past") {
+    return {
+      label: t(locale, "فائتة", "Past"),
+      className: "border-border bg-muted text-muted-foreground",
+    };
+  }
+
+  return {
+    label: t(locale, "بدون تاريخ", "No date"),
+    className: "border-warning-100 bg-warning-50 text-warning-700",
+  };
+}
+
+function getMarkedAttendanceCount(session: GroupDetails["sessions"][number]): number {
+  return (
+    session.attendanceSummary.present +
+    session.attendanceSummary.absent +
+    session.attendanceSummary.late +
+    session.attendanceSummary.excused
+  );
+}
+
+function isSessionOperationsComplete(session: GroupDetails["sessions"][number]): boolean {
+  const operations = session.operations;
+  return Boolean(
+    operations?.attendanceTaken &&
+    operations?.materialsUploaded &&
+    operations?.recordingUploaded &&
+    operations?.telegramPosted &&
+    operations?.homeworkShared
+  );
+}
+
+function createDeferDraft(session: GroupDetails["sessions"][number]): SessionDeferDraft {
+  return {
+    sessionDate: session.sessionDate ?? "",
+    startTime: session.startTime,
+    endTime: session.endTime,
+  };
+}
 export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const locale = useUIStore((state) => state.locale);
@@ -83,23 +161,30 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
 
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [allStudents, setAllStudents] = useState<StudentListItem[]>([]);
+  const [allGroups, setAllGroups] = useState<GroupListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [busyAttendanceSessionId, setBusyAttendanceSessionId] = useState<string | null>(null);
+  const [busyDeferSessionId, setBusyDeferSessionId] = useState<string | null>(null);
+  const [busyCompletingSessions, setBusyCompletingSessions] = useState(false);
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
+  const [busyMoveStudentId, setBusyMoveStudentId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
   const [groupNotes, setGroupNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, SessionDraft>>({});
   const [attendanceDrafts, setAttendanceDrafts] = useState<Record<string, Record<string, AttendanceDraft>>>({});
+  const [deferDrafts, setDeferDrafts] = useState<Record<string, SessionDeferDraft>>({});
 
   async function load() {
     setLoading(true);
 
-    const [groupData, studentRows] = await Promise.all([getGroupDetails(id), listStudents()]);
+    const [groupData, studentRows, groupRows] = await Promise.all([getGroupDetails(id), listStudents(), listGroups()]);
     setGroup(groupData);
     setAllStudents(studentRows);
+    setAllGroups(groupRows);
 
     if (groupData) {
       setGroupNotes(groupData.groupNotes ?? "");
@@ -112,6 +197,11 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
         groupData.sessions.map((session) => [session.id, createAttendanceDrafts(session)]),
       );
       setAttendanceDrafts(nextAttendanceDrafts);
+
+      const nextDeferDrafts = Object.fromEntries(
+        groupData.sessions.map((session) => [session.id, createDeferDraft(session)]),
+      );
+      setDeferDrafts(nextDeferDrafts);
     }
 
     setLoading(false);
@@ -128,11 +218,12 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }
 
     (async () => {
-      const [groupData, studentRows] = await Promise.all([getGroupDetails(id), listStudents()]);
+      const [groupData, studentRows, groupRows] = await Promise.all([getGroupDetails(id), listStudents(), listGroups()]);
       if (!mounted) return;
 
       setGroup(groupData);
       setAllStudents(studentRows);
+      setAllGroups(groupRows);
 
       if (groupData) {
         const nextDrafts = Object.fromEntries(
@@ -144,6 +235,11 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           groupData.sessions.map((session) => [session.id, createAttendanceDrafts(session)]),
         );
         setAttendanceDrafts(nextAttendanceDrafts);
+
+      const nextDeferDrafts = Object.fromEntries(
+        groupData.sessions.map((session) => [session.id, createDeferDraft(session)]),
+      );
+      setDeferDrafts(nextDeferDrafts);
       }
 
       setLoading(false);
@@ -176,6 +272,13 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     return allStudents.filter((student) => !linkedIds.has(student.id));
   }, [allStudents, group]);
 
+  const availableTargetGroups = useMemo(() => {
+    if (!group) return [];
+
+    return allGroups
+      .filter((item) => item.id !== group.id && item.isActive)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allGroups, group]);
   function updateDraft(sessionId: string, patch: Partial<SessionDraft>) {
     setDrafts((prev) => ({
       ...prev,
@@ -220,6 +323,57 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  function updateMoveTarget(studentId: string, targetGroupId: string) {
+    setMoveTargets((prev) => ({
+      ...prev,
+      [studentId]: targetGroupId,
+    }));
+  }
+
+  async function handleMoveStudent(studentId: string) {
+    if (!group) return;
+
+    const targetGroupId = moveTargets[studentId];
+    const targetGroup = availableTargetGroups.find((item) => item.id === targetGroupId);
+
+    if (!targetGroup) {
+      toast.error(t(locale, "اختر الجروب الجديد أولًا", "Choose the target group first"));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      t(
+        locale,
+        `سيتم نقل الطالب إلى ${targetGroup.name}. سيظل تاريخ الحضور القديم محفوظًا في هذا الجروب. هل تريد المتابعة؟`,
+        `Student will be moved to ${targetGroup.name}. Previous attendance history in this group will remain preserved. Continue?`,
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyMoveStudentId(studentId);
+
+    try {
+      await moveStudentToGroup({
+        sourceGroupId: group.id,
+        targetGroupId: targetGroup.id,
+        studentId,
+        targetCourse: targetGroup.course,
+      });
+
+      toast.success(t(locale, "تم نقل الطالب إلى الجروب الجديد", "Student moved to the target group"));
+      setMoveTargets((prev) => {
+        const next = { ...prev };
+        delete next[studentId];
+        return next;
+      });
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر نقل الطالب", "Could not move student"));
+    } finally {
+      setBusyMoveStudentId(null);
+    }
+  }
   async function handleRemoveStudent(studentId: string) {
     if (!group) return;
 
@@ -241,6 +395,107 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  function updateDeferDraft(sessionId: string, patch: Partial<SessionDeferDraft>) {
+    setDeferDrafts((prev) => ({
+      ...prev,
+      [sessionId]: {
+        ...(prev[sessionId] ?? { sessionDate: "", startTime: "", endTime: "" }),
+        ...patch,
+      },
+    }));
+  }
+
+  async function handleDeferSession(sessionId: string) {
+    if (!group) return;
+
+    const session = group.sessions.find((item) => item.id === sessionId);
+    const draft = deferDrafts[sessionId];
+    if (!session || !draft) return;
+
+    if (!draft.sessionDate || !draft.startTime || !draft.endTime) {
+      toast.error(t(locale, "حدد التاريخ ووقت البداية والنهاية أولًا", "Choose date, start time, and end time first"));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      t(
+        locale,
+        "سيتم تعديل موعد هذه الحصة فقط بدون تغيير مواعيد باقي الحصص. هل تريد المتابعة؟",
+        "Only this session will be rescheduled. The other sessions will not shift. Continue?",
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyDeferSessionId(sessionId);
+
+    try {
+      await updateGroupSessionSchedule({
+        sessionId,
+        sessionDate: draft.sessionDate,
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+      });
+
+      toast.success(t(locale, "تم تأجيل هذه الحصة فقط", "Only this session was rescheduled"));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر تأجيل الحصة", "Could not reschedule session"));
+    } finally {
+      setBusyDeferSessionId(null);
+    }
+  }
+  async function handleCompleteSessionSeries() {
+    if (!group) return;
+
+    if (group.sessions.length === 0) {
+      toast.error(t(locale, "أنشئ أول حصة للجروب من الجدول أولًا، ثم ارجع لاستكمال السلسلة.", "Create the first group session from the schedule first, then come back to complete the series."));
+      return;
+    }
+
+    if (group.sessions.length >= 8) {
+      toast.success(t(locale, "الجروب لديه 8 حصص أو أكثر بالفعل", "This group already has 8 sessions or more"));
+      return;
+    }
+
+    const missingCount = Math.max(0, 8 - group.sessions.length);
+    const confirmed = window.confirm(
+      t(
+        locale,
+        `سيتم إنشاء ${missingCount} حصص ناقصة أسبوعيًا من أول حصة في الجروب. لن يتم تعديل الحصص الموجودة. هل تريد المتابعة؟`,
+        `${missingCount} missing weekly sessions will be created from the first group session. Existing sessions will not be modified. Continue?`,
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyCompletingSessions(true);
+
+    try {
+      const result = await completeGroupSessionSeries({
+        groupId: group.id,
+        targetCount: 8,
+      });
+
+      if (result.createdCount === 0) {
+        toast.success(t(locale, "لا توجد حصص ناقصة لإنشائها", "No missing sessions needed to be created"));
+      } else {
+        toast.success(
+          t(
+            locale,
+            `تم إنشاء ${result.createdCount} حصص. إجمالي الحصص الآن ${result.totalCount}.`,
+            `${result.createdCount} sessions created. Total sessions is now ${result.totalCount}.`,
+          ),
+        );
+      }
+
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر استكمال حصص الجروب", "Could not complete group sessions"));
+    } finally {
+      setBusyCompletingSessions(false);
+    }
+  }
   async function handleSaveAttendance(sessionId: string) {
     if (!group) return;
 
@@ -473,11 +728,35 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                       <FileText size={14} />
                       {t(locale, "تقرير", "Report")}
                     </Link>
+                    <div data-student-move-controls className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <select
+                        value={moveTargets[student.id] ?? ""}
+                        onChange={(event) => updateMoveTarget(student.id, event.target.value)}
+                        disabled={busyMoveStudentId !== null || availableTargetGroups.length === 0}
+                        className="min-w-44 rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      >
+                        <option value="">{t(locale, "نقل إلى جروب...", "Move to group...")}</option>
+                        {availableTargetGroups.map((targetGroup) => (
+                          <option key={targetGroup.id} value={targetGroup.id}>
+                            {targetGroup.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleMoveStudent(student.id)}
+                        disabled={busyMoveStudentId !== null || !moveTargets[student.id]}
+                        className="inline-flex items-center justify-center gap-1 rounded-xl border border-info-100 bg-info-50 px-3 py-2 text-xs font-semibold text-info-700 transition-colors hover:bg-info-100 disabled:opacity-50"
+                      >
+                        {busyMoveStudentId === student.id ? t(locale, "جاري النقل...", "Moving...") : t(locale, "نقل", "Move")}
+                      </button>
+                    </div>
 
                     <button
                       type="button"
                       onClick={() => handleRemoveStudent(student.id)}
-                      disabled={busyStudentId !== null}
+                      disabled={busyStudentId !== null || busyMoveStudentId !== null}
                       className="inline-flex items-center gap-1 rounded-xl border border-danger-300 bg-danger-50 px-3 py-2 text-xs font-semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:opacity-50 dark:border-danger-800 dark:bg-danger-950/30 dark:text-danger-300"
                     >
                       <Trash2 size={14} />
@@ -605,6 +884,31 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           <ClipboardList size={18} className="text-brand-600" />
           {t(locale, "تشغيل الحصص", "Session operations")}
         </h2>
+              <div data-complete-session-series className="mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-brand-700">
+                      {t(locale, "استكمال حصص الجروب إلى 8", "Complete group sessions to 8")}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-brand-700/80">
+                      {t(locale, "لو ظهر في الجروب حصة واحدة فقط، استخدم هذا الخيار لإنشاء الحصص الناقصة أسبوعيًا من أول حصة. الحصص الموجودة لن تتغير.", "If only one session appears in the group, use this action to create the missing weekly sessions from the first session. Existing sessions will not change.")}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCompleteSessionSeries}
+                    disabled={busyCompletingSessions || group.sessions.length === 0 || group.sessions.length >= 8}
+                    className="inline-flex items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    {busyCompletingSessions
+                      ? t(locale, "جاري الإنشاء...", "Creating...")
+                      : group.sessions.length >= 8
+                        ? t(locale, "مكتمل", "Complete")
+                        : t(locale, `إنشاء ${Math.max(0, 8 - group.sessions.length)} حصص`, `Create ${Math.max(0, 8 - group.sessions.length)} sessions`)}
+                  </button>
+                </div>
+              </div>
 
         {group.sessions.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -612,18 +916,48 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         ) : (
           <div className="space-y-4">
-            {group.sessions.map((session) => {
+            {group.sessions.map((session, index) => {
               const draft = drafts[session.id] ?? createDraft(session);
               const isSaving = busySessionId === session.id;
               const isSavingAttendance = busyAttendanceSessionId === session.id;
+              const sessionNumber = index + 1;
+              const statusMeta = getSessionStatusMeta(session, locale);
+              const markedAttendance = getMarkedAttendanceCount(session);
+              const totalAttendance = session.attendanceEntries.length;
+              const attendanceProgress = totalAttendance > 0 ? `${markedAttendance}/${totalAttendance}` : "0/0";
+              const operationsComplete = isSessionOperationsComplete(session);
+              const deferDraft = deferDrafts[session.id] ?? createDeferDraft(session);
+              const isDeferring = busyDeferSessionId === session.id;
+              const deferChanged =
+                deferDraft.sessionDate !== (session.sessionDate ?? "") ||
+                deferDraft.startTime !== session.startTime ||
+                deferDraft.endTime !== session.endTime;
 
               return (
                 <div key={session.id} className="rounded-2xl border border-border bg-background p-4">
-                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">{session.className}</p>
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 font-semibold text-brand-700">
+                          {t(locale, `الحصة ${sessionNumber}`, `Session ${sessionNumber}`)}
+                        </span>
+                        <span className={"rounded-full border px-2.5 py-1 font-semibold " + statusMeta.className}>
+                          {statusMeta.label}
+                        </span>
+                        <span
+                          className={
+                            operationsComplete
+                              ? "rounded-full border border-success-100 bg-success-50 px-2.5 py-1 font-semibold text-success-700"
+                              : "rounded-full border border-border bg-muted px-2.5 py-1 font-semibold text-muted-foreground"
+                          }
+                        >
+                          {operationsComplete ? t(locale, "Checklist مكتملة", "Checklist complete") : t(locale, "Checklist غير مكتملة", "Checklist pending")}
+                        </span>
+                      </div>
+
+                      <p className="truncate font-semibold text-foreground">{session.className}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {session.sessionDate ?? "—"} • {session.startTime} - {session.endTime}
+                        {session.sessionDate ?? "—"} · {session.startTime} — {session.endTime}
                       </p>
                     </div>
 
@@ -640,10 +974,67 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                       <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                         {t(locale, "معذور", "Excused")}: {session.attendanceSummary.excused}
                       </span>
+                      <span className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 font-semibold text-brand-700">
+                        {t(locale, "تم تسجيل", "Marked")}: {attendanceProgress}
+                      </span>
                     </div>
-                  </div>
+                  </div>                                    <details data-session-defer-panel className="mb-4 rounded-2xl border border-warning-100 bg-warning-50/50 p-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-1 py-1 text-sm font-bold text-warning-700 outline-none transition hover:text-warning-800">
+                      <span>{t(locale, "تأجيل هذه الحصة فقط", "Reschedule this session only")}</span>
+                      <span className="rounded-full border border-warning-200 bg-card px-2.5 py-1 text-[11px] font-semibold text-warning-700">
+                        {deferChanged ? t(locale, "يوجد تعديل غير محفوظ", "Unsaved change") : t(locale, "فتح خيارات التأجيل", "Open reschedule options")}
+                      </span>
+                    </summary>
 
-                  <div className="mb-4 rounded-2xl border border-border bg-card p-4">
+                    <div className="mt-4 border-t border-warning-100 pt-4">
+                      <p className="mb-3 text-xs leading-5 text-warning-700/80">
+                        {t(locale, "تغيير موعد هذه الحصة لن يغيّر مواعيد باقي حصص الجروب.", "Changing this session will not shift the rest of the group sessions.")}
+                      </p>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_120px_auto] md:items-end">
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "التاريخ الجديد", "New date")}</span>
+                          <input
+                            type="date"
+                            value={deferDraft.sessionDate}
+                            onChange={(event) => updateDeferDraft(session.id, { sessionDate: event.target.value })}
+                            className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "من", "From")}</span>
+                          <input
+                            type="time"
+                            value={deferDraft.startTime}
+                            onChange={(event) => updateDeferDraft(session.id, { startTime: event.target.value })}
+                            className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "إلى", "To")}</span>
+                          <input
+                            type="time"
+                            value={deferDraft.endTime}
+                            onChange={(event) => updateDeferDraft(session.id, { endTime: event.target.value })}
+                            className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeferSession(session.id)}
+                          disabled={isDeferring || !deferChanged || !deferDraft.sessionDate || !deferDraft.startTime || !deferDraft.endTime}
+                          className="inline-flex items-center justify-center rounded-xl bg-warning-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warning-600 disabled:opacity-50"
+                        >
+                          {isDeferring ? t(locale, "جاري التأجيل...", "Rescheduling...") : t(locale, "حفظ التأجيل", "Save change")}
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+
+<div className="mb-4 rounded-2xl border border-border bg-card p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-foreground">
                         {t(locale, "جدول الحضور والغياب", "Attendance table")}

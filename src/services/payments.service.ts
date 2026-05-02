@@ -2,10 +2,11 @@ import { createBrowserClient } from "@supabase/ssr";
 
 import type { PaymentMethod, PaymentStatus } from "@/types/common.types";
 import type { Database } from "@/types/database.types";
-import type { CreatePaymentInput, PaymentDetails, PaymentItem } from "@/types/crm";
+import type { CreatePaymentInput, PaymentCurrency, PaymentDetails, PaymentItem } from "@/types/crm";
 import { isBrowser, sortByDateAsc, sortByDateDesc } from "@/services/storage";
 import { listParents } from "@/services/parents.service";
 import { listStudents } from "@/services/students.service";
+import { formatCurrency } from "@/lib/formatters";
 
 const VALID_METHODS: PaymentMethod[] = ["bank_transfer", "card", "wallet", "cash", "instapay"];
 const VALID_STATUSES: PaymentStatus[] = ["paid", "pending", "overdue", "refunded", "partial"];
@@ -17,6 +18,7 @@ type PaymentInsert = Database["public"]["Tables"]["payments"]["Insert"];
 type PaymentUpdate = Database["public"]["Tables"]["payments"]["Update"];
 
 interface PaymentMeta {
+  currency?: PaymentCurrency;
   sessionsCovered?: number;
   blockStartDate?: string | null;
   blockEndDate?: string | null;
@@ -34,6 +36,9 @@ interface PaymentMeta {
   collectionNotes?: string | null;
 }
 
+function normalizePaymentCurrency(value: unknown): PaymentCurrency {
+  return value === "SAR" ? "SAR" : "EGP";
+}
 interface PaymentArchiveState {
   archived: boolean;
   archivedAt: string | null;
@@ -133,6 +138,7 @@ function parsePaymentMeta(raw: string | null | undefined): { publicNote: string 
 
 function buildPaymentNotes(publicNote: string | null | undefined, meta: PaymentMeta): string {
   const compactMeta: PaymentMeta = {
+    currency: normalizePaymentCurrency(meta.currency),
     sessionsCovered: normalizeSessionBlock(meta.sessionsCovered ?? DEFAULT_SESSION_BLOCK),
     collectionStartSession: meta.collectionStartSession ?? null,
     collectionEndSession: meta.collectionEndSession ?? null,
@@ -218,6 +224,7 @@ function mapPaymentRow(
     parentName:
       parent?.fullName ?? student?.parentName ?? asString(record.parentName, "ولي أمر غير محدد"),
     amount: asNumber(record.amount),
+    currency: normalizePaymentCurrency(meta.currency),
     status: asStatus(record.status),
     method: asMethod(record.method),
     dueDate: asString(record.due_date ?? record.dueDate, new Date().toISOString()),
@@ -450,9 +457,9 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
   const now = new Date().toISOString();
   const paymentId = crypto.randomUUID();
   const invoiceNumber = generateInvoiceNumber(current);
+  const currency = normalizePaymentCurrency(input.currency);
   const sessionsCovered = normalizeSessionBlock(input.sessionsCovered ?? DEFAULT_SESSION_BLOCK);
-  const notes = buildPaymentNotes(input.notes, {
-    sessionsCovered,
+  const notes = buildPaymentNotes(input.notes, {sessionsCovered,
     blockStartDate,
     blockEndDate,
     deferredUntil,
@@ -467,6 +474,7 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
     parentId: resolvedParentId,
     parentName: parent?.fullName ?? student.parentName ?? "??? ??? ??? ????",
     amount: input.amount,
+    currency: currency,
     status: input.status,
     method: input.method,
     dueDate,
@@ -517,6 +525,7 @@ export async function updatePaymentStatus(id: string, status: PaymentStatus, met
   const nextMethod = method === undefined ? existing.method : method;
   const nextDeferredUntil = status === "paid" ? null : existing.deferredUntil;
   const nextNotes = buildPaymentNotes(existing.publicNote, {
+    currency: existing.currency ?? "EGP",
     sessionsCovered: existing.sessionsCovered,
     blockStartDate: existing.blockStartDate,
     blockEndDate: existing.blockEndDate,
@@ -560,6 +569,7 @@ export async function archivePayment(id: string, archivedBy?: string | null): Pr
 
   const now = new Date().toISOString();
   const nextNotes = buildPaymentNotes(existing.publicNote, {
+    currency: existing.currency,
     sessionsCovered: existing.sessionsCovered,
     blockStartDate: existing.blockStartDate,
     blockEndDate: existing.blockEndDate,
@@ -595,6 +605,7 @@ export async function restoreArchivedPayment(id: string): Promise<PaymentItem | 
   if (!archiveState.archived) return existing;
 
   const nextNotes = buildPaymentNotes(existing.publicNote, {
+    currency: existing.currency,
     sessionsCovered: existing.sessionsCovered,
     blockStartDate: existing.blockStartDate,
     blockEndDate: existing.blockEndDate,
@@ -646,7 +657,7 @@ export function buildInvoiceShareMessage(payment: PaymentItem, locale: "ar" | "e
       `الطالب: ${payment.studentName}`,
       `ولي الأمر: ${payment.parentName}`,
       `عدد الجلسات: ${payment.sessionsCovered}`,
-      `المبلغ: ${payment.amount} ج.م`,
+      `المبلغ: ${formatCurrency(payment.amount, "ar", payment.currency ?? "EGP")}`,
       `الاستحقاق الفعلي: ${effectiveDueDate}`,
       payment.deferredUntil ? `مؤجل حتى: ${payment.deferredUntil.slice(0, 10)}` : null,
       `شركة Skidy Rein`,
@@ -660,7 +671,7 @@ export function buildInvoiceShareMessage(payment: PaymentItem, locale: "ar" | "e
     `Student: ${payment.studentName}`,
     `Parent: ${payment.parentName}`,
     `Sessions: ${payment.sessionsCovered}`,
-    `Amount: EGP ${payment.amount}`,
+    `Amount: ${formatCurrency(payment.amount, "en", payment.currency ?? "EGP")}`,
     `Effective due date: ${effectiveDueDate}`,
     payment.deferredUntil ? `Deferred until: ${payment.deferredUntil.slice(0, 10)}` : null,
     `Skidy Rein`,
@@ -730,5 +741,4 @@ export function getBillingCycleText(
   const deferred = payment.deferredUntil ? ` — deferred until ${payment.deferredUntil.slice(0, 10)}` : "";
   return `${sessions}-session covered sessions${dateRange}${deferred}`;
 }
-
 

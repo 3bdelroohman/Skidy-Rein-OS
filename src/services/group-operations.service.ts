@@ -35,6 +35,12 @@ function asCourse(value: string | null | undefined): CourseType {
   return (value ?? "scratch") as CourseType;
 }
 
+
+function addWeeksToDate(dateValue: string, weeks: number): string {
+  const date = new Date(dateValue + "T00:00:00");
+  date.setDate(date.getDate() + weeks * 7);
+  return date.toISOString().slice(0, 10);
+}
 function sortSessions(items: GroupSessionItem[]): GroupSessionItem[] {
   return [...items].sort((a, b) => {
     const leftDate = a.sessionDate ?? "";
@@ -360,6 +366,80 @@ export async function addStudentsToGroup(groupId: string, course: CourseType, st
   await syncGroupStudentCount(supabase, groupId);
 }
 
+export async function moveStudentToGroup(input: {
+  sourceGroupId: string;
+  targetGroupId: string;
+  studentId: string;
+  targetCourse: CourseType;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  if (input.sourceGroupId === input.targetGroupId) {
+    throw new Error("Student is already in this group.");
+  }
+
+  const { data: existingTargetRows, error: existingTargetError } = await supabase
+    .from("class_enrollments")
+    .select("id")
+    .eq("class_id", input.targetGroupId)
+    .eq("student_id", input.studentId)
+    .eq("is_active", true)
+    .limit(1);
+
+  if (existingTargetError) {
+    throw new Error(existingTargetError.message || "Failed to check target group enrollment");
+  }
+
+  if ((existingTargetRows ?? []).length > 0) {
+    throw new Error("Student is already active in the target group.");
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: deactivateError } = await supabase
+    .from("class_enrollments")
+    .update({
+      is_active: false,
+      dropped_at: now,
+    })
+    .eq("class_id", input.sourceGroupId)
+    .eq("student_id", input.studentId)
+    .eq("is_active", true);
+
+  if (deactivateError) {
+    throw new Error(deactivateError.message || "Failed to deactivate source group enrollment");
+  }
+
+  const { error: insertError } = await supabase.from("class_enrollments").insert({
+    student_id: input.studentId,
+    class_id: input.targetGroupId,
+    is_active: true,
+    enrolled_at: now,
+  });
+
+  if (insertError) {
+    throw new Error(insertError.message || "Failed to add student to target group");
+  }
+
+  const { error: updateStudentError } = await supabase
+    .from("students")
+    .update({
+      current_class_id: input.targetGroupId,
+      current_course: input.targetCourse,
+    })
+    .eq("id", input.studentId);
+
+  if (updateStudentError) {
+    throw new Error(updateStudentError.message || "Failed to update student current group");
+  }
+
+  await syncGroupStudentCount(supabase, input.sourceGroupId);
+  await syncGroupStudentCount(supabase, input.targetGroupId);
+  await syncStudentCurrentClass(supabase, input.studentId);
+}
 export async function removeStudentFromGroup(groupId: string, studentId: string): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -384,6 +464,162 @@ export async function removeStudentFromGroup(groupId: string, studentId: string)
   await syncStudentCurrentClass(supabase, studentId);
 }
 
+
+export async function completeGroupSessionSeries(input: {
+  groupId: string;
+  targetCount?: number;
+}): Promise<{ createdCount: number; totalCount: number }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  const targetCount = Math.min(24, Math.max(1, input.targetCount ?? 8));
+
+  const { data: classRows, error: classError } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("id", input.groupId)
+    .limit(1);
+
+  if (classError) {
+    throw new Error(classError.message || "Failed to load group");
+  }
+
+  const classRow = (classRows?.[0] ?? null) as ClassRow | null;
+  if (!classRow) {
+    throw new Error("Group was not found.");
+  }
+
+  const { data: sessionRows, error: sessionsError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("class_id", input.groupId);
+
+  if (sessionsError) {
+    throw new Error(sessionsError.message || "Failed to load group sessions");
+  }
+
+  const existingSessions = sortSessions(
+    ((sessionRows ?? []) as SessionRow[]).map((row) => ({
+      id: row.id,
+      classId: row.class_id,
+      teacherId: row.teacher_id,
+      day: row.session_date ? new Date(row.session_date).getDay() : 0,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      className: classRow.name,
+      teacher: "Teacher",
+      students: 0,
+      course: asCourse(null),
+      sessionDate: row.session_date,
+      linkedStudents: [],
+      attendanceSummary: { present: 0, absent: 0, late: 0, excused: 0 },
+      attendanceEntries: [],
+      operations: null,
+    })),
+  );
+
+  if (existingSessions.length === 0) {
+    throw new Error("Create the first session first, then complete the series from the group page.");
+  }
+
+  if (existingSessions.length >= targetCount) {
+    return { createdCount: 0, totalCount: existingSessions.length };
+  }
+
+  const anchor = existingSessions.find((session) => session.sessionDate) ?? existingSessions[0];
+  if (!anchor.sessionDate) {
+    throw new Error("The first session must have a date before completing the 8-session series.");
+  }
+
+  const teacherId = anchor.teacherId ?? classRow.teacher_id;
+  if (!teacherId) {
+    throw new Error("Cannot complete the series because the group teacher is missing.");
+  }
+
+  const startTime = anchor.startTime;
+  const endTime = anchor.endTime;
+  const existingKeys = new Set(
+    existingSessions.map((session) => `${session.sessionDate ?? ""}|${session.startTime}|${session.endTime}`),
+  );
+
+  const rowsToInsert: Array<{
+    class_id: string;
+    teacher_id: string;
+    session_date: string;
+    start_time: string;
+    end_time: string;
+    topic: string | null;
+    notes: string | null;
+    meeting_link: string | null;
+    is_cancelled: boolean;
+  }> = [];
+
+  let weekIndex = 0;
+
+  while (existingSessions.length + rowsToInsert.length < targetCount && weekIndex < targetCount + 32) {
+    const sessionDate = addWeeksToDate(anchor.sessionDate, weekIndex);
+    const key = `${sessionDate}|${startTime}|${endTime}`;
+
+    if (!existingKeys.has(key)) {
+      rowsToInsert.push({
+        class_id: input.groupId,
+        teacher_id: teacherId,
+        session_date: sessionDate,
+        start_time: startTime,
+        end_time: endTime,
+        topic: null,
+        notes: null,
+        meeting_link: null,
+        is_cancelled: false,
+      });
+
+      existingKeys.add(key);
+    }
+
+    weekIndex += 1;
+  }
+
+  if (rowsToInsert.length === 0) {
+    return { createdCount: 0, totalCount: existingSessions.length };
+  }
+
+  const { error: insertError } = await supabase.from("sessions").insert(rowsToInsert);
+
+  if (insertError) {
+    throw new Error(insertError.message || "Failed to create missing group sessions");
+  }
+
+  return {
+    createdCount: rowsToInsert.length,
+    totalCount: existingSessions.length + rowsToInsert.length,
+  };
+}
+export async function updateGroupSessionSchedule(input: {
+  sessionId: string;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({
+      session_date: input.sessionDate,
+      start_time: input.startTime,
+      end_time: input.endTime,
+    })
+    .eq("id", input.sessionId);
+
+  if (error) {
+    throw new Error(error.message || "Failed to update session schedule");
+  }
+}
 export async function saveSessionAttendanceBulk(input: {
   sessionId: string;
   entries: Array<{

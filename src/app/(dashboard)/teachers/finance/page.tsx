@@ -7,7 +7,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
 import { canManageTeacherFinanceForUser, canManageTeachersForUser } from "@/config/roles";
 import { t } from "@/lib/locale";
-import { formatCourseLabel, formatCurrencyEgp } from "@/lib/formatters";
+import { formatCourseLabel, formatCurrency } from "@/lib/formatters";
 import { getEmploymentTypeLabel } from "@/lib/locale";
 import { getTeacherDetails } from "@/services/relations.service";
 import { listTeachers } from "@/services/teachers.service";
@@ -166,8 +166,8 @@ export default function TeachersFinancePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SummaryCard locale={locale} icon={Wallet} labelAr="إجمالي أسبوعي" labelEn="Weekly total" value={formatCurrencyEgp(totals.weekly, locale)} />
-        <SummaryCard locale={locale} icon={Wallet} labelAr="إجمالي شهري تقديري" labelEn="Estimated monthly total" value={formatCurrencyEgp(totals.monthly, locale)} />
+        <SummaryCard locale={locale} icon={Wallet} labelAr="إجمالي أسبوعي" labelEn="Weekly total" value={formatCurrency(totals.weekly, locale)} />
+        <SummaryCard locale={locale} icon={Wallet} labelAr="إجمالي شهري تقديري" labelEn="Estimated monthly total" value={formatCurrency(totals.monthly, locale)} />
         <SummaryCard locale={locale} icon={Calculator} labelAr="إجمالي الحصص" labelEn="Total sessions" value={String(totals.sessions)} />
       </div>
 
@@ -201,7 +201,7 @@ export default function TeachersFinancePage() {
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                  {formatCurrencyEgp(item.monthlyEstimated, locale)}
+                  {formatCurrency(item.monthlyEstimated, locale)}
                 </span>
               </div>
 
@@ -216,9 +216,9 @@ export default function TeachersFinancePage() {
               ) : null}
 
               <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
-                <MiniMetric locale={locale} labelAr="أسبوعي" labelEn="Weekly" value={formatCurrencyEgp(item.weeklyEstimated, locale)} />
-                <MiniMetric locale={locale} labelAr="شهري" labelEn="Monthly" value={formatCurrencyEgp(item.monthlyEstimated, locale)} />
-                <MiniMetric locale={locale} labelAr="متوسط الحصة" labelEn="Avg session" value={formatCurrencyEgp(item.averagePerSession, locale)} />
+                <MiniMetric locale={locale} labelAr="أسبوعي" labelEn="Weekly" value={formatCurrency(item.weeklyEstimated, locale)} />
+                <MiniMetric locale={locale} labelAr="شهري" labelEn="Monthly" value={formatCurrency(item.monthlyEstimated, locale)} />
+                <MiniMetric locale={locale} labelAr="متوسط الحصة" labelEn="Avg session" value={formatCurrency(item.averagePerSession, locale)} />
               </div>
             </Link>
           ))}

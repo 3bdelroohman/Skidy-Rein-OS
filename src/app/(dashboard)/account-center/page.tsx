@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ import {
 import { PageStateCard } from "@/components/shared/page-state";
 import { useCurrentUser } from "@/providers/user-provider";
 import { getAccountCenterData, type AccountCenterData, type AccountCenterStudentItem } from "@/services/account-center.service";
-import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import { t } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
@@ -208,7 +208,7 @@ function WorkQueue({ title, description, items, emptyText, tone, locale }: { tit
 }
 
 function StudentQueueCard({ item, locale }: { item: AccountCenterStudentItem; locale: "ar" | "en" }) {
-  const latestAmount = item.latestPayment ? formatCurrencyEgp(item.latestPayment.amount, locale) : "—";
+  const latestAmount = item.latestPayment ? formatCurrency(item.latestPayment.amount, locale) : "—";
   const latestDate = item.latestPayment?.paidAt ?? item.latestPayment?.dueDate ?? null;
   const nextCollectionDueDate = item.nextCollectionDueDate;
   const collectionStatus = item.collectionStatus;

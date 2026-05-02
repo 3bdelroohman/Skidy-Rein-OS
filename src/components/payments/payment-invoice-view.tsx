@@ -1,5 +1,7 @@
 "use client";
 
+import { formatCurrency } from "@/lib/formatters";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -15,18 +17,7 @@ function _w(s: string): string {
   return s
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
-}
-
-
-function formatCurrency(value: number, locale: "ar" | "en"): string {
-  return _w(new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(value));
-}
-
-function formatDateLabel(value: string | null | undefined, locale: "ar" | "en"): string {
+}function formatDateLabel(value: string | null | undefined, locale: "ar" | "en"): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value.slice(0, 10);
@@ -103,7 +94,7 @@ export function PaymentInvoiceView({ paymentId }: { paymentId: string }) {
     const parentEmail = payment.parent?.email ?? null;
     const invoiceNumber = payment.invoiceNumber ?? `SKR-${new Date().getFullYear()}-${payment.id.slice(0, 6).toUpperCase()}`;
     const studentName = payment.studentName;
-    const amount = formatCurrency(payment.amount, locale);
+    const amount = formatCurrency(payment.amount, locale, payment.currency ?? "EGP");
     const sessions = String(payment.sessionsCovered);
     const effectiveDueDate = formatDateLabel(getPaymentEffectiveDueDate(payment), locale);
 
@@ -170,7 +161,7 @@ export function PaymentInvoiceView({ paymentId }: { paymentId: string }) {
     [t(locale, "رقم الفاتورة", "Invoice number"), invoiceNumber],
     [t(locale, "الطالب", "Student"), payment.studentName],
     [t(locale, "ولي الأمر", "Parent"), parentName],
-    [t(locale, "المبلغ", "Amount"), formatCurrency(payment.amount, locale)],
+    [t(locale, "المبلغ", "Amount"), formatCurrency(payment.amount, locale, payment.currency ?? "EGP")],
     [t(locale, "عدد الجلسات", "Sessions covered"), String(payment.sessionsCovered)],
     [t(locale, "الحالة", "Status"), getStatusLabel(displayStatus, locale)],
     [t(locale, "طريقة الدفع", "Payment method"), getMethodLabel(payment.method, locale)],
@@ -247,7 +238,7 @@ export function PaymentInvoiceView({ paymentId }: { paymentId: string }) {
             <div className="space-y-6">
               <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
                 <p className="text-sm text-emerald-700">{t(locale, "إجمالي المستحق", "Total amount due")}</p>
-                <p className="mt-2 text-3xl font-bold text-emerald-900">{formatCurrency(payment.amount, locale)}</p>
+                <p className="mt-2 text-3xl font-bold text-emerald-900">{formatCurrency(payment.amount, locale, payment.currency ?? "EGP")}</p>
                 <p className="mt-2 text-sm text-emerald-800">{getBillingCycleText(payment, locale)}</p>
               </div>
 
