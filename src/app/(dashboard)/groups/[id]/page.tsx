@@ -74,6 +74,66 @@ function createAttendanceDrafts(session: GroupDetails["sessions"][number]): Reco
   );
 }
 
+
+type SessionTimelineStatus = "upcoming" | "today" | "past" | "no_date";
+
+function getSessionTimelineStatus(session: GroupDetails["sessions"][number]): SessionTimelineStatus {
+  if (!session.sessionDate) return "no_date";
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (session.sessionDate === today) return "today";
+  return session.sessionDate > today ? "upcoming" : "past";
+}
+
+function getSessionStatusMeta(session: GroupDetails["sessions"][number], locale: "ar" | "en") {
+  const status = getSessionTimelineStatus(session);
+
+  if (status === "today") {
+    return {
+      label: t(locale, "اليوم", "Today"),
+      className: "border-info-100 bg-info-50 text-info-700",
+    };
+  }
+
+  if (status === "upcoming") {
+    return {
+      label: t(locale, "قادمة", "Upcoming"),
+      className: "border-brand-100 bg-brand-50 text-brand-700",
+    };
+  }
+
+  if (status === "past") {
+    return {
+      label: t(locale, "فائتة", "Past"),
+      className: "border-border bg-muted text-muted-foreground",
+    };
+  }
+
+  return {
+    label: t(locale, "بدون تاريخ", "No date"),
+    className: "border-warning-100 bg-warning-50 text-warning-700",
+  };
+}
+
+function getMarkedAttendanceCount(session: GroupDetails["sessions"][number]): number {
+  return (
+    session.attendanceSummary.present +
+    session.attendanceSummary.absent +
+    session.attendanceSummary.late +
+    session.attendanceSummary.excused
+  );
+}
+
+function isSessionOperationsComplete(session: GroupDetails["sessions"][number]): boolean {
+  const operations = session.operations;
+  return Boolean(
+    operations?.attendanceTaken &&
+    operations?.materialsUploaded &&
+    operations?.recordingUploaded &&
+    operations?.telegramPosted &&
+    operations?.homeworkShared
+  );
+}
 export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const locale = useUIStore((state) => state.locale);
@@ -612,18 +672,42 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         ) : (
           <div className="space-y-4">
-            {group.sessions.map((session) => {
+            {group.sessions.map((session, index) => {
               const draft = drafts[session.id] ?? createDraft(session);
               const isSaving = busySessionId === session.id;
               const isSavingAttendance = busyAttendanceSessionId === session.id;
+              const sessionNumber = index + 1;
+              const statusMeta = getSessionStatusMeta(session, locale);
+              const markedAttendance = getMarkedAttendanceCount(session);
+              const totalAttendance = session.attendanceEntries.length;
+              const attendanceProgress = totalAttendance > 0 ? `${markedAttendance}/${totalAttendance}` : "0/0";
+              const operationsComplete = isSessionOperationsComplete(session);
 
               return (
                 <div key={session.id} className="rounded-2xl border border-border bg-background p-4">
-                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">{session.className}</p>
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 font-semibold text-brand-700">
+                          {t(locale, `الحصة ${sessionNumber}`, `Session ${sessionNumber}`)}
+                        </span>
+                        <span className={"rounded-full border px-2.5 py-1 font-semibold " + statusMeta.className}>
+                          {statusMeta.label}
+                        </span>
+                        <span
+                          className={
+                            operationsComplete
+                              ? "rounded-full border border-success-100 bg-success-50 px-2.5 py-1 font-semibold text-success-700"
+                              : "rounded-full border border-border bg-muted px-2.5 py-1 font-semibold text-muted-foreground"
+                          }
+                        >
+                          {operationsComplete ? t(locale, "Checklist مكتملة", "Checklist complete") : t(locale, "Checklist غير مكتملة", "Checklist pending")}
+                        </span>
+                      </div>
+
+                      <p className="truncate font-semibold text-foreground">{session.className}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {session.sessionDate ?? "—"} • {session.startTime} - {session.endTime}
+                        {session.sessionDate ?? "—"} · {session.startTime} — {session.endTime}
                       </p>
                     </div>
 
@@ -640,10 +724,12 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                       <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                         {t(locale, "معذور", "Excused")}: {session.attendanceSummary.excused}
                       </span>
+                      <span className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 font-semibold text-brand-700">
+                        {t(locale, "تم تسجيل", "Marked")}: {attendanceProgress}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="mb-4 rounded-2xl border border-border bg-card p-4">
+<div className="mb-4 rounded-2xl border border-border bg-card p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-foreground">
                         {t(locale, "جدول الحضور والغياب", "Attendance table")}
