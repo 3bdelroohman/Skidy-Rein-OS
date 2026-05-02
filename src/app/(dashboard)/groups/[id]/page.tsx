@@ -31,6 +31,7 @@ import {
   saveGroupNotes,
   saveSessionAttendanceBulk,
   saveSessionOperationsChecklist,
+  updateGroupSessionSchedule,
   updateGroupStatus,
 } from "@/services/group-operations.service";
 import { listStudents } from "@/services/students.service";
@@ -50,6 +51,12 @@ interface AttendanceDraft {
   status: AttendanceStatus | null;
   notes: string;
 }
+interface SessionDeferDraft {
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+}
+
 
 function createDraft(session: GroupDetails["sessions"][number]): SessionDraft {
   return {
@@ -134,6 +141,14 @@ function isSessionOperationsComplete(session: GroupDetails["sessions"][number]):
     operations?.homeworkShared
   );
 }
+
+function createDeferDraft(session: GroupDetails["sessions"][number]): SessionDeferDraft {
+  return {
+    sessionDate: session.sessionDate ?? "",
+    startTime: session.startTime,
+    endTime: session.endTime,
+  };
+}
 export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const locale = useUIStore((state) => state.locale);
@@ -146,6 +161,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [busyAttendanceSessionId, setBusyAttendanceSessionId] = useState<string | null>(null);
+  const [busyDeferSessionId, setBusyDeferSessionId] = useState<string | null>(null);
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [groupNotes, setGroupNotes] = useState("");
@@ -153,6 +169,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, SessionDraft>>({});
   const [attendanceDrafts, setAttendanceDrafts] = useState<Record<string, Record<string, AttendanceDraft>>>({});
+  const [deferDrafts, setDeferDrafts] = useState<Record<string, SessionDeferDraft>>({});
 
   async function load() {
     setLoading(true);
@@ -172,6 +189,11 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
         groupData.sessions.map((session) => [session.id, createAttendanceDrafts(session)]),
       );
       setAttendanceDrafts(nextAttendanceDrafts);
+
+      const nextDeferDrafts = Object.fromEntries(
+        groupData.sessions.map((session) => [session.id, createDeferDraft(session)]),
+      );
+      setDeferDrafts(nextDeferDrafts);
     }
 
     setLoading(false);
@@ -204,6 +226,11 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           groupData.sessions.map((session) => [session.id, createAttendanceDrafts(session)]),
         );
         setAttendanceDrafts(nextAttendanceDrafts);
+
+      const nextDeferDrafts = Object.fromEntries(
+        groupData.sessions.map((session) => [session.id, createDeferDraft(session)]),
+      );
+      setDeferDrafts(nextDeferDrafts);
       }
 
       setLoading(false);
@@ -301,6 +328,56 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  function updateDeferDraft(sessionId: string, patch: Partial<SessionDeferDraft>) {
+    setDeferDrafts((prev) => ({
+      ...prev,
+      [sessionId]: {
+        ...(prev[sessionId] ?? { sessionDate: "", startTime: "", endTime: "" }),
+        ...patch,
+      },
+    }));
+  }
+
+  async function handleDeferSession(sessionId: string) {
+    if (!group) return;
+
+    const session = group.sessions.find((item) => item.id === sessionId);
+    const draft = deferDrafts[sessionId];
+    if (!session || !draft) return;
+
+    if (!draft.sessionDate || !draft.startTime || !draft.endTime) {
+      toast.error(t(locale, "حدد التاريخ ووقت البداية والنهاية أولًا", "Choose date, start time, and end time first"));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      t(
+        locale,
+        "سيتم تعديل موعد هذه الحصة فقط بدون تغيير مواعيد باقي الحصص. هل تريد المتابعة؟",
+        "Only this session will be rescheduled. The other sessions will not shift. Continue?",
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyDeferSessionId(sessionId);
+
+    try {
+      await updateGroupSessionSchedule({
+        sessionId,
+        sessionDate: draft.sessionDate,
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+      });
+
+      toast.success(t(locale, "تم تأجيل هذه الحصة فقط", "Only this session was rescheduled"));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر تأجيل الحصة", "Could not reschedule session"));
+    } finally {
+      setBusyDeferSessionId(null);
+    }
+  }
   async function handleSaveAttendance(sessionId: string) {
     if (!group) return;
 
@@ -682,6 +759,12 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
               const totalAttendance = session.attendanceEntries.length;
               const attendanceProgress = totalAttendance > 0 ? `${markedAttendance}/${totalAttendance}` : "0/0";
               const operationsComplete = isSessionOperationsComplete(session);
+              const deferDraft = deferDrafts[session.id] ?? createDeferDraft(session);
+              const isDeferring = busyDeferSessionId === session.id;
+              const deferChanged =
+                deferDraft.sessionDate !== (session.sessionDate ?? "") ||
+                deferDraft.startTime !== session.startTime ||
+                deferDraft.endTime !== session.endTime;
 
               return (
                 <div key={session.id} className="rounded-2xl border border-border bg-background p-4">
@@ -728,7 +811,66 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                         {t(locale, "تم تسجيل", "Marked")}: {attendanceProgress}
                       </span>
                     </div>
+                  </div>                  <div data-session-defer-panel className="mb-4 rounded-2xl border border-warning-100 bg-warning-50/70 p-4">
+                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-warning-700">
+                          {t(locale, "تأجيل هذه الحصة فقط", "Reschedule this session only")}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-warning-700/80">
+                          {t(locale, "تغيير موعد هذه الحصة لن يغيّر مواعيد باقي حصص الجروب.", "Changing this session will not shift the rest of the group sessions.")}
+                        </p>
+                      </div>
+
+                      {deferChanged ? (
+                        <span className="rounded-full border border-warning-200 bg-card px-2.5 py-1 text-[11px] font-semibold text-warning-700">
+                          {t(locale, "يوجد تعديل غير محفوظ", "Unsaved change")}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_120px_auto] md:items-end">
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "التاريخ الجديد", "New date")}</span>
+                        <input
+                          type="date"
+                          value={deferDraft.sessionDate}
+                          onChange={(event) => updateDeferDraft(session.id, { sessionDate: event.target.value })}
+                          className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "من", "From")}</span>
+                        <input
+                          type="time"
+                          value={deferDraft.startTime}
+                          onChange={(event) => updateDeferDraft(session.id, { startTime: event.target.value })}
+                          className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "إلى", "To")}</span>
+                        <input
+                          type="time"
+                          value={deferDraft.endTime}
+                          onChange={(event) => updateDeferDraft(session.id, { endTime: event.target.value })}
+                          className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeferSession(session.id)}
+                        disabled={isDeferring || !deferChanged || !deferDraft.sessionDate || !deferDraft.startTime || !deferDraft.endTime}
+                        className="inline-flex items-center justify-center rounded-xl bg-warning-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warning-600 disabled:opacity-50"
+                      >
+                        {isDeferring ? t(locale, "جاري التأجيل...", "Rescheduling...") : t(locale, "حفظ التأجيل", "Save change")}
+                      </button>
+                    </div>
                   </div>
+
 <div className="mb-4 rounded-2xl border border-border bg-card p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-foreground">

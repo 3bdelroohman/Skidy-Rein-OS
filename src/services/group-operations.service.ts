@@ -384,6 +384,30 @@ export async function removeStudentFromGroup(groupId: string, studentId: string)
   await syncStudentCurrentClass(supabase, studentId);
 }
 
+export async function updateGroupSessionSchedule(input: {
+  sessionId: string;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  const { error } = await supabase
+    .from("sessions")
+    .update({
+      session_date: input.sessionDate,
+      start_time: input.startTime,
+      end_time: input.endTime,
+    })
+    .eq("id", input.sessionId);
+
+  if (error) {
+    throw new Error(error.message || "Failed to update session schedule");
+  }
+}
 export async function saveSessionAttendanceBulk(input: {
   sessionId: string;
   entries: Array<{
