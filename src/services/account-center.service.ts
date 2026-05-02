@@ -25,6 +25,9 @@ export interface AccountCenterStudentItem {
   paymentHref: string | null;
   studentHref: string;
   parentLabel: string;
+  nextCollectionDueDate: string | null;
+  collectionStatus: string | null;
+  collectionNotes: string | null;
 }
 
 export interface AccountCenterMetric {
@@ -106,8 +109,10 @@ export async function getAccountCenterData(): Promise<AccountCenterData> {
         startDate: counter.startDate,
         sessionsCovered: counter.sessionsCovered,
         usedSessions: counter.usedSessions,
-        remainingSessions: counter.remainingSessions,
-        overusedSessions: counter.overusedSessions,
+        remainingSessions: counter.remainingSessions,        overusedSessions: counter.overusedSessions,
+        nextCollectionDueDate: counter.latestPayment?.nextCollectionDueDate ?? null,
+        collectionStatus: counter.latestPayment?.collectionStatus ?? null,
+        collectionNotes: counter.latestPayment?.collectionNotes ?? null,
         status,
         needsOperationsHandoff,
         paymentHref: counter.latestPayment ? "/payments/" + counter.latestPayment.id : null,

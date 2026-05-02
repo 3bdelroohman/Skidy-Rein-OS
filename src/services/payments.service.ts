@@ -26,6 +26,12 @@ interface PaymentMeta {
   publicNote?: string | null;
   archivedAt?: string | null;
   archivedBy?: string | null;
+  collectionStartSession?: number | null;
+  collectionEndSession?: number | null;
+  nextCollectionSession?: number | null;
+  nextCollectionDueDate?: string | null;
+  collectionStatus?: string | null;
+  collectionNotes?: string | null;
 }
 
 interface PaymentArchiveState {
@@ -68,6 +74,15 @@ function asNumber(value: unknown, fallback = 0): number {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
   return fallback;
+}
+
+function asNullableNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 function asStatus(value: unknown): PaymentStatus {
@@ -119,6 +134,12 @@ function parsePaymentMeta(raw: string | null | undefined): { publicNote: string 
 function buildPaymentNotes(publicNote: string | null | undefined, meta: PaymentMeta): string {
   const compactMeta: PaymentMeta = {
     sessionsCovered: normalizeSessionBlock(meta.sessionsCovered ?? DEFAULT_SESSION_BLOCK),
+    collectionStartSession: meta.collectionStartSession ?? null,
+    collectionEndSession: meta.collectionEndSession ?? null,
+    nextCollectionSession: meta.nextCollectionSession ?? null,
+    nextCollectionDueDate: meta.nextCollectionDueDate ?? null,
+    collectionStatus: meta.collectionStatus ?? "manual",
+    collectionNotes: meta.collectionNotes ?? null,
     blockStartDate: meta.blockStartDate ?? null,
     blockEndDate: meta.blockEndDate ?? null,
     deferredUntil: meta.deferredUntil ?? null,
@@ -204,6 +225,12 @@ function mapPaymentRow(
     notes: rawNotes,
     publicNote,
     sessionsCovered: normalizeSessionBlock(meta.sessionsCovered ?? DEFAULT_SESSION_BLOCK),
+    collectionStartSession: asNullableNumber(record.collection_start_session ?? record.collectionStartSession) ?? meta.collectionStartSession ?? null,
+    collectionEndSession: asNullableNumber(record.collection_end_session ?? record.collectionEndSession) ?? meta.collectionEndSession ?? null,
+    nextCollectionSession: asNullableNumber(record.next_collection_session ?? record.nextCollectionSession) ?? meta.nextCollectionSession ?? null,
+    nextCollectionDueDate: asNullableString(record.next_collection_due_date ?? record.nextCollectionDueDate) ?? meta.nextCollectionDueDate ?? null,
+    collectionStatus: asNullableString(record.collection_status ?? record.collectionStatus) ?? meta.collectionStatus ?? "manual",
+    collectionNotes: asNullableString(record.collection_notes ?? record.collectionNotes) ?? meta.collectionNotes ?? null,
     blockStartDate: meta.blockStartDate ?? null,
     blockEndDate: meta.blockEndDate ?? null,
     deferredUntil: meta.deferredUntil ?? null,

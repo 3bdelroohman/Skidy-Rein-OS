@@ -109,8 +109,8 @@ export default function AccountCenterPage() {
           <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
             {t(
               locale,
-              "قائمة عمل يومية لمتابعة باقات 8 حصص، التجديدات، الاستخدام الزائد، والطلاب الذين دفعوا ويحتاجون تسليمًا للأوبريشن.",
-              "A daily work queue for 8-session packages, renewals, overuse, and paid students who need operations handoff.",
+              "قائمة عمل يومية لمتابعة التحصيل اليدوي، الحصص المغطاة، التجديدات، الاستخدام الزائد، والطلاب الذين دفعوا ويحتاجون تسليمًا للأوبريشن.",
+              "A daily work queue for manual collection, covered sessions, renewals, overuse, and paid students who need operations handoff.",
             )}
           </p>
         </div>
@@ -139,8 +139,8 @@ export default function AccountCenterPage() {
             <p>
               {t(
                 locale,
-                "يوجد " + urgentCount + " طالب يحتاجون متابعة تجديد أو مراجعة استخدام الباقة.",
-                urgentCount + " students need renewal follow-up or package usage review.",
+                "يوجد " + urgentCount + " طالب يحتاجون متابعة تجديد أو مراجعة استخدام التحصيل.",
+                urgentCount + " students need renewal follow-up or collection usage review.",
               )}
             </p>
           </div>
@@ -148,12 +148,12 @@ export default function AccountCenterPage() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <WorkQueue title={t(locale, "يحتاج تجديد", "Needs renewal")} description={t(locale, "الباقة انتهت أو لا يوجد متبقي من الحصص.", "Package is finished or has no remaining sessions.")} items={data.needsRenewal} emptyText={t(locale, "لا يوجد طلاب يحتاجون تجديد الآن.", "No students need renewal now.")} tone="danger" locale={locale} />
-        <WorkQueue title={t(locale, "قرب التجديد", "Near renewal")} description={t(locale, "متبقي حصتان أو أقل من باقة 8 حصص.", "Two sessions or fewer remain from the 8-session package.")} items={data.nearRenewal} emptyText={t(locale, "لا يوجد طلاب قرب التجديد حاليًا.", "No students are near renewal right now.")} tone="warning" locale={locale} />
-        <WorkQueue title={t(locale, "استخدام زائد", "Overused")} description={t(locale, "الطالب حضر حصصًا أكثر من المغطى في آخر دفعة.", "Student attended more sessions than the latest paid package covers.")} items={data.overused} emptyText={t(locale, "لا يوجد استخدام زائد.", "No overused packages.")} tone="danger" locale={locale} />
+        <WorkQueue title={t(locale, "يحتاج تجديد", "Needs renewal")} description={t(locale, "التحصيل انتهت أو لا يوجد متبقي من الحصص.", "Collection is finished or has no remaining sessions.")} items={data.needsRenewal} emptyText={t(locale, "لا يوجد طلاب يحتاجون تجديد الآن.", "No students need renewal now.")} tone="danger" locale={locale} />
+        <WorkQueue title={t(locale, "قرب التجديد", "Near renewal")} description={t(locale, "متبقي حصتان أو أقل من الحصص المغطاة.", "Two sessions or fewer remain from the covered sessions.")} items={data.nearRenewal} emptyText={t(locale, "لا يوجد طلاب قرب التجديد حاليًا.", "No students are near renewal right now.")} tone="warning" locale={locale} />
+        <WorkQueue title={t(locale, "استخدام زائد", "Overused")} description={t(locale, "الطالب حضر حصصًا أكثر من المغطى في آخر دفعة.", "Student attended more sessions than the latest paid collection covers.")} items={data.overused} emptyText={t(locale, "لا يوجد استخدام زائد.", "No overused collections.")} tone="danger" locale={locale} />
         <WorkQueue title={t(locale, "يحتاج تسليم للأوبريشن", "Pending operations handoff")} description={t(locale, "طلاب لديهم دفعة ولكن لا يظهر لهم جروب نشط بعد.", "Students have a payment but no active group appears yet.")} items={data.pendingHandoff} emptyText={t(locale, "لا يوجد تسليم معلق للأوبريشن.", "No pending operations handoff.")} tone="info" locale={locale} />
         <WorkQueue title={t(locale, "بلا دفعة", "No payment")} description={t(locale, "طلاب موجودون في النظام لكن لا توجد لهم دفعة مدفوعة أو جزئية.", "Students exist in the system but have no paid or partial payment.")} items={data.noPayment} emptyText={t(locale, "لا يوجد طلاب بلا دفعة.", "No students without payment.")} tone="warning" locale={locale} />
-        <WorkQueue title={t(locale, "حالة جيدة", "Healthy")} description={t(locale, "طلاب لديهم باقة نشطة ولا يحتاجون متابعة تجديد الآن.", "Students have an active package and do not need renewal follow-up now.")} items={data.healthy.slice(0, 10)} emptyText={t(locale, "لا يوجد طلاب في الحالة الجيدة حاليًا.", "No healthy package records right now.")} tone="success" locale={locale} />
+        <WorkQueue title={t(locale, "حالة جيدة", "Healthy")} description={t(locale, "طلاب لديهم باقة نشطة ولا يحتاجون متابعة تجديد الآن.", "Students have an active collection and do not need renewal follow-up now.")} items={data.healthy.slice(0, 10)} emptyText={t(locale, "لا يوجد طلاب في الحالة الجيدة حاليًا.", "No healthy collection records right now.")} tone="success" locale={locale} />
       </div>
     </div>
   );
@@ -210,6 +210,9 @@ function WorkQueue({ title, description, items, emptyText, tone, locale }: { tit
 function StudentQueueCard({ item, locale }: { item: AccountCenterStudentItem; locale: "ar" | "en" }) {
   const latestAmount = item.latestPayment ? formatCurrencyEgp(item.latestPayment.amount, locale) : "—";
   const latestDate = item.latestPayment?.paidAt ?? item.latestPayment?.dueDate ?? null;
+  const nextCollectionDueDate = item.nextCollectionDueDate;
+  const collectionStatus = item.collectionStatus;
+  const collectionNotes = item.collectionNotes;
 
   return (
     <div className="rounded-2xl border border-border bg-background p-4">
@@ -226,8 +229,10 @@ function StudentQueueCard({ item, locale }: { item: AccountCenterStudentItem; lo
         </div>
 
         <div className="flex shrink-0 flex-col gap-2 text-xs text-muted-foreground md:items-end">
-          <span>{t(locale, "آخر دفعة", "Latest payment")}: {latestAmount}</span>
-          <span>{latestDate ? formatDate(latestDate, locale) : "—"}</span>
+          <span>{t(locale, "آخر دفعة", "Latest payment")}: {latestAmount}</span>          <span>{latestDate ? formatDate(latestDate, locale) : "—"}</span>
+          {nextCollectionDueDate ? <span>{t(locale, "موعد التحصيل", "Collection due")}: {formatDate(nextCollectionDueDate, locale)}</span> : null}
+          {collectionStatus ? <span>{t(locale, "حالة التحصيل", "Collection status")}: {collectionStatus}</span> : null}
+          {collectionNotes ? <span className="max-w-[240px] text-right leading-5">{t(locale, "ملاحظات", "Notes")}: {collectionNotes}</span> : null}
           <div className="flex flex-wrap gap-2">
             <Link href={item.studentHref} className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 font-semibold text-foreground hover:bg-muted">
               {t(locale, "فتح الطالب", "Open student")} <ArrowUpRight size={13} />
