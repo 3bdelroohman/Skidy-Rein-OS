@@ -59,20 +59,16 @@ function normalizePhone(value: string | null | undefined): string {
 }
 
 function mapRow(row: Record<string, unknown>): TeacherListItem {
-  const fallback = MOCK_TEACHERS.find(
-    (teacher) => teacher.fullName === asString(row.full_name) || teacher.email === asString(row.email),
-  );
-
   return {
     id: asString(row.id, crypto.randomUUID()),
     fullName: asString(row.full_name ?? row.fullName, "مدرس غير محدد"),
-    phone: asString(row.phone, fallback?.phone ?? "—"),
-    email: asString(row.email, fallback?.email ?? "") || null,
-    specialization: asSpecialization(row.specialization, fallback?.specialization ?? []),
-    employment: asEmployment(row.employment ?? fallback?.employment),
+    phone: asString(row.phone, "—"),
+    email: asString(row.email, "") || null,
+    specialization: asSpecialization(row.specialization, []),
+    employment: asEmployment(row.employment),
     classesCount: 0,
     studentsCount: 0,
-    isActive: Boolean(row.is_active ?? row.isActive ?? fallback?.isActive ?? true),
+    isActive: Boolean(row.is_active ?? row.isActive ?? true),
   };
 }
 
