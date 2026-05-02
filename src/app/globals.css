@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 /* =============================================
    Skidy Rein OS — Design System v1
    Tailwind 4 / @theme directive
@@ -6,8 +7,6 @@
 @import "tailwindcss";
 
 /* Fonts */
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
-
 @theme {
   /* ---------- Brand ---------- */
   --color-brand-50:  #F4F1FE;
