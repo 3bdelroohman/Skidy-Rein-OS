@@ -900,65 +900,61 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                         {t(locale, "تم تسجيل", "Marked")}: {attendanceProgress}
                       </span>
                     </div>
-                  </div>                  <div data-session-defer-panel className="mb-4 rounded-2xl border border-warning-100 bg-warning-50/70 p-4">
-                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-warning-700">
-                          {t(locale, "تأجيل هذه الحصة فقط", "Reschedule this session only")}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-warning-700/80">
-                          {t(locale, "تغيير موعد هذه الحصة لن يغيّر مواعيد باقي حصص الجروب.", "Changing this session will not shift the rest of the group sessions.")}
-                        </p>
+                  </div>                                    <details data-session-defer-panel className="mb-4 rounded-2xl border border-warning-100 bg-warning-50/50 p-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-1 py-1 text-sm font-bold text-warning-700 outline-none transition hover:text-warning-800">
+                      <span>{t(locale, "تأجيل هذه الحصة فقط", "Reschedule this session only")}</span>
+                      <span className="rounded-full border border-warning-200 bg-card px-2.5 py-1 text-[11px] font-semibold text-warning-700">
+                        {deferChanged ? t(locale, "يوجد تعديل غير محفوظ", "Unsaved change") : t(locale, "فتح خيارات التأجيل", "Open reschedule options")}
+                      </span>
+                    </summary>
+
+                    <div className="mt-4 border-t border-warning-100 pt-4">
+                      <p className="mb-3 text-xs leading-5 text-warning-700/80">
+                        {t(locale, "تغيير موعد هذه الحصة لن يغيّر مواعيد باقي حصص الجروب.", "Changing this session will not shift the rest of the group sessions.")}
+                      </p>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_120px_auto] md:items-end">
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "التاريخ الجديد", "New date")}</span>
+                          <input
+                            type="date"
+                            value={deferDraft.sessionDate}
+                            onChange={(event) => updateDeferDraft(session.id, { sessionDate: event.target.value })}
+                            className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "من", "From")}</span>
+                          <input
+                            type="time"
+                            value={deferDraft.startTime}
+                            onChange={(event) => updateDeferDraft(session.id, { startTime: event.target.value })}
+                            className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "إلى", "To")}</span>
+                          <input
+                            type="time"
+                            value={deferDraft.endTime}
+                            onChange={(event) => updateDeferDraft(session.id, { endTime: event.target.value })}
+                            className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeferSession(session.id)}
+                          disabled={isDeferring || !deferChanged || !deferDraft.sessionDate || !deferDraft.startTime || !deferDraft.endTime}
+                          className="inline-flex items-center justify-center rounded-xl bg-warning-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warning-600 disabled:opacity-50"
+                        >
+                          {isDeferring ? t(locale, "جاري التأجيل...", "Rescheduling...") : t(locale, "حفظ التأجيل", "Save change")}
+                        </button>
                       </div>
-
-                      {deferChanged ? (
-                        <span className="rounded-full border border-warning-200 bg-card px-2.5 py-1 text-[11px] font-semibold text-warning-700">
-                          {t(locale, "يوجد تعديل غير محفوظ", "Unsaved change")}
-                        </span>
-                      ) : null}
                     </div>
-
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_120px_auto] md:items-end">
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "التاريخ الجديد", "New date")}</span>
-                        <input
-                          type="date"
-                          value={deferDraft.sessionDate}
-                          onChange={(event) => updateDeferDraft(session.id, { sessionDate: event.target.value })}
-                          className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
-                        />
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "من", "From")}</span>
-                        <input
-                          type="time"
-                          value={deferDraft.startTime}
-                          onChange={(event) => updateDeferDraft(session.id, { startTime: event.target.value })}
-                          className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
-                        />
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-warning-700">{t(locale, "إلى", "To")}</span>
-                        <input
-                          type="time"
-                          value={deferDraft.endTime}
-                          onChange={(event) => updateDeferDraft(session.id, { endTime: event.target.value })}
-                          className="w-full rounded-xl border border-warning-200 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
-                        />
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeferSession(session.id)}
-                        disabled={isDeferring || !deferChanged || !deferDraft.sessionDate || !deferDraft.startTime || !deferDraft.endTime}
-                        className="inline-flex items-center justify-center rounded-xl bg-warning-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warning-600 disabled:opacity-50"
-                      >
-                        {isDeferring ? t(locale, "جاري التأجيل...", "Rescheduling...") : t(locale, "حفظ التأجيل", "Save change")}
-                      </button>
-                    </div>
-                  </div>
+                  </details>
 
 <div className="mb-4 rounded-2xl border border-border bg-card p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
