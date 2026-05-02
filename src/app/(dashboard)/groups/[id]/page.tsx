@@ -26,6 +26,7 @@ import { formatCourseLabel } from "@/lib/formatters";
 import { t } from "@/lib/locale";
 import {
   addStudentsToGroup,
+  completeGroupSessionSeries,
   getGroupDetails,
   listGroups,
   moveStudentToGroup,
@@ -165,6 +166,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [busyAttendanceSessionId, setBusyAttendanceSessionId] = useState<string | null>(null);
   const [busyDeferSessionId, setBusyDeferSessionId] = useState<string | null>(null);
+  const [busyCompletingSessions, setBusyCompletingSessions] = useState(false);
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
   const [busyMoveStudentId, setBusyMoveStudentId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -441,6 +443,57 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
       toast.error(error instanceof Error ? error.message : t(locale, "تعذر تأجيل الحصة", "Could not reschedule session"));
     } finally {
       setBusyDeferSessionId(null);
+    }
+  }
+  async function handleCompleteSessionSeries() {
+    if (!group) return;
+
+    if (group.sessions.length === 0) {
+      toast.error(t(locale, "أنشئ أول حصة للجروب من الجدول أولًا، ثم ارجع لاستكمال السلسلة.", "Create the first group session from the schedule first, then come back to complete the series."));
+      return;
+    }
+
+    if (group.sessions.length >= 8) {
+      toast.success(t(locale, "الجروب لديه 8 حصص أو أكثر بالفعل", "This group already has 8 sessions or more"));
+      return;
+    }
+
+    const missingCount = Math.max(0, 8 - group.sessions.length);
+    const confirmed = window.confirm(
+      t(
+        locale,
+        `سيتم إنشاء ${missingCount} حصص ناقصة أسبوعيًا من أول حصة في الجروب. لن يتم تعديل الحصص الموجودة. هل تريد المتابعة؟`,
+        `${missingCount} missing weekly sessions will be created from the first group session. Existing sessions will not be modified. Continue?`,
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyCompletingSessions(true);
+
+    try {
+      const result = await completeGroupSessionSeries({
+        groupId: group.id,
+        targetCount: 8,
+      });
+
+      if (result.createdCount === 0) {
+        toast.success(t(locale, "لا توجد حصص ناقصة لإنشائها", "No missing sessions needed to be created"));
+      } else {
+        toast.success(
+          t(
+            locale,
+            `تم إنشاء ${result.createdCount} حصص. إجمالي الحصص الآن ${result.totalCount}.`,
+            `${result.createdCount} sessions created. Total sessions is now ${result.totalCount}.`,
+          ),
+        );
+      }
+
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر استكمال حصص الجروب", "Could not complete group sessions"));
+    } finally {
+      setBusyCompletingSessions(false);
     }
   }
   async function handleSaveAttendance(sessionId: string) {
@@ -831,6 +884,31 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           <ClipboardList size={18} className="text-brand-600" />
           {t(locale, "تشغيل الحصص", "Session operations")}
         </h2>
+              <div data-complete-session-series className="mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-brand-700">
+                      {t(locale, "استكمال حصص الجروب إلى 8", "Complete group sessions to 8")}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-brand-700/80">
+                      {t(locale, "لو ظهر في الجروب حصة واحدة فقط، استخدم هذا الخيار لإنشاء الحصص الناقصة أسبوعيًا من أول حصة. الحصص الموجودة لن تتغير.", "If only one session appears in the group, use this action to create the missing weekly sessions from the first session. Existing sessions will not change.")}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCompleteSessionSeries}
+                    disabled={busyCompletingSessions || group.sessions.length === 0 || group.sessions.length >= 8}
+                    className="inline-flex items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    {busyCompletingSessions
+                      ? t(locale, "جاري الإنشاء...", "Creating...")
+                      : group.sessions.length >= 8
+                        ? t(locale, "مكتمل", "Complete")
+                        : t(locale, `إنشاء ${Math.max(0, 8 - group.sessions.length)} حصص`, `Create ${Math.max(0, 8 - group.sessions.length)} sessions`)}
+                  </button>
+                </div>
+              </div>
 
         {group.sessions.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
