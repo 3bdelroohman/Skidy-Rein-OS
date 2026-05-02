@@ -340,33 +340,26 @@ function toMinutes(startTime: string, endTime: string): number {
   return Math.max(30, end - start);
 }
 
-function findMatchingRate(
-  course: CourseType,
-  durationMinutes: LessonDuration,
-  config: TeacherFinanceConfig,
-): TeacherCourseRate | null {
-  return (
-    sortRates(config.rates).find(
-      (rate) => rate.isActive && rate.course === course && rate.durationMinutes === durationMinutes,
-    ) ?? null
-  );
-}
-
 export function computeTeacherFinanceSummary(
   sessions: ScheduleSessionItem[],
   config: TeacherFinanceConfig,
 ): TeacherFinanceSummary {
+  void config;
+
   const lines = sessions.map((session) => {
-    const durationMinutes = resolveDurationBucket(toMinutes(session.startTime, session.endTime));
-    const matchedRate = findMatchingRate(session.course, durationMinutes, config);
+    const durationMinutes = resolveDurationBucket(
+      session.teacherSessionDurationMinutes ?? toMinutes(session.startTime, session.endTime),
+    );
+    const manualRate = session.teacherSessionRate;
+    const hasManualRate = typeof manualRate === "number" && Number.isFinite(manualRate) && manualRate > 0;
 
     return {
       sessionId: session.id,
       className: session.className,
       course: session.course,
       durationMinutes,
-      payout: matchedRate?.priceEgp ?? 0,
-      matched: Boolean(matchedRate),
+      payout: hasManualRate ? manualRate : 0,
+      matched: hasManualRate,
     } satisfies TeacherFinanceLineItem;
   });
 

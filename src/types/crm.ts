@@ -174,6 +174,9 @@ export interface ScheduleSessionItem {
   students: number;
   course: CourseType;
   sessionDate?: string | null;
+  teacherSessionDurationMinutes?: number | null;
+  teacherSessionRate?: number | null;
+  teacherFinanceNotes?: string | null;
 }
 
 export interface ScheduleSessionDetails extends ScheduleSessionItem {

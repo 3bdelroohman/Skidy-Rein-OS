@@ -32,6 +32,9 @@ type RawClassRow = {
   is_active?: boolean | null;
   meeting_link?: string | null;
   schedule_notes?: string | null;
+  teacher_session_duration_minutes?: number | null;
+  teacher_session_rate?: number | null;
+  teacher_finance_notes?: string | null;
 };
 
 type RawSessionRow = {
@@ -150,7 +153,10 @@ function mapSessionFromClass(
     students: enrollmentCount,
     course: asCourse(row.course_id ? courseMap.get(row.course_id) : null),
     sessionDate: null,
-  } satisfies ScheduleSessionItem;
+      teacherSessionDurationMinutes: row.teacher_session_duration_minutes ?? null,
+    teacherSessionRate: row.teacher_session_rate ?? null,
+    teacherFinanceNotes: row.teacher_finance_notes ?? null,
+} satisfies ScheduleSessionItem;
 }
 
 function mapSessionFromSession(
@@ -176,7 +182,10 @@ function mapSessionFromSession(
     students: studentsCount,
     course: asCourse(classRow?.course_id ? courseMap.get(classRow.course_id) : null),
     sessionDate: asNullableString(row.session_date),
-  } satisfies ScheduleSessionItem;
+      teacherSessionDurationMinutes: classRow?.teacher_session_duration_minutes ?? null,
+    teacherSessionRate: classRow?.teacher_session_rate ?? null,
+    teacherFinanceNotes: classRow?.teacher_finance_notes ?? null,
+} satisfies ScheduleSessionItem;
 }
 
 async function buildStudentsTeachersParents(): Promise<{
