@@ -1,4 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
+﻿import { createBrowserClient } from "@supabase/ssr";
 
 import type { PaymentMethod, PaymentStatus } from "@/types/common.types";
 import type { Database } from "@/types/database.types";
@@ -213,10 +213,10 @@ function mapPaymentRow(
   return {
     id: asString(record.id, crypto.randomUUID()),
     studentId,
-    studentName: student?.fullName ?? asString(record.studentName, "طالب غير محدد"),
+    studentName: student?.fullName ?? asString(record.studentName, "Ø·Ø§Ù„Ø¨ ØºÙŠØ± Ù…Ø­Ø¯Ø¯"),
     parentId: student?.parentId ?? parent?.id ?? asNullableString(record.parent_id ?? record.parentId),
     parentName:
-      parent?.fullName ?? student?.parentName ?? asString(record.parentName, "ولي أمر غير محدد"),
+      parent?.fullName ?? student?.parentName ?? asString(record.parentName, "ÙˆÙ„ÙŠ Ø£Ù…Ø± ØºÙŠØ± Ù…Ø­Ø¯Ø¯"),
     amount: asNumber(record.amount),
     status: asStatus(record.status),
     method: asMethod(record.method),
@@ -465,7 +465,7 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
     studentId: input.studentId,
     studentName: student.fullName,
     parentId: resolvedParentId,
-    parentName: parent?.fullName ?? student.parentName ?? "??? ??? ??? ????",
+    parentName: parent?.fullName ?? student.parentName ?? "ولي أمر غير محدد",
     amount: input.amount,
     status: input.status,
     method: input.method,
@@ -642,14 +642,14 @@ export function buildInvoiceShareMessage(payment: PaymentItem, locale: "ar" | "e
 
   if (locale === "ar") {
     return [
-      `فاتورة ${payment.invoiceNumber ?? payment.id}`,
-      `الطالب: ${payment.studentName}`,
-      `ولي الأمر: ${payment.parentName}`,
-      `عدد الجلسات: ${payment.sessionsCovered}`,
-      `المبلغ: ${payment.amount} ج.م`,
-      `الاستحقاق الفعلي: ${effectiveDueDate}`,
-      payment.deferredUntil ? `مؤجل حتى: ${payment.deferredUntil.slice(0, 10)}` : null,
-      `شركة Skidy Rein`,
+      `ÙØ§ØªÙˆØ±Ø© ${payment.invoiceNumber ?? payment.id}`,
+      `Ø§Ù„Ø·Ø§Ù„Ø¨: ${payment.studentName}`,
+      `ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±: ${payment.parentName}`,
+      `Ø¹Ø¯Ø¯ Ø§Ù„Ø¬Ù„Ø³Ø§Øª: ${payment.sessionsCovered}`,
+      `Ø§Ù„Ù…Ø¨Ù„Øº: ${payment.amount} Ø¬.Ù…`,
+      `Ø§Ù„Ø§Ø³ØªØ­Ù‚Ø§Ù‚ Ø§Ù„ÙØ¹Ù„ÙŠ: ${effectiveDueDate}`,
+      payment.deferredUntil ? `Ù…Ø¤Ø¬Ù„ Ø­ØªÙ‰: ${payment.deferredUntil.slice(0, 10)}` : null,
+      `Ø´Ø±ÙƒØ© Skidy Rein`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -718,16 +718,16 @@ export function getBillingCycleText(
 
   if (locale === "ar") {
     const dateRange = payment.blockStartDate || payment.blockEndDate
-      ? ` — ${payment.blockStartDate?.slice(0, 10) ?? "..."} → ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
+      ? ` â€” ${payment.blockStartDate?.slice(0, 10) ?? "..."} â†’ ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
       : "";
-    const deferred = payment.deferredUntil ? ` — مؤجلة حتى ${payment.deferredUntil.slice(0, 10)}` : "";
-    return `باقة ${sessions} جلسات${dateRange}${deferred}`;
+    const deferred = payment.deferredUntil ? ` â€” Ù…Ø¤Ø¬Ù„Ø© Ø­ØªÙ‰ ${payment.deferredUntil.slice(0, 10)}` : "";
+    return `Ø¨Ø§Ù‚Ø© ${sessions} Ø¬Ù„Ø³Ø§Øª${dateRange}${deferred}`;
   }
 
   const dateRange = payment.blockStartDate || payment.blockEndDate
-    ? ` — ${payment.blockStartDate?.slice(0, 10) ?? "..."} → ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
+    ? ` â€” ${payment.blockStartDate?.slice(0, 10) ?? "..."} â†’ ${payment.blockEndDate?.slice(0, 10) ?? "..."}`
     : "";
-  const deferred = payment.deferredUntil ? ` — deferred until ${payment.deferredUntil.slice(0, 10)}` : "";
+  const deferred = payment.deferredUntil ? ` â€” deferred until ${payment.deferredUntil.slice(0, 10)}` : "";
   return `${sessions}-session covered sessions${dateRange}${deferred}`;
 }
 

@@ -1,4 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
+﻿import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database.types";
 import type { CreateParentInput, ParentListItem } from "@/types/crm";
 import { isBrowser, readStorage, writeStorage } from "@/services/storage";
@@ -32,7 +32,7 @@ function normalizePhone(value: string | null | undefined): string {
 function normalizeName(value: string | null | undefined): string {
   return (value ?? "")
     .toLowerCase()
-    .replace(/[?-?]/g, "")
+    .replace(/[ً-ٟ]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -44,8 +44,8 @@ function mapRow(
 
   return {
     id: asString(record.id, crypto.randomUUID()),
-    fullName: asString(record.full_name ?? record.fullName, "ولي أمر غير محدد"),
-    phone: asString(record.phone, "—"),
+    fullName: asString(record.full_name ?? record.fullName, "ÙˆÙ„ÙŠ Ø£Ù…Ø± ØºÙŠØ± Ù…Ø­Ø¯Ø¯"),
+    phone: asString(record.phone, "â€”"),
     whatsapp: asNullableString(record.whatsapp),
     email: asNullableString(record.email),
     city: asNullableString(record.city),
@@ -140,12 +140,12 @@ export async function createParent(input: CreateParentInput): Promise<ParentList
   const phone = input.phone.trim();
 
   if (!fullName || !phone) {
-    throw new Error("اسم ولي الأمر ورقم الهاتف مطلوبان.");
+    throw new Error("Ø§Ø³Ù… ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø± ÙˆØ±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†.");
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) {
-    throw new Error("تعذر الاتصال بقاعدة البيانات. تأكد من إعدادات Supabase ثم أعد المحاولة.");
+    throw new Error("ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ØªØ£ÙƒØ¯ Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Supabase Ø«Ù… Ø£Ø¹Ø¯ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©.");
   }
 
   const existing = findExistingParent(await listParents(), input);
@@ -170,7 +170,7 @@ export async function createParent(input: CreateParentInput): Promise<ParentList
 
   if (error || !data) {
     console.error("[parents] create failed", error);
-    throw new Error(error?.message || "تعذر إنشاء سجل ولي الأمر.");
+    throw new Error(error?.message || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±.");
   }
 
   const created = mapRow(data);
