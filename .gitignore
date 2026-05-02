@@ -53,3 +53,6 @@ _*.txt
 BATCH*_RESULT.txt
 CLAUDE_*BUNDLE*.txt
 _backup_batch*/
+
+# Local-only ops (backups, dumps, scratch scripts)
+_ops/
