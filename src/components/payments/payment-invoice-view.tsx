@@ -1,5 +1,7 @@
 "use client";
 
+import { formatCurrency } from "@/lib/formatters";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -15,18 +17,7 @@ function _w(s: string): string {
   return s
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
-}
-
-
-function formatCurrency(value: number, locale: "ar" | "en"): string {
-  return _w(new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(value));
-}
-
-function formatDateLabel(value: string | null | undefined, locale: "ar" | "en"): string {
+}function formatDateLabel(value: string | null | undefined, locale: "ar" | "en"): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value.slice(0, 10);
