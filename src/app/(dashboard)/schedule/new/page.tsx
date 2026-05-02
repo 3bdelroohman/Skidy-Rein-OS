@@ -7,52 +7,12 @@ import { toast } from "sonner";
 
 import { ScheduleEntryForm } from "@/components/schedule/schedule-entry-form";
 import { createScheduleEntry } from "@/services/schedule.service";
+import { completeGroupSessionSeries } from "@/services/group-operations.service";
 import { useUIStore } from "@/stores/ui-store";
 import { t } from "@/lib/locale";
 import type { CourseType } from "@/types/common.types";
 
-type SchedulePayload = Parameters<typeof createScheduleEntry>[0];
-
-function addWeeks(dateValue: string | null | undefined, weeks: number): string | null {
-  if (!dateValue) return null;
-
-  const base = new Date(dateValue + "T00:00:00");
-  if (Number.isNaN(base.getTime())) return null;
-
-  base.setDate(base.getDate() + weeks * 7);
-  return base.toISOString().slice(0, 10);
-}
-
-function getPayloadSessionDate(payload: SchedulePayload): string | null {
-  const candidate = (payload as { sessionDate?: unknown }).sessionDate;
-  return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
-}
-
-function getPayloadDay(payload: SchedulePayload): number | null {
-  const candidate = (payload as { day?: unknown }).day;
-  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : null;
-}
-
-function buildRepeatedPayload(payload: SchedulePayload, index: number): SchedulePayload {
-  const baseDate = getPayloadSessionDate(payload);
-  const nextDate = addWeeks(baseDate, index);
-  const nextPayload = { ...payload } as SchedulePayload & { sessionDate?: string | null; day?: number };
-
-  if (nextDate) {
-    nextPayload.sessionDate = nextDate;
-    nextPayload.day = new Date(nextDate + "T00:00:00").getDay();
-    return nextPayload;
-  }
-
-  const day = getPayloadDay(payload);
-  if (day !== null) {
-    nextPayload.day = day;
-  }
-
-  return nextPayload;
-}
-
-export default function NewScheduleEntryPage() {
+type SchedulePayload = Parameters<typeof createScheduleEntry>[0];export default function NewScheduleEntryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useUIStore((state) => state.locale);
@@ -141,24 +101,28 @@ export default function NewScheduleEntryPage() {
             router.push(`/schedule/${created.id}`);
             return;
           }
+          const firstSession = await createScheduleEntry(payload);
 
-          const createdSessions = [];
-
-          for (let index = 0; index < normalizedRepeatCount; index += 1) {
-            const nextPayload = buildRepeatedPayload(payload, index);
-            const created = await createScheduleEntry(nextPayload);
-            createdSessions.push(created);
+          if (!firstSession.classId) {
+            throw new Error(t(locale, "تعذر تحديد الجروب الجديد بعد إنشاء أول حصة", "Could not resolve the new group after creating the first session"));
           }
+
+          const result = await completeGroupSessionSeries({
+            groupId: firstSession.classId,
+            targetCount: normalizedRepeatCount,
+          });
 
           toast.success(
             t(
               locale,
-              `تم إنشاء ${createdSessions.length} حصة مستقلة.`,
-              `${createdSessions.length} independent sessions created.`,
+              `تم إنشاء جروب واحد واستكماله إلى ${result.totalCount} حصص.`,
+              `One group was created and completed to ${result.totalCount} sessions.`,
             ),
           );
 
-          router.push(createdSessions[0] ? `/schedule/${createdSessions[0].id}` : "/schedule");
+          router.push(`/groups/${firstSession.classId}`);
+          return;
+
         }}
         cancelHref="/schedule"
       />
