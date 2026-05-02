@@ -11,8 +11,7 @@ import { completeGroupSessionSeries } from "@/services/group-operations.service"
 import { useUIStore } from "@/stores/ui-store";
 import { t } from "@/lib/locale";
 import type { CourseType } from "@/types/common.types";
-
-type SchedulePayload = Parameters<typeof createScheduleEntry>[0];export default function NewScheduleEntryPage() {
+export default function NewSchedulePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const locale = useUIStore((state) => state.locale);
