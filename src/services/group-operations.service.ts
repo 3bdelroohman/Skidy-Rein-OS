@@ -360,6 +360,80 @@ export async function addStudentsToGroup(groupId: string, course: CourseType, st
   await syncGroupStudentCount(supabase, groupId);
 }
 
+export async function moveStudentToGroup(input: {
+  sourceGroupId: string;
+  targetGroupId: string;
+  studentId: string;
+  targetCourse: CourseType;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  if (input.sourceGroupId === input.targetGroupId) {
+    throw new Error("Student is already in this group.");
+  }
+
+  const { data: existingTargetRows, error: existingTargetError } = await supabase
+    .from("class_enrollments")
+    .select("id")
+    .eq("class_id", input.targetGroupId)
+    .eq("student_id", input.studentId)
+    .eq("is_active", true)
+    .limit(1);
+
+  if (existingTargetError) {
+    throw new Error(existingTargetError.message || "Failed to check target group enrollment");
+  }
+
+  if ((existingTargetRows ?? []).length > 0) {
+    throw new Error("Student is already active in the target group.");
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: deactivateError } = await supabase
+    .from("class_enrollments")
+    .update({
+      is_active: false,
+      dropped_at: now,
+    })
+    .eq("class_id", input.sourceGroupId)
+    .eq("student_id", input.studentId)
+    .eq("is_active", true);
+
+  if (deactivateError) {
+    throw new Error(deactivateError.message || "Failed to deactivate source group enrollment");
+  }
+
+  const { error: insertError } = await supabase.from("class_enrollments").insert({
+    student_id: input.studentId,
+    class_id: input.targetGroupId,
+    is_active: true,
+    enrolled_at: now,
+  });
+
+  if (insertError) {
+    throw new Error(insertError.message || "Failed to add student to target group");
+  }
+
+  const { error: updateStudentError } = await supabase
+    .from("students")
+    .update({
+      current_class_id: input.targetGroupId,
+      current_course: input.targetCourse,
+    })
+    .eq("id", input.studentId);
+
+  if (updateStudentError) {
+    throw new Error(updateStudentError.message || "Failed to update student current group");
+  }
+
+  await syncGroupStudentCount(supabase, input.sourceGroupId);
+  await syncGroupStudentCount(supabase, input.targetGroupId);
+  await syncStudentCurrentClass(supabase, input.studentId);
+}
 export async function removeStudentFromGroup(groupId: string, studentId: string): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) {

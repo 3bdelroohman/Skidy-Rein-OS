@@ -27,6 +27,8 @@ import { t } from "@/lib/locale";
 import {
   addStudentsToGroup,
   getGroupDetails,
+  listGroups,
+  moveStudentToGroup,
   removeStudentFromGroup,
   saveGroupNotes,
   saveSessionAttendanceBulk,
@@ -36,7 +38,7 @@ import {
 } from "@/services/group-operations.service";
 import { listStudents } from "@/services/students.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
-import type { AttendanceStatus, GroupDetails, StudentListItem } from "@/types/crm";
+import type { AttendanceStatus, GroupDetails, GroupListItem, StudentListItem } from "@/types/crm";
 
 interface SessionDraft {
   attendanceTaken: boolean;
@@ -158,12 +160,15 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
 
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [allStudents, setAllStudents] = useState<StudentListItem[]>([]);
+  const [allGroups, setAllGroups] = useState<GroupListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [busyAttendanceSessionId, setBusyAttendanceSessionId] = useState<string | null>(null);
   const [busyDeferSessionId, setBusyDeferSessionId] = useState<string | null>(null);
   const [busyStudentId, setBusyStudentId] = useState<string | null>(null);
+  const [busyMoveStudentId, setBusyMoveStudentId] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
   const [groupNotes, setGroupNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
@@ -174,9 +179,10 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   async function load() {
     setLoading(true);
 
-    const [groupData, studentRows] = await Promise.all([getGroupDetails(id), listStudents()]);
+    const [groupData, studentRows, groupRows] = await Promise.all([getGroupDetails(id), listStudents(), listGroups()]);
     setGroup(groupData);
     setAllStudents(studentRows);
+    setAllGroups(groupRows);
 
     if (groupData) {
       setGroupNotes(groupData.groupNotes ?? "");
@@ -210,11 +216,12 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }
 
     (async () => {
-      const [groupData, studentRows] = await Promise.all([getGroupDetails(id), listStudents()]);
+      const [groupData, studentRows, groupRows] = await Promise.all([getGroupDetails(id), listStudents(), listGroups()]);
       if (!mounted) return;
 
       setGroup(groupData);
       setAllStudents(studentRows);
+      setAllGroups(groupRows);
 
       if (groupData) {
         const nextDrafts = Object.fromEntries(
@@ -263,6 +270,13 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     return allStudents.filter((student) => !linkedIds.has(student.id));
   }, [allStudents, group]);
 
+  const availableTargetGroups = useMemo(() => {
+    if (!group) return [];
+
+    return allGroups
+      .filter((item) => item.id !== group.id && item.isActive)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allGroups, group]);
   function updateDraft(sessionId: string, patch: Partial<SessionDraft>) {
     setDrafts((prev) => ({
       ...prev,
@@ -307,6 +321,57 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  function updateMoveTarget(studentId: string, targetGroupId: string) {
+    setMoveTargets((prev) => ({
+      ...prev,
+      [studentId]: targetGroupId,
+    }));
+  }
+
+  async function handleMoveStudent(studentId: string) {
+    if (!group) return;
+
+    const targetGroupId = moveTargets[studentId];
+    const targetGroup = availableTargetGroups.find((item) => item.id === targetGroupId);
+
+    if (!targetGroup) {
+      toast.error(t(locale, "اختر الجروب الجديد أولًا", "Choose the target group first"));
+      return;
+    }
+
+    const confirmed = window.confirm(
+      t(
+        locale,
+        `سيتم نقل الطالب إلى ${targetGroup.name}. سيظل تاريخ الحضور القديم محفوظًا في هذا الجروب. هل تريد المتابعة؟`,
+        `Student will be moved to ${targetGroup.name}. Previous attendance history in this group will remain preserved. Continue?`,
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyMoveStudentId(studentId);
+
+    try {
+      await moveStudentToGroup({
+        sourceGroupId: group.id,
+        targetGroupId: targetGroup.id,
+        studentId,
+        targetCourse: targetGroup.course,
+      });
+
+      toast.success(t(locale, "تم نقل الطالب إلى الجروب الجديد", "Student moved to the target group"));
+      setMoveTargets((prev) => {
+        const next = { ...prev };
+        delete next[studentId];
+        return next;
+      });
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر نقل الطالب", "Could not move student"));
+    } finally {
+      setBusyMoveStudentId(null);
+    }
+  }
   async function handleRemoveStudent(studentId: string) {
     if (!group) return;
 
@@ -610,11 +675,35 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                       <FileText size={14} />
                       {t(locale, "تقرير", "Report")}
                     </Link>
+                    <div data-student-move-controls className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <select
+                        value={moveTargets[student.id] ?? ""}
+                        onChange={(event) => updateMoveTarget(student.id, event.target.value)}
+                        disabled={busyMoveStudentId !== null || availableTargetGroups.length === 0}
+                        className="min-w-44 rounded-xl border border-input bg-card px-3 py-2 text-xs text-foreground focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      >
+                        <option value="">{t(locale, "نقل إلى جروب...", "Move to group...")}</option>
+                        {availableTargetGroups.map((targetGroup) => (
+                          <option key={targetGroup.id} value={targetGroup.id}>
+                            {targetGroup.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleMoveStudent(student.id)}
+                        disabled={busyMoveStudentId !== null || !moveTargets[student.id]}
+                        className="inline-flex items-center justify-center gap-1 rounded-xl border border-info-100 bg-info-50 px-3 py-2 text-xs font-semibold text-info-700 transition-colors hover:bg-info-100 disabled:opacity-50"
+                      >
+                        {busyMoveStudentId === student.id ? t(locale, "جاري النقل...", "Moving...") : t(locale, "نقل", "Move")}
+                      </button>
+                    </div>
 
                     <button
                       type="button"
                       onClick={() => handleRemoveStudent(student.id)}
-                      disabled={busyStudentId !== null}
+                      disabled={busyStudentId !== null || busyMoveStudentId !== null}
                       className="inline-flex items-center gap-1 rounded-xl border border-danger-300 bg-danger-50 px-3 py-2 text-xs font-semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:opacity-50 dark:border-danger-800 dark:bg-danger-950/30 dark:text-danger-300"
                     >
                       <Trash2 size={14} />
