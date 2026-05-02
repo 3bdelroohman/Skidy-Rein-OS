@@ -36,7 +36,7 @@ import {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { locale, setLocale, currency, setCurrency, sidebarOpen, setSidebarOpen } = useUIStore();
+  const { locale, setLocale, sidebarOpen, setSidebarOpen } = useUIStore();
   const [notifications, setNotifications] = useState({ email: true, whatsapp: true, browser: false });
   const [profile, setProfile] = useState({ name: "Abdelrahman", email: "admin@skayeen.com" });
   const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
@@ -213,38 +213,7 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-                    <Card title={t(locale, "العملة", "Currency")} icon={Palette}>
-            <div className="space-y-3">
-              <p className="text-sm leading-6 text-muted-foreground">
-                {t(locale, "اختر العملة التي تظهر في الفواتير والحسابات المالية داخل الواجهة.", "Choose the currency displayed in invoices and financial views.")}
-              </p>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(["EGP", "SAR"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setCurrency(item)}
-                    className={cn(
-                      "rounded-2xl border px-4 py-3 text-start transition-colors",
-                      currency === item
-                        ? "border-brand-200 bg-brand-50 text-brand-700"
-                        : "border-border bg-card text-foreground hover:bg-muted",
-                    )}
-                  >
-                    <span className="block text-sm font-bold">
-                      {item === "EGP" ? t(locale, "الجنيه المصري", "Egyptian Pound") : t(locale, "الريال السعودي", "Saudi Riyal")}
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {item === "EGP" ? "EGP / ج.م" : "SAR / ر.س"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-<Card title={t(locale, "أمان الحساب", "Account security")} icon={ShieldCheck}>
+          <Card title={t(locale, "أمان الحساب", "Account security")} icon={ShieldCheck}>
             <div className="space-y-4">
               <div className="rounded-2xl border border-border bg-background p-4">
                 <p className="text-sm font-semibold text-foreground">{t(locale, "تغيير كلمة المرور", "Change password")}</p>

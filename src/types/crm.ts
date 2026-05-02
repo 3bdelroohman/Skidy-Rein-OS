@@ -18,6 +18,8 @@ import type { DashboardTaskStatus, FollowUpStatus } from "@/config/status-meta";
 export type { CourseType, CourseStage, StudentStatus, EmploymentType, PaymentStatus, PaymentMethod, LeadSource, LeadStage, LeadTemperature, LossReason, Priority, FollowUpType, CommChannel, AttendanceStatus, UserRole } from "@/types/common.types";
 export { COURSE_STAGE_MAP, COURSE_STAGE_LABELS } from "@/types/common.types";
 
+export type PaymentCurrency = "EGP" | "SAR";
+
 
 export interface LeadListItem {
   id: string;
@@ -122,6 +124,7 @@ export interface PaymentItem {
   parentName: string;
   parentId?: string | null;
   amount: number;
+  currency?: PaymentCurrency;
   status: PaymentStatus;
   method: PaymentMethod | null;
   dueDate: string;
@@ -152,6 +155,7 @@ export interface PaymentDetails extends PaymentItem {
 export interface CreatePaymentInput {
   studentId: string;
   amount: number;
+  currency?: PaymentCurrency;
   status: PaymentStatus;
   method: PaymentMethod | null;
   dueDate: string;

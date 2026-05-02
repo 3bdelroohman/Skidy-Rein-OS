@@ -15,9 +15,11 @@ import type { PaymentMethod, PaymentStatus, Locale } from "@/types/common.types"
 import type { StudentListItem } from "@/types/crm";
 import { t } from "@/lib/locale";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 
 const STATUS_OPTIONS: PaymentStatus[] = ["pending", "paid", "partial", "overdue"];
 const METHOD_OPTIONS: PaymentMethod[] = ["instapay", "bank_transfer", "wallet", "cash", "card"];
+type PaymentCurrency = "EGP" | "SAR";
 
 function statusLabel(s: PaymentStatus, locale: Locale): string {
   const map: Record<PaymentStatus, { ar: string; en: string }> = {
@@ -63,6 +65,7 @@ export default function NewPaymentPage() {
   const [form, setForm] = useState({
     studentId: "",
     amount: "1200",
+    currency: "EGP" as PaymentCurrency,
     status: "pending" as PaymentStatus,
     method: "" as PaymentMethod | "",
     dueDate: new Date().toISOString().slice(0, 10),
@@ -129,6 +132,7 @@ export default function NewPaymentPage() {
       const created = await createPayment({
         studentId: form.studentId,
         amount: amountNumber,
+        currency: form.currency,
         status: form.status,
         method: form.method || null,
         dueDate: form.dueDate,
@@ -187,6 +191,17 @@ export default function NewPaymentPage() {
             <Field label={t(locale, "المبلغ", "Amount")}>
               <input type="number" min="1" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
+            <Field label={t(locale, "العملة", "Currency")}>
+              <select
+                data-payment-currency-select
+                value={form.currency}
+                onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value as PaymentCurrency }))}
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground"
+              >
+                <option value="EGP">{t(locale, "جنيه مصري", "EGP")}</option>
+                <option value="SAR">{t(locale, "ريال سعودي", "SAR")}</option>
+              </select>
+            </Field>
             <Field label={t(locale, "عدد الحصص", "Covered sessions")}>
               <input type="number" min="8" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
@@ -242,7 +257,7 @@ export default function NewPaymentPage() {
           <SummaryRow label={t(locale, "ولي الأمر", "Parent")} value={selectedStudent?.parentName ?? "—"} />
           <SummaryRow label={t(locale, "الكلاس", "Class")} value={selectedStudent?.className ?? "—"} />
           <SummaryRow label={t(locale, "الفوترة", "Billing")} value={t(locale, "باقة " + normalizedSessions + " جلسات", normalizedSessions + "-session block")} />
-          <SummaryRow label={t(locale, "المبلغ", "Amount")} value={form.amount ? form.amount + " " + (isAr ? "ج.م" : "EGP") : "—"} />
+          <SummaryRow label={t(locale, "المبلغ", "Amount")} value={form.amount ? formatCurrency(Number(form.amount || 0), locale, form.currency) : "—"} />
           <SummaryRow label={t(locale, "الحالة", "Status")} value={statusLabel(form.status, locale)} />
           <SummaryRow label={t(locale, "الاستحقاق", "Due date")} value={form.dueDate || "—"} />
           <SummaryRow label={t(locale, "التأجيل", "Deferred until")} value={form.deferredUntil || t(locale, "بدون تأجيل", "No deferment")} />

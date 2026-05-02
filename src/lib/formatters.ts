@@ -52,26 +52,10 @@ const CURRENCY_CONFIG: Record<CurrencyCode, { ar: string; en: string; localeAr: 
     localeAr: "ar-SA",
     localeEn: "en-US",
   },
-};
-function getPreferredCurrency(): CurrencyCode {
-  if (typeof window === "undefined") return "EGP";
-
-  try {
-    const raw = window.localStorage.getItem("skidy-rein-ui");
-    if (!raw) return "EGP";
-
-    const parsed = JSON.parse(raw) as { state?: { currency?: string } };
-    return parsed.state?.currency === "SAR" ? "SAR" : "EGP";
-  } catch {
-    return "EGP";
-  }
-}
-
-
-export function formatCurrency(
+};export function formatCurrency(
   value: number | null | undefined,
   locale: Locale = "ar",
-  currency: CurrencyCode = getPreferredCurrency(),
+  currency: CurrencyCode = "EGP",
 ): string {
   const safeValue = value ?? 0;
   const config = CURRENCY_CONFIG[currency] ?? CURRENCY_CONFIG.EGP;
