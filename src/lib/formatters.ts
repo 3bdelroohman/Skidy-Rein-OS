@@ -37,11 +37,54 @@ export function formatDateTime(value: string | Date | null | undefined, locale: 
   return `${formatDate(date, locale)} — ${formatTime(date, locale)}`;
 }
 
-export function formatCurrencyEgp(value: number | null | undefined, locale: Locale = "ar"): string {
+export type CurrencyCode = "EGP" | "SAR";
+
+const CURRENCY_CONFIG: Record<CurrencyCode, { ar: string; en: string; localeAr: string; localeEn: string }> = {
+  EGP: {
+    ar: "ج.م",
+    en: "EGP",
+    localeAr: "ar-EG",
+    localeEn: "en-US",
+  },
+  SAR: {
+    ar: "ر.س",
+    en: "SAR",
+    localeAr: "ar-SA",
+    localeEn: "en-US",
+  },
+};
+function getPreferredCurrency(): CurrencyCode {
+  if (typeof window === "undefined") return "EGP";
+
+  try {
+    const raw = window.localStorage.getItem("skidy-rein-ui");
+    if (!raw) return "EGP";
+
+    const parsed = JSON.parse(raw) as { state?: { currency?: string } };
+    return parsed.state?.currency === "SAR" ? "SAR" : "EGP";
+  } catch {
+    return "EGP";
+  }
+}
+
+
+export function formatCurrency(
+  value: number | null | undefined,
+  locale: Locale = "ar",
+  currency: CurrencyCode = getPreferredCurrency(),
+): string {
   const safeValue = value ?? 0;
-  return locale === "ar"
-    ? `${safeValue.toLocaleString("ar-EG")} ج.م`
-    : `EGP ${safeValue.toLocaleString("en-US")}`;
+  const config = CURRENCY_CONFIG[currency] ?? CURRENCY_CONFIG.EGP;
+
+  if (locale === "ar") {
+    return `${safeValue.toLocaleString(config.localeAr)} ${config.ar}`;
+  }
+
+  return `${config.en} ${safeValue.toLocaleString(config.localeEn)}`;
+}
+
+export function formatCurrencyEgp(value: number | null | undefined, locale: Locale = "ar"): string {
+  return formatCurrency(value, locale);
 }
 
 export function formatCourseLabel(course: CourseType | null | undefined, locale: Locale = "ar"): string {

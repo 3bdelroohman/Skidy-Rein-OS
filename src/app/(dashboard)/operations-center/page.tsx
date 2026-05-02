@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -16,7 +16,7 @@ import {
 import { PageStateCard } from "@/components/shared/page-state";
 import { useCurrentUser } from "@/providers/user-provider";
 import { getOperationsCenterData, type OperationsCenterData, type OperationsHandoffItem } from "@/services/operations-center.service";
-import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import { t } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
@@ -206,7 +206,7 @@ function WorkQueue({ title, description, items, emptyText, tone, locale }: { tit
 }
 
 function OperationsQueueCard({ item, locale }: { item: OperationsHandoffItem; locale: "ar" | "en" }) {
-  const latestAmount = formatCurrencyEgp(item.latestPayment.amount, locale);
+  const latestAmount = formatCurrency(item.latestPayment.amount, locale);
   const latestDate = item.latestPayment.paidAt ?? item.latestPayment.dueDate;
 
   return (

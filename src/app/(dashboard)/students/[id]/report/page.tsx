@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, CalendarPlus, FileText, Printer, ReceiptText, Us
 import { useUIStore } from "@/stores/ui-store";
 import { t } from "@/lib/locale";
 import { getCourseFormLabel } from "@/config/course-roadmap";
-import { formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import { extractLeadIdFromProjectionId, getStudentDetails } from "@/services/relations.service";
 import { buildStudentJourney } from "@/services/student-journey.service";
 import { buildStudentMonthlyReportDraft, buildStudentReportSnapshot } from "@/services/student-report.service";
@@ -140,8 +140,8 @@ export default function StudentReportPage({ params }: { params: Promise<{ id: st
           <div className="rounded-2xl border border-border bg-card p-5">
             <h3 className="flex items-center gap-2 text-base font-bold text-foreground"><ReceiptText size={18} className="text-brand-600" />{t(locale, "ملخص مالي", "Finance summary")}</h3>
             <div className="mt-4 space-y-3">
-              <ReportBox labelAr="إجمالي المفوتر" labelEn="Total billed" value={formatCurrencyEgp(finance?.totalBilled ?? 0, locale)} compact />
-              <ReportBox labelAr="إجمالي المحصل" labelEn="Total collected" value={formatCurrencyEgp(finance?.totalCollected ?? 0, locale)} compact />
+              <ReportBox labelAr="إجمالي المفوتر" labelEn="Total billed" value={formatCurrency(finance?.totalBilled ?? 0, locale)} compact />
+              <ReportBox labelAr="إجمالي المحصل" labelEn="Total collected" value={formatCurrency(finance?.totalCollected ?? 0, locale)} compact />
               <ReportBox labelAr="الفاتورة القادمة" labelEn="Next invoice" value={finance?.nextPendingPayment ? formatDate(finance.nextPendingPayment.dueDate, locale) : t(locale, "لا توجد", "None")} compact />
             </div>
           </div>

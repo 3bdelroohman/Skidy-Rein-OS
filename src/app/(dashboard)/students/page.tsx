@@ -6,7 +6,7 @@ import { GraduationCap, Plus, Search } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { getFilterLabel, t } from "@/lib/locale";
 import { STUDENT_STATUS_META, getMetaLabel } from "@/config/status-meta";
-import { formatCourseLabel, formatCurrencyEgp } from "@/lib/formatters";
+import { formatCourseLabel, formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { listParentsWithRelations, listStudentsWithRelations, extractLeadIdFromProjectionId } from "@/services/relations.service";
 import type { ParentListItem, StudentListItem } from "@/types/crm";
@@ -178,7 +178,7 @@ export default function StudentsPage() {
                       <td className="px-4 py-3 text-xs text-foreground">{student.className ?? t(locale, "غير مسجل", "Not assigned")}</td>
                       <td className="px-4 py-3 text-xs text-foreground">{student.ownerName ?? t(locale, "غير مخصص", "Unassigned")}</td>
                       <td className="px-4 py-3 text-foreground">{student.sessionsAttended} {t(locale, "حصة", "sessions")}</td>
-                      <td className="px-4 py-3 font-semibold text-foreground">{formatCurrencyEgp(student.totalPaid, locale)}</td>
+                      <td className="px-4 py-3 font-semibold text-foreground">{formatCurrency(student.totalPaid, locale)}</td>
                     </tr>
                   );
                 })}

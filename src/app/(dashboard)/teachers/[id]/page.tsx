@@ -8,7 +8,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Calculato
 import { useUIStore } from "@/stores/ui-store";
 import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessTeachersForUser, canManageTeacherFinanceForUser, canManageTeachersForUser } from "@/config/roles";
-import { formatCourseLabel, formatCurrencyEgp, formatDate } from "@/lib/formatters";
+import { formatCourseLabel, formatCurrency, formatDate } from "@/lib/formatters";
 import { getEmploymentTypeLabel, t } from "@/lib/locale";
 import { getTeacherDetails } from "@/services/relations.service";
 import { getTeacherEvaluation, saveTeacherEvaluation, computeAverageRating, type EvaluationAxes } from "@/services/teacher-evaluations.service";
@@ -791,9 +791,9 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
           ) : null}
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <Metric label={t(locale, "أسبوعي", "Weekly")} value={formatCurrencyEgp(financeSummary.weeklyEstimated, locale)} compact />
-            <Metric label={t(locale, "شهري", "Monthly")} value={formatCurrencyEgp(financeSummary.monthlyEstimated, locale)} compact />
-            <Metric label={t(locale, "متوسط الحصة", "Avg/session")} value={formatCurrencyEgp(financeSummary.averagePerSession, locale)} compact />
+            <Metric label={t(locale, "أسبوعي", "Weekly")} value={formatCurrency(financeSummary.weeklyEstimated, locale)} compact />
+            <Metric label={t(locale, "شهري", "Monthly")} value={formatCurrency(financeSummary.monthlyEstimated, locale)} compact />
+            <Metric label={t(locale, "متوسط الحصة", "Avg/session")} value={formatCurrency(financeSummary.averagePerSession, locale)} compact />
             <Metric label={t(locale, "الحصص", "Sessions")} value={String(financeSummary.linkedSessions)} compact />
           </div>
         </div>
