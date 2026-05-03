@@ -40,12 +40,12 @@ export default function ScheduleSessionDetailsPage({ params }: { params: Promise
 
   const handleDeleteSession = async () => {
     if (!session) return;
-    const confirmed = window.confirm(locale === "ar" ? "هل تريد حذف هذه الحصة نهائيًا؟" : "Delete this session permanently?");
+    const confirmed = window.confirm(locale === "ar" ? "هل تريد حذف هذه الحصة فقط؟ سيظل الجروب موجودًا." : "Delete this session only? The group will remain.");
     if (!confirmed) return;
     setDeleting(true);
     try {
       await deleteScheduleEntry(session.id);
-      toast.success(locale === "ar" ? "تم حذف الحصة" : "Session deleted");
+      toast.success(locale === "ar" ? "تم حذف الحصة فقط" : "Session deleted");
       router.push("/schedule");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : (locale === "ar" ? "تعذر حذف الحصة" : "Could not delete session"));
@@ -179,7 +179,7 @@ export default function ScheduleSessionDetailsPage({ params }: { params: Promise
           {t(locale, "منطقة خطرة", "Danger zone")}
         </h3>
         <p className="mb-4 text-xs leading-5 text-muted-foreground">
-          {t(locale, "الحذف نهائي ولا يمكن التراجع عنه.", "Deletion is permanent and cannot be undone.")}
+          {t(locale, "هذا الإجراء يحذف الحصة فقط من الجدول. الجروب والطلاب سيظلون موجودين.", "This deletes only this session from the schedule. The group and students will remain.")}
         </p>
         <button
           onClick={handleDeleteSession}
@@ -189,7 +189,7 @@ export default function ScheduleSessionDetailsPage({ params }: { params: Promise
           <Trash2 size={16} />
           {deleting
             ? (locale === "ar" ? "جارٍ الحذف..." : "Deleting...")
-            : (locale === "ar" ? "حذف نهائي" : "Delete permanently")}
+            : (locale === "ar" ? "حذف الحصة فقط" : "Delete session only")}
         </button>
       </div>
       </div>

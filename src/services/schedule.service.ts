@@ -486,59 +486,53 @@ export async function createScheduleEntry(input: CreateScheduleEntryInput): Prom
   return created;
 }
 
-
-/** Delete a schedule session permanently */
+/** Delete a schedule session permanently without deleting the parent group. */
 export async function deleteScheduleEntry(id: string): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error("Supabase client not available");
 
-  let deletedSessionId: string | null = null;
-  let deletedClassId: string | null = null;
-
-  const { data: session } = await supabase
+  const { data: session, error: sessionLoadError } = await supabase
     .from("sessions")
     .select("id, class_id")
     .eq("id", id)
     .maybeSingle();
 
-  if (session) {
-    deletedSessionId = session.id ?? id;
-
-    await supabase.from("attendance").delete().eq("session_id", id);
-
-    const { error } = await supabase.from("sessions").delete().eq("id", id);
-    if (error) throw new Error(error.message || "Failed to delete session");
-
-    if (session.class_id) {
-      const { data: remaining } = await supabase
-        .from("sessions")
-        .select("id")
-        .eq("class_id", session.class_id)
-        .limit(1);
-
-      if (!remaining || remaining.length === 0) {
-        deletedClassId = session.class_id;
-        await supabase.from("class_enrollments").delete().eq("class_id", session.class_id);
-        await supabase.from("classes").delete().eq("id", session.class_id);
-      }
-    }
-  } else {
-    deletedClassId = id;
-
-    await supabase.from("sessions").delete().eq("class_id", id);
-    await supabase.from("class_enrollments").delete().eq("class_id", id);
-
-    const { error } = await supabase.from("classes").delete().eq("id", id);
-    if (error) throw new Error(error.message || "Failed to delete class");
+  if (sessionLoadError) {
+    throw new Error(sessionLoadError.message || "Failed to load session before deleting");
   }
 
-  saveLocalSchedule(
-    getLocalSchedule().filter((entry) => {
-      if (deletedSessionId && entry.id === deletedSessionId) return false;
-      if (deletedClassId && (entry.id === deletedClassId || entry.classId === deletedClassId)) return false;
-      return true;
-    }),
-  );
+  if (!session) {
+    throw new Error("Session was not found.");
+  }
+
+  const { error: attendanceDeleteError } = await supabase
+    .from("attendance")
+    .delete()
+    .eq("session_id", id);
+
+  if (attendanceDeleteError) {
+    throw new Error(attendanceDeleteError.message || "Failed to delete session attendance records");
+  }
+
+  const { error: operationLogsDeleteError } = await supabase
+    .from("session_operation_logs")
+    .delete()
+    .eq("session_id", id);
+
+  if (operationLogsDeleteError) {
+    throw new Error(operationLogsDeleteError.message || "Failed to delete session operation logs");
+  }
+
+  const { error: sessionDeleteError } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", id);
+
+  if (sessionDeleteError) {
+    throw new Error(sessionDeleteError.message || "Failed to delete session");
+  }
+
+  saveLocalSchedule(getLocalSchedule().filter((entry) => entry.id !== id));
 
   return true;
 }
