@@ -706,10 +706,11 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
               {group.linkedStudents.map((student) => (
                 <div
                   key={student.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4"
+                  data-group-student-row
+                  className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-4"
                 >
-                  <Link href={"/students/" + student.id} className="min-w-0 flex-1 transition-colors hover:text-brand-700">
-                    <p className="truncate font-semibold text-foreground">{student.fullName}</p>
+                  <Link href={"/students/" + student.id} className="block min-w-0 rounded-xl px-1 py-1 transition-colors hover:text-brand-700">
+                    <p data-group-student-name className="truncate text-base font-bold text-foreground">{student.fullName || t(locale, "طالب بدون اسم", "Unnamed student")}</p>
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       {student.parentName} • {student.parentPhone}
                     </p>
