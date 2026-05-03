@@ -124,6 +124,13 @@ function inferTeacher(
 
 
 
+
+function formatDateForDb(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 function trimTime(v: string): string {
   const p = v.split(":");
   return p.length >= 2 ? p[0] + ":" + p[1] : v;
@@ -421,7 +428,7 @@ export async function createScheduleEntry(input: CreateScheduleEntryInput): Prom
   const daysUntil = (targetDay - currentDay + 7) % 7;
   const sessionDate = new Date(today);
   sessionDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
-  const sessionDateStr = sessionDate.toISOString().split("T")[0];
+  const sessionDateStr = formatDateForDb(sessionDate);
 
   // Step 1: Create class (NO time fields - those belong to sessions)
   const { data: classData, error: classError } = await supabase

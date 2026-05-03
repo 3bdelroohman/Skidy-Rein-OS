@@ -36,10 +36,35 @@ function asCourse(value: string | null | undefined): CourseType {
 }
 
 
-function addWeeksToDate(dateValue: string, weeks: number): string {
-  const date = new Date(dateValue + "T00:00:00");
-  date.setDate(date.getDate() + weeks * 7);
+function addDaysToDate(dateValue: string, days: number): string {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+function getWeekdayFromDate(dateValue: string): number {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function normalizeRecurrenceWeekdays(input: number[] | undefined, anchorDate: string): number[] {
+  const fallback = getWeekdayFromDate(anchorDate);
+  const normalized = [...new Set((input ?? [fallback]).map((value) => Math.trunc(value)).filter((value) => value >= 0 && value <= 6))].sort((a, b) => a - b);
+  return normalized.length > 0 ? normalized : [fallback];
+}
+
+function timeToMinutes(value: string): number {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function timesOverlap(leftStart: string, leftEnd: string, rightStart: string, rightEnd: string): boolean {
+  const aStart = timeToMinutes(leftStart);
+  const aEnd = timeToMinutes(leftEnd);
+  const bStart = timeToMinutes(rightStart);
+  const bEnd = timeToMinutes(rightEnd);
+  return aStart < bEnd && aEnd > bStart;
 }
 function sortSessions(items: GroupSessionItem[]): GroupSessionItem[] {
   return [...items].sort((a, b) => {
@@ -468,6 +493,7 @@ export async function removeStudentFromGroup(groupId: string, studentId: string)
 export async function completeGroupSessionSeries(input: {
   groupId: string;
   targetCount?: number;
+  recurrenceWeekdays?: number[];
 }): Promise<{ createdCount: number; totalCount: number }> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -501,7 +527,7 @@ export async function completeGroupSessionSeries(input: {
   }
 
   const existingSessions = sortSessions(
-    ((sessionRows ?? []) as SessionRow[]).map((row) => ({
+    ((sessionRows ?? []) as SessionRow[]).filter((row) => row.is_cancelled !== true).map((row) => ({
       id: row.id,
       classId: row.class_id,
       teacherId: row.teacher_id,
@@ -540,6 +566,8 @@ export async function completeGroupSessionSeries(input: {
 
   const startTime = anchor.startTime;
   const endTime = anchor.endTime;
+  const recurrenceWeekdays = normalizeRecurrenceWeekdays(input.recurrenceWeekdays, anchor.sessionDate);
+  const recurrenceWeekdaySet = new Set(recurrenceWeekdays);
   const existingKeys = new Set(
     existingSessions.map((session) => `${session.sessionDate ?? ""}|${session.startTime}|${session.endTime}`),
   );
@@ -556,31 +584,72 @@ export async function completeGroupSessionSeries(input: {
     is_cancelled: boolean;
   }> = [];
 
-  let weekIndex = 0;
+  let cursorDate = anchor.sessionDate;
+  let guard = 0;
+  const maxGuard = Math.max(90, targetCount * 28);
 
-  while (existingSessions.length + rowsToInsert.length < targetCount && weekIndex < targetCount + 32) {
-    const sessionDate = addWeeksToDate(anchor.sessionDate, weekIndex);
-    const key = `${sessionDate}|${startTime}|${endTime}`;
+  while (existingSessions.length + rowsToInsert.length < targetCount && guard < maxGuard) {
+    if (recurrenceWeekdaySet.has(getWeekdayFromDate(cursorDate))) {
+      const key = `${cursorDate}|${startTime}|${endTime}`;
 
-    if (!existingKeys.has(key)) {
-      rowsToInsert.push({
-        class_id: input.groupId,
-        teacher_id: teacherId,
-        session_date: sessionDate,
-        start_time: startTime,
-        end_time: endTime,
-        topic: null,
-        notes: null,
-        meeting_link: null,
-        is_cancelled: false,
-      });
+      if (!existingKeys.has(key)) {
+        rowsToInsert.push({
+          class_id: input.groupId,
+          teacher_id: teacherId,
+          session_date: cursorDate,
+          start_time: startTime,
+          end_time: endTime,
+          topic: null,
+          notes: `Generated as part of a ${recurrenceWeekdays.length}-day weekly recurrence pattern.`,
+          meeting_link: null,
+          is_cancelled: false,
+        });
 
-      existingKeys.add(key);
+        existingKeys.add(key);
+      }
     }
 
-    weekIndex += 1;
+    cursorDate = addDaysToDate(cursorDate, 1);
+    guard += 1;
   }
 
+  if (existingSessions.length + rowsToInsert.length < targetCount) {
+    throw new Error("Could not generate enough sessions for the selected recurrence pattern.");
+  }
+
+  if (rowsToInsert.length > 0) {
+    const candidateDates = [...new Set(rowsToInsert.map((row) => row.session_date))];
+
+    const { data: conflictRows, error: conflictError } = await supabase
+      .from("sessions")
+      .select("id, class_id, session_date, start_time, end_time")
+      .eq("teacher_id", teacherId)
+      .in("session_date", candidateDates)
+      .neq("is_cancelled", true);
+
+    if (conflictError) {
+      throw new Error(conflictError.message || "Failed to validate teacher schedule conflicts");
+    }
+
+    const conflicts = ((conflictRows ?? []) as Array<{
+      id: string;
+      class_id: string | null;
+      session_date: string | null;
+      start_time: string;
+      end_time: string;
+    }>).filter((existing) =>
+      existing.class_id !== input.groupId &&
+      rowsToInsert.some((candidate) =>
+        candidate.session_date === existing.session_date &&
+        timesOverlap(candidate.start_time, candidate.end_time, existing.start_time, existing.end_time),
+      ),
+    );
+
+    if (conflicts.length > 0) {
+      const first = conflicts[0];
+      throw new Error(`Teacher conflict on ${first.session_date} at ${first.start_time}. Choose another recurrence day or time.`);
+    }
+  }
   if (rowsToInsert.length === 0) {
     return { createdCount: 0, totalCount: existingSessions.length };
   }
