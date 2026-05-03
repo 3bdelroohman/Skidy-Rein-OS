@@ -28,6 +28,7 @@ import {
   addStudentsToGroup,
   completeGroupSessionSeries,
   createGroupSessionSeries,
+  deleteGroupPermanently,
   getGroupDetails,
   listGroups,
   moveStudentToGroup,
@@ -258,6 +259,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [groupNotes, setGroupNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [deletingGroup, setDeletingGroup] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, SessionDraft>>({});
   const [attendanceDrafts, setAttendanceDrafts] = useState<Record<string, Record<string, AttendanceDraft>>>({});
   const [deferDrafts, setDeferDrafts] = useState<Record<string, SessionDeferDraft>>({});
@@ -539,6 +541,45 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }));
   }
 
+
+  async function handleDeleteGroupPermanently() {
+    if (!group) return;
+
+    const firstConfirm = window.confirm(
+      t(
+        locale,
+        "تحذير: هذا حذف نهائي. سيتم حذف الجروب وحصصه وحضور الحصص وربط الطلاب به. استخدمه فقط لو الجروب اتعمل بالخطأ. هل تريد المتابعة؟",
+        "Warning: this is permanent. It will delete the group, its sessions, attendance records, and student enrollments. Use it only for mistaken groups. Continue?",
+      ),
+    );
+
+    if (!firstConfirm) return;
+
+    const typed = window.prompt(
+      t(
+        locale,
+        `للتأكيد النهائي اكتب اسم الجروب كما هو: ${group.name}`,
+        `For final confirmation, type the group name exactly: ${group.name}`,
+      ),
+    );
+
+    if (typed !== group.name) {
+      toast.error(t(locale, "لم يتم الحذف لأن اسم الجروب غير مطابق.", "Group was not deleted because the name did not match."));
+      return;
+    }
+
+    setDeletingGroup(true);
+
+    try {
+      await deleteGroupPermanently(group.id);
+      toast.success(t(locale, "تم حذف الجروب نهائيًا", "Group permanently deleted"));
+      window.location.href = "/groups";
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر حذف الجروب نهائيًا", "Could not permanently delete group"));
+    } finally {
+      setDeletingGroup(false);
+    }
+  }
   async function handleCreateSessionSeries() {
     if (!group) return;
 
@@ -1022,6 +1063,24 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
             <Power size={16} />
             {group.isActive ? t(locale, "إنهاء الجروب", "Complete group") : t(locale, "إعادة تفعيل", "Reactivate")}
           </button>
+            <div data-delete-group-permanently className="mt-4 border-t border-danger-100 pt-4">
+              <p className="mb-3 text-xs leading-6 text-muted-foreground">
+                {t(
+                  locale,
+                  "لو أنشأت هذا الجروب بالخطأ، يمكنك حذفه نهائيًا. هذا الإجراء لا يمكن التراجع عنه.",
+                  "If this group was created by mistake, you can permanently delete it. This action cannot be undone.",
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={handleDeleteGroupPermanently}
+                disabled={deletingGroup}
+                className="inline-flex items-center gap-2 rounded-xl border border-danger-300 bg-danger-50 px-4 py-2.5 text-sm font-semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:opacity-50 dark:border-danger-800 dark:bg-danger-950/30 dark:text-danger-300"
+              >
+                <Trash2 size={16} />
+                {deletingGroup ? t(locale, "جاري الحذف...", "Deleting...") : t(locale, "حذف الجروب نهائيًا", "Delete group permanently")}
+              </button>
+            </div>
         </div>
       </div>
 

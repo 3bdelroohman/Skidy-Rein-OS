@@ -491,6 +491,112 @@ export async function removeStudentFromGroup(groupId: string, studentId: string)
 
 
 
+
+export async function deleteGroupPermanently(groupId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  if (!groupId) {
+    throw new Error("Group id is required.");
+  }
+
+  const { data: classRow, error: classError } = await supabase
+    .from("classes")
+    .select("id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (classError) {
+    throw new Error(classError.message || "Failed to load group before deleting");
+  }
+
+  if (!classRow) {
+    throw new Error("Group was not found.");
+  }
+
+  const { data: sessionRows, error: sessionsError } = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("class_id", groupId);
+
+  if (sessionsError) {
+    throw new Error(sessionsError.message || "Failed to load group sessions before deleting");
+  }
+
+  const sessionIds = ((sessionRows ?? []) as Array<{ id: string | null }>)
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id));
+
+  const { data: enrollmentRows, error: enrollmentsLoadError } = await supabase
+    .from("class_enrollments")
+    .select("student_id")
+    .eq("class_id", groupId);
+
+  if (enrollmentsLoadError) {
+    throw new Error(enrollmentsLoadError.message || "Failed to load group enrollments before deleting");
+  }
+
+  const affectedStudentIds = [
+    ...new Set(
+      ((enrollmentRows ?? []) as Array<{ student_id: string | null }>)
+        .map((row) => row.student_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (sessionIds.length > 0) {
+    const { error: attendanceDeleteError } = await supabase
+      .from("attendance")
+      .delete()
+      .in("session_id", sessionIds);
+
+    if (attendanceDeleteError) {
+      throw new Error(attendanceDeleteError.message || "Failed to delete group attendance records");
+    }
+
+    const { error: operationLogsDeleteError } = await supabase
+      .from("session_operation_logs")
+      .delete()
+      .in("session_id", sessionIds);
+
+    if (operationLogsDeleteError) {
+      throw new Error(operationLogsDeleteError.message || "Failed to delete group operation logs");
+    }
+  }
+
+  const { error: sessionsDeleteError } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("class_id", groupId);
+
+  if (sessionsDeleteError) {
+    throw new Error(sessionsDeleteError.message || "Failed to delete group sessions");
+  }
+
+  const { error: enrollmentsDeleteError } = await supabase
+    .from("class_enrollments")
+    .delete()
+    .eq("class_id", groupId);
+
+  if (enrollmentsDeleteError) {
+    throw new Error(enrollmentsDeleteError.message || "Failed to delete group enrollments");
+  }
+
+  const { error: classDeleteError } = await supabase
+    .from("classes")
+    .delete()
+    .eq("id", groupId);
+
+  if (classDeleteError) {
+    throw new Error(classDeleteError.message || "Failed to delete group");
+  }
+
+  for (const studentId of affectedStudentIds) {
+    await syncStudentCurrentClass(supabase, studentId);
+  }
+}
 export async function createGroupSessionSeries(input: {
   groupId: string;
   firstSessionDate: string;
