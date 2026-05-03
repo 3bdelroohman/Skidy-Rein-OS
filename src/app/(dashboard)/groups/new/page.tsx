@@ -10,6 +10,11 @@ import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessTeachersForUser } from "@/config/roles";
 import { formatCourseLabel } from "@/lib/formatters";
 import { t } from "@/lib/locale";
+import {
+  buildTeacherCourseWarning,
+  filterTeachersByCourse,
+  teacherTeachesCourse,
+} from "@/lib/teacher-course-utils";
 import { createGroup } from "@/services/group-operations.service";
 import { listStudents } from "@/services/students.service";
 import { listTeachers } from "@/services/teachers.service";
@@ -83,9 +88,8 @@ export default function NewGroupPage() {
         setTeachers(activeTeachers);
         setStudents(studentRows);
 
-        if (activeTeachers.length > 0) {
-          setTeacherId(activeTeachers[0].id);
-        }
+        const initialTeacher = filterTeachersByCourse(activeTeachers, "scratch")[0] ?? null;
+        setTeacherId(initialTeacher?.id ?? "");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -118,6 +122,33 @@ export default function NewGroupPage() {
     });
   }, [selectedStudentIds, studentSearch, students]);
 
+  const selectedTeacher = useMemo(() => {
+    return teachers.find((teacher) => teacher.id === teacherId) ?? null;
+  }, [teacherId, teachers]);
+
+  const teachersForSelectedCourse = useMemo(() => {
+    return filterTeachersByCourse(teachers, course);
+  }, [teachers, course]);
+
+  const teacherCourseWarning = useMemo(() => {
+    return buildTeacherCourseWarning({
+      selectedTeacher,
+      selectedCourse: course,
+      availableTeachers: teachersForSelectedCourse,
+      locale,
+    });
+  }, [selectedTeacher, course, teachersForSelectedCourse, locale]);
+
+  useEffect(() => {
+    if (!teacherId) return;
+
+    const currentTeacher = teachers.find((teacher) => teacher.id === teacherId) ?? null;
+    if (!currentTeacher) return;
+
+    if (!teacherTeachesCourse(currentTeacher, course)) {
+      setTeacherId("");
+    }
+  }, [teacherId, teachers, course]);
   function toggleStudent(studentId: string) {
     setSelectedStudentIds((prev) =>
       prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId],
@@ -135,7 +166,17 @@ export default function NewGroupPage() {
       return;
     }
 
-    if (!startDate) {
+        if (selectedTeacher && !teacherTeachesCourse(selectedTeacher, course)) {
+      toast.error(
+        t(
+          locale,
+          "المدرس المختار لا يدرّس هذه المادة. اختر مدرسًا مناسبًا أو غيّر المادة.",
+          "The selected teacher does not teach this course. Choose a suitable teacher or change the course.",
+        ),
+      );
+      return;
+    }
+if (!startDate) {
       toast.error(t(locale, "اختر تاريخ البداية", "Choose the start date"));
       return;
     }
@@ -250,15 +291,31 @@ export default function NewGroupPage() {
               <select
                 value={teacherId}
                 onChange={(event) => setTeacherId(event.target.value)}
-                className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
+                disabled={teachersForSelectedCourse.length === 0}
+                className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring disabled:opacity-50"
               >
                 <option value="">{t(locale, "اختر المدرس", "Choose teacher")}</option>
-                {teachers.map((teacher) => (
+                {teachersForSelectedCourse.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>
                     {teacher.fullName}
                   </option>
                 ))}
               </select>
+              {teachersForSelectedCourse.length === 0 ? (
+                <p className="mt-2 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2 text-xs leading-5 text-warning-700">
+                  {t(
+                    locale,
+                    "لا يوجد مدرس نشط يدرّس هذه المادة. غيّر المادة أو أضف مدرسًا يدرّسها من صفحة المدرسين.",
+                    "No active teacher teaches this course. Change the course or add a teacher who teaches it from Teachers.",
+                  )}
+                </p>
+              ) : null}
+
+              {teacherCourseWarning ? (
+                <p className="mt-2 rounded-xl border border-danger-200 bg-danger-50 px-3 py-2 text-xs leading-5 text-danger-700">
+                  {teacherCourseWarning}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
@@ -308,7 +365,12 @@ export default function NewGroupPage() {
               <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "الكورس", "Course")}</label>
               <select
                 value={course}
-                onChange={(event) => setCourse(event.target.value as CourseType)}
+                onChange={(event) => {
+                  const nextCourse = event.target.value as CourseType;
+                  setCourse(nextCourse);
+                  const nextTeacher = filterTeachersByCourse(teachers, nextCourse)[0] ?? null;
+                  setTeacherId(nextTeacher?.id ?? "");
+                }}
                 className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring"
               >
                 {COURSE_OPTIONS_BY_STAGE.map((group) => (
