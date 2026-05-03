@@ -27,6 +27,7 @@ import { t } from "@/lib/locale";
 import {
   addStudentsToGroup,
   completeGroupSessionSeries,
+  createGroupSessionSeries,
   getGroupDetails,
   listGroups,
   moveStudentToGroup,
@@ -41,6 +42,89 @@ import { listStudents } from "@/services/students.service";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
 import type { AttendanceStatus, GroupDetails, GroupListItem, StudentListItem } from "@/types/crm";
 
+
+type GroupSeriesRecurrenceMode = "weekly" | "twice_weekly" | "custom";
+
+interface CreateGroupSeriesDraft {
+  firstSessionDate: string;
+  startTime: string;
+  endTime: string;
+  targetCount: number;
+  recurrenceMode: GroupSeriesRecurrenceMode;
+  selectedWeekdays: number[];
+}
+
+const GROUP_SERIES_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
+
+function getLocalDateInput(): string {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getWeekdayFromDateInput(dateValue: string): number {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function getGroupSeriesDayLabel(day: number, locale: "ar" | "en"): string {
+  const labels = locale === "ar"
+    ? ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
+    : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  return labels[day] ?? String(day);
+}
+
+function toggleNumber(list: number[], value: number): number[] {
+  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value].sort((a, b) => a - b);
+}
+
+function createDefaultGroupSeriesDraft(): CreateGroupSeriesDraft {
+  const today = getLocalDateInput();
+  return {
+    firstSessionDate: today,
+    startTime: "16:00",
+    endTime: "17:00",
+    targetCount: 8,
+    recurrenceMode: "weekly",
+    selectedWeekdays: [getWeekdayFromDateInput(today)],
+  };
+}
+
+function resolveGroupSeriesWeekdays(input: {
+  draft: CreateGroupSeriesDraft;
+  locale: "ar" | "en";
+}): number[] {
+  const anchorDay = getWeekdayFromDateInput(input.draft.firstSessionDate);
+
+  if (input.draft.recurrenceMode === "weekly") {
+    return [anchorDay];
+  }
+
+  const selected = [...new Set(input.draft.selectedWeekdays)].sort((a, b) => a - b);
+
+  if (!selected.includes(anchorDay)) {
+    throw new Error(
+      t(
+        input.locale,
+        "يجب أن تشمل أيام التكرار يوم أول حصة الذي اخترته في التاريخ.",
+        "Selected recurrence days must include the weekday of the first session date.",
+      ),
+    );
+  }
+
+  if (input.draft.recurrenceMode === "twice_weekly" && selected.length !== 2) {
+    throw new Error(t(input.locale, "اختر يومين بالضبط للتكرار مرتين أسبوعيًا.", "Choose exactly two days for twice-weekly recurrence."));
+  }
+
+  if (input.draft.recurrenceMode === "custom" && selected.length < 1) {
+    throw new Error(t(input.locale, "اختر يومًا واحدًا على الأقل.", "Choose at least one weekday."));
+  }
+
+  return selected;
+}
 interface SessionDraft {
   attendanceTaken: boolean;
   materialsUploaded: boolean;
@@ -178,6 +262,8 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [attendanceDrafts, setAttendanceDrafts] = useState<Record<string, Record<string, AttendanceDraft>>>({});
   const [deferDrafts, setDeferDrafts] = useState<Record<string, SessionDeferDraft>>({});
 
+  const [busyCreatingSessionSeries, setBusyCreatingSessionSeries] = useState(false);
+  const [newSeriesDraft, setNewSeriesDraft] = useState<CreateGroupSeriesDraft>(() => createDefaultGroupSeriesDraft());
   async function load() {
     setLoading(true);
 
@@ -443,6 +529,68 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
       toast.error(error instanceof Error ? error.message : t(locale, "تعذر تأجيل الحصة", "Could not reschedule session"));
     } finally {
       setBusyDeferSessionId(null);
+    }
+  }
+
+  function updateNewSeriesDraft(patch: Partial<CreateGroupSeriesDraft>) {
+    setNewSeriesDraft((prev) => ({
+      ...prev,
+      ...patch,
+    }));
+  }
+
+  async function handleCreateSessionSeries() {
+    if (!group) return;
+
+    if (!newSeriesDraft.firstSessionDate || !newSeriesDraft.startTime || !newSeriesDraft.endTime) {
+      toast.error(t(locale, "حدد تاريخ أول حصة ووقت البداية والنهاية أولًا.", "Choose first session date, start time, and end time first."));
+      return;
+    }
+
+    if (newSeriesDraft.startTime >= newSeriesDraft.endTime) {
+      toast.error(t(locale, "وقت النهاية يجب أن يكون بعد وقت البداية.", "End time must be after start time."));
+      return;
+    }
+
+    const targetCount = Math.min(48, Math.max(1, Number(newSeriesDraft.targetCount) || 1));
+    const recurrenceWeekdays = resolveGroupSeriesWeekdays({ draft: newSeriesDraft, locale });
+    const dayLabels = recurrenceWeekdays.map((day) => getGroupSeriesDayLabel(day, locale)).join("، ");
+
+    const confirmed = window.confirm(
+      t(
+        locale,
+        `سيتم إنشاء ${targetCount} حصة داخل هذا الجروب فقط، بداية من ${newSeriesDraft.firstSessionDate}، أيام: ${dayLabels}. هل تريد المتابعة؟`,
+        `${targetCount} sessions will be created inside this group only, starting ${newSeriesDraft.firstSessionDate}, on: ${dayLabels}. Continue?`,
+      ),
+    );
+
+    if (!confirmed) return;
+
+    setBusyCreatingSessionSeries(true);
+
+    try {
+      const result = await createGroupSessionSeries({
+        groupId: group.id,
+        firstSessionDate: newSeriesDraft.firstSessionDate,
+        startTime: newSeriesDraft.startTime,
+        endTime: newSeriesDraft.endTime,
+        targetCount,
+        recurrenceWeekdays,
+      });
+
+      toast.success(
+        t(
+          locale,
+          `تم إنشاء ${result.createdCount} حصة. إجمالي الحصص الآن ${result.totalCount}.`,
+          `${result.createdCount} sessions created. Total sessions is now ${result.totalCount}.`,
+        ),
+      );
+
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t(locale, "تعذر إنشاء حصص الجروب", "Could not create group sessions"));
+    } finally {
+      setBusyCreatingSessionSeries(false);
     }
   }
   async function handleCompleteSessionSeries() {
@@ -885,7 +1033,147 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
           <ClipboardList size={18} className="text-brand-600" />
           {t(locale, "تشغيل الحصص", "Session operations")}
         </h2>
-              <div data-complete-session-series className="mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
+              {group.sessions.length === 0 ? (
+                <div data-create-session-series className="mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-brand-700">
+                      {t(locale, "إنشاء حصص لهذا الجروب", "Create sessions for this group")}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-brand-700/80">
+                      {t(locale, "هذا الخيار ينشئ الحصص داخل الجروب الحالي فقط، بدون إنشاء جروب جديد.", "This creates sessions inside the current group only, without creating a new group.")}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold text-brand-700">
+                        {t(locale, "تاريخ أول حصة", "First session date")}
+                      </span>
+                      <input
+                        type="date"
+                        value={newSeriesDraft.firstSessionDate}
+                        onChange={(event) => {
+                          const nextDate = event.target.value;
+                          updateNewSeriesDraft({
+                            firstSessionDate: nextDate,
+                            selectedWeekdays:
+                              newSeriesDraft.recurrenceMode === "weekly"
+                                ? [getWeekdayFromDateInput(nextDate)]
+                                : newSeriesDraft.selectedWeekdays,
+                          });
+                        }}
+                        className="w-full rounded-xl border border-brand-100 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold text-brand-700">
+                        {t(locale, "من", "From")}
+                      </span>
+                      <input
+                        type="time"
+                        value={newSeriesDraft.startTime}
+                        onChange={(event) => updateNewSeriesDraft({ startTime: event.target.value })}
+                        className="w-full rounded-xl border border-brand-100 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold text-brand-700">
+                        {t(locale, "إلى", "To")}
+                      </span>
+                      <input
+                        type="time"
+                        value={newSeriesDraft.endTime}
+                        onChange={(event) => updateNewSeriesDraft({ endTime: event.target.value })}
+                        className="w-full rounded-xl border border-brand-100 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold text-brand-700">
+                        {t(locale, "عدد الحصص", "Sessions count")}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={48}
+                        value={newSeriesDraft.targetCount}
+                        onChange={(event) => updateNewSeriesDraft({ targetCount: Number(event.target.value) })}
+                        className="w-full rounded-xl border border-brand-100 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[240px_1fr]">
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold text-brand-700">
+                        {t(locale, "نمط التكرار", "Recurrence pattern")}
+                      </span>
+                      <select
+                        value={newSeriesDraft.recurrenceMode}
+                        onChange={(event) => {
+                          const mode = event.target.value as GroupSeriesRecurrenceMode;
+                          const anchorDay = getWeekdayFromDateInput(newSeriesDraft.firstSessionDate);
+                          updateNewSeriesDraft({
+                            recurrenceMode: mode,
+                            selectedWeekdays: mode === "weekly" ? [anchorDay] : newSeriesDraft.selectedWeekdays.includes(anchorDay) ? newSeriesDraft.selectedWeekdays : [anchorDay, ...newSeriesDraft.selectedWeekdays],
+                          });
+                        }}
+                        className="w-full rounded-xl border border-brand-100 bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="weekly">{t(locale, "مرة أسبوعيًا", "Once weekly")}</option>
+                        <option value="twice_weekly">{t(locale, "مرتين أسبوعيًا", "Twice weekly")}</option>
+                        <option value="custom">{t(locale, "أيام مخصصة", "Custom weekdays")}</option>
+                      </select>
+                    </label>
+
+                    {newSeriesDraft.recurrenceMode !== "weekly" ? (
+                      <div>
+                        <span className="mb-1.5 block text-xs font-semibold text-brand-700">
+                          {t(locale, "أيام التكرار", "Recurrence days")}
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {GROUP_SERIES_WEEKDAYS.map((day) => {
+                            const selected = newSeriesDraft.selectedWeekdays.includes(day);
+                            return (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => updateNewSeriesDraft({ selectedWeekdays: toggleNumber(newSeriesDraft.selectedWeekdays, day) })}
+                                className={
+                                  selected
+                                    ? "rounded-xl bg-brand-700 px-3 py-2 text-xs font-semibold text-white"
+                                    : "rounded-xl border border-brand-100 bg-card px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+                                }
+                              >
+                                {getGroupSeriesDayLabel(day, locale)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-brand-100 bg-card px-3 py-2 text-sm text-brand-700">
+                        {t(locale, "سيتم التكرار أسبوعيًا في نفس يوم تاريخ أول حصة.", "Repeats weekly on the weekday of the first session date.")}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleCreateSessionSeries}
+                      disabled={busyCreatingSessionSeries}
+                      className="inline-flex items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
+                    >
+                      {busyCreatingSessionSeries ? t(locale, "جاري الإنشاء...", "Creating...") : t(locale, "إنشاء حصص الجروب", "Create group sessions")}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div data-complete-session-series className={group.sessions.length === 0 ? "hidden" : "mb-4 rounded-2xl border border-brand-100 bg-brand-50/60 p-4"}>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <p className="text-sm font-bold text-brand-700">

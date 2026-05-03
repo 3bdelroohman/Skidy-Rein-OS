@@ -490,6 +490,171 @@ export async function removeStudentFromGroup(groupId: string, studentId: string)
 }
 
 
+
+export async function createGroupSessionSeries(input: {
+  groupId: string;
+  firstSessionDate: string;
+  startTime: string;
+  endTime: string;
+  targetCount?: number;
+  recurrenceWeekdays?: number[];
+}): Promise<{ createdCount: number; totalCount: number }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not available in the current browser session.");
+  }
+
+  const targetCount = Math.min(48, Math.max(1, input.targetCount ?? 8));
+
+  if (!input.firstSessionDate) {
+    throw new Error("First session date is required.");
+  }
+
+  if (!input.startTime || !input.endTime) {
+    throw new Error("Start time and end time are required.");
+  }
+
+  if (timeToMinutes(input.startTime) >= timeToMinutes(input.endTime)) {
+    throw new Error("End time must be after start time.");
+  }
+
+  const { data: classRows, error: classError } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("id", input.groupId)
+    .limit(1);
+
+  if (classError) {
+    throw new Error(classError.message || "Failed to load group");
+  }
+
+  const classRow = (classRows?.[0] ?? null) as ClassRow | null;
+  if (!classRow) {
+    throw new Error("Group was not found.");
+  }
+
+  const teacherId = classRow.teacher_id;
+  if (!teacherId) {
+    throw new Error("Cannot create sessions because the group teacher is missing.");
+  }
+
+  const { data: existingSessionRows, error: existingSessionsError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("class_id", input.groupId);
+
+  if (existingSessionsError) {
+    throw new Error(existingSessionsError.message || "Failed to load existing group sessions");
+  }
+
+  const existingSessions = ((existingSessionRows ?? []) as SessionRow[]).filter((row) => row.is_cancelled !== true);
+
+  if (existingSessions.length >= targetCount) {
+    return { createdCount: 0, totalCount: existingSessions.length };
+  }
+
+  const recurrenceWeekdays = normalizeRecurrenceWeekdays(input.recurrenceWeekdays, input.firstSessionDate);
+  const recurrenceWeekdaySet = new Set(recurrenceWeekdays);
+
+  const existingKeys = new Set(
+    existingSessions.map((session) => `${session.session_date ?? ""}|${session.start_time}|${session.end_time}`),
+  );
+
+  const rowsToInsert: Array<{
+    class_id: string;
+    teacher_id: string;
+    session_date: string;
+    start_time: string;
+    end_time: string;
+    topic: string | null;
+    notes: string | null;
+    meeting_link: string | null;
+    is_cancelled: boolean;
+  }> = [];
+
+  let cursorDate = input.firstSessionDate;
+  let guard = 0;
+  const maxGuard = Math.max(120, targetCount * 35);
+
+  while (existingSessions.length + rowsToInsert.length < targetCount && guard < maxGuard) {
+    if (recurrenceWeekdaySet.has(getWeekdayFromDate(cursorDate))) {
+      const key = `${cursorDate}|${input.startTime}|${input.endTime}`;
+
+      if (!existingKeys.has(key)) {
+        rowsToInsert.push({
+          class_id: input.groupId,
+          teacher_id: teacherId,
+          session_date: cursorDate,
+          start_time: input.startTime,
+          end_time: input.endTime,
+          topic: null,
+          notes: `Generated from existing group using a ${recurrenceWeekdays.length}-day weekly recurrence pattern.`,
+          meeting_link: null,
+          is_cancelled: false,
+        });
+
+        existingKeys.add(key);
+      }
+    }
+
+    cursorDate = addDaysToDate(cursorDate, 1);
+    guard += 1;
+  }
+
+  if (existingSessions.length + rowsToInsert.length < targetCount) {
+    throw new Error("Could not generate enough sessions for the selected recurrence pattern.");
+  }
+
+  if (rowsToInsert.length > 0) {
+    const candidateDates = [...new Set(rowsToInsert.map((row) => row.session_date))];
+
+    const { data: conflictRows, error: conflictError } = await supabase
+      .from("sessions")
+      .select("id, class_id, session_date, start_time, end_time, is_cancelled")
+      .eq("teacher_id", teacherId)
+      .in("session_date", candidateDates);
+
+    if (conflictError) {
+      throw new Error(conflictError.message || "Failed to validate teacher schedule conflicts");
+    }
+
+    const conflicts = ((conflictRows ?? []) as Array<{
+      id: string;
+      class_id: string | null;
+      session_date: string | null;
+      start_time: string;
+      end_time: string;
+      is_cancelled?: boolean | null;
+    }>).filter((existing) =>
+      existing.is_cancelled !== true &&
+      existing.class_id !== input.groupId &&
+      rowsToInsert.some((candidate) =>
+        candidate.session_date === existing.session_date &&
+        timesOverlap(candidate.start_time, candidate.end_time, existing.start_time, existing.end_time),
+      ),
+    );
+
+    if (conflicts.length > 0) {
+      const first = conflicts[0];
+      throw new Error(`Teacher conflict on ${first.session_date} at ${first.start_time}. Choose another recurrence day or time.`);
+    }
+  }
+
+  if (rowsToInsert.length === 0) {
+    return { createdCount: 0, totalCount: existingSessions.length };
+  }
+
+  const { error: insertError } = await supabase.from("sessions").insert(rowsToInsert);
+
+  if (insertError) {
+    throw new Error(insertError.message || "Failed to create group sessions");
+  }
+
+  return {
+    createdCount: rowsToInsert.length,
+    totalCount: existingSessions.length + rowsToInsert.length,
+  };
+}
 export async function completeGroupSessionSeries(input: {
   groupId: string;
   targetCount?: number;
