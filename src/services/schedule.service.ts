@@ -304,12 +304,35 @@ export async function getScheduleSessionDetails(id: string): Promise<ScheduleSes
     ? teachers.find((teacher) => teacher.id === session.teacherId) ?? null
     : teachers.find((teacher) => normalizeName(teacher.fullName) === normalizeName(session.teacher)) ?? null;
 
-  const linkedStudents = students.filter((student) => {
-    const classMatch = student.className ? normalizeName(student.className) === normalizeName(session.className) : false;
-    const courseMatch = student.currentCourse === session.course;
-    return classMatch || courseMatch;
-  });
+  const supabase = getSupabaseClient();
+  let linkedStudents: StudentListItem[] = [];
 
+  if (session.classId && supabase) {
+    const { data: enrollmentRows, error: enrollmentError } = await supabase
+      .from("class_enrollments")
+      .select("student_id")
+      .eq("class_id", session.classId)
+      .eq("is_active", true);
+
+    if (enrollmentError) {
+      console.error("[schedule] failed to load session enrollments", enrollmentError);
+    }
+
+    const linkedStudentIds = new Set(
+      ((enrollmentRows ?? []) as Array<{ student_id?: string | null }>)
+        .map((row) => row.student_id)
+        .filter((value): value is string => Boolean(value)),
+    );
+
+    linkedStudents = students.filter((student) => linkedStudentIds.has(student.id));
+  }
+
+  if (linkedStudents.length === 0 && (!session.classId || !supabase)) {
+    linkedStudents = students.filter((student) => {
+      const classMatch = student.className ? normalizeName(student.className) === normalizeName(session.className) : false;
+      return classMatch;
+    });
+  }
   const linkedParentIds = Array.from(new Set(linkedStudents.map((student) => student.parentId).filter((value): value is string => Boolean(value))));
   const linkedParents = parents.filter((parent) => linkedParentIds.includes(parent.id));
   const siblingSessions = allSessions.filter(
