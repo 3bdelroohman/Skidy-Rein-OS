@@ -459,7 +459,8 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
   const invoiceNumber = generateInvoiceNumber(current);
   const currency = normalizePaymentCurrency(input.currency);
   const sessionsCovered = normalizeSessionBlock(input.sessionsCovered ?? DEFAULT_SESSION_BLOCK);
-  const notes = buildPaymentNotes(input.notes, {sessionsCovered,
+  const notes = buildPaymentNotes(input.notes, {currency,
+    sessionsCovered,
     blockStartDate,
     blockEndDate,
     deferredUntil,
