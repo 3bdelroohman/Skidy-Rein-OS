@@ -1,4 +1,4 @@
-﻿import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database.types";
 
 function getSupabaseClient() {
@@ -114,6 +114,7 @@ async function ensureLeadEnrollmentInternal(
       .from("students")
       .insert({
         full_name: lead.child_name,
+        lead_id: lead.id,
         age: lead.child_age,
         parent_id: parent.id,
         status: "active" as const,
@@ -131,11 +132,19 @@ async function ensureLeadEnrollmentInternal(
 
     student = data as StudentRow;
     students.unshift(student);
-  } else if (student && (!student.parent_id || student.parent_id !== parent.id)) {
+  } else if (
+    student &&
+    (
+      student.parent_id !== parent.id ||
+      !student.lead_id ||
+      (!student.current_course && lead.suggested_course)
+    )
+  ) {
     const { data, error } = await supabase!
       .from("students")
       .update({
         parent_id: parent.id,
+        lead_id: student.lead_id ?? lead.id,
         current_course: student.current_course ?? lead.suggested_course ?? null,
       })
       .eq("id", student.id)

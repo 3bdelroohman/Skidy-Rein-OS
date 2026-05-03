@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/providers/user-provider";
 import { useUIStore } from "@/stores/ui-store";
 import { getLeadById, listLeadActivities, updateLeadStage, deleteLead } from "@/services/leads.service";
+import { ensureLeadEnrollment } from "@/services/enrollment.service";
 import {
   createFollowUp,
   listFollowUpsByLead,
@@ -53,6 +54,7 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [changingStage, setChangingStage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [convertingLead, setConvertingLead] = useState(false);
   const [savingFollowUp, setSavingFollowUp] = useState(false);
   const [togglingFollowUp, setTogglingFollowUp] = useState<string | null>(null);
   const [followUpForm, setFollowUpForm] = useState<{ title: string; scheduledAt: string; priority: CreateFollowUpInput["priority"]; channel: CreateFollowUpInput["channel"]; }>({
@@ -153,6 +155,38 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
 
 
 
+
+  const handleConvertLead = async () => {
+    if (!lead) return;
+
+    setConvertingLead(true);
+    try {
+      if (lead.stage !== "won") {
+        await updateLeadStage(id, "won", user.fullNameAr || user.fullName);
+      }
+
+      const result = await ensureLeadEnrollment(id);
+      const [refreshedLead, refreshedActivities] = await Promise.all([
+        getLeadById(id),
+        listLeadActivities(id),
+      ]);
+
+      setLead(refreshedLead ?? lead);
+      setActivities(refreshedActivities);
+
+      toast.success(t(locale, "تم تحويل العميل إلى سجل فعلي", "Lead converted to real records"));
+
+      if (result.studentId) {
+        router.push(`/students/${result.studentId}`);
+      } else if (result.parentId) {
+        router.push(`/parents/${result.parentId}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t(locale, "تعذر تحويل العميل", "Could not convert lead"));
+    } finally {
+      setConvertingLead(false);
+    }
+  };
   const handleCreateFollowUp = async () => {
     if (!lead || !followUpForm.title.trim() || !followUpForm.scheduledAt) return;
 
@@ -471,6 +505,13 @@ export default function LeadDetailsPage({ params }: { params: Promise<{ id: stri
           <div className="rounded-2xl border border-border bg-card p-4">
             <h3 className="mb-3 font-bold text-foreground">{t(locale, "تحويل وتشغيل", "Conversion and operations")}</h3>
             <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={handleConvertLead}
+                disabled={convertingLead}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >                {convertingLead ? t(locale, "جاري التحويل...", "Converting...") : t(locale, "تحويل فعلي لطالب/ولي أمر", "Convert to real student")}
+              </button>
               <Link href={parentCreateHref} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
                 <UserRound size={16} />
                 {t(locale, "إنشاء ولي أمر", "Create parent")}
