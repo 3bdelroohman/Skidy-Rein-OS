@@ -408,6 +408,19 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     };
   }, [id, canAccess]);
 
+  const sortedSessions = useMemo(() => {
+    if (!group) return [];
+
+    return [...group.sessions].sort((a, b) => {
+      const dateCompare = String(a.sessionDate ?? "").localeCompare(String(b.sessionDate ?? ""));
+      if (dateCompare !== 0) return dateCompare;
+
+      const startCompare = String(a.startTime ?? "").localeCompare(String(b.startTime ?? ""));
+      if (startCompare !== 0) return startCompare;
+
+      return String(a.id).localeCompare(String(b.id));
+    });
+  }, [group]);
   const completedSessions = useMemo(() => {
     if (!group) return 0;
 
@@ -1288,13 +1301,16 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                   )}
                 </div>
               </div>
-        {group.sessions.length === 0 ? (
+        {sortedSessions.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             {t(locale, "لا توجد حصص مرتبطة بهذا الجروب بعد", "No sessions are linked to this group yet")}
           </div>
         ) : (
           <div className="space-y-4">
-            {group.sessions.map((session, index) => {
+                    <p data-session-order-hint className="text-xs leading-5 text-muted-foreground">
+          {t(locale, "الحصص مرتبة تلقائيًا حسب التاريخ ووقت البداية.", "Sessions are automatically ordered by date and start time.")}
+        </p>
+{sortedSessions.map((session, index) => {
               const draft = drafts[session.id] ?? createDraft(session);
               const isSaving = busySessionId === session.id;
               const isSavingAttendance = busyAttendanceSessionId === session.id;
