@@ -333,6 +333,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
   const [deferDrafts, setDeferDrafts] = useState<Record<string, SessionDeferDraft>>({});
 
   const [busyCreatingSessionSeries, setBusyCreatingSessionSeries] = useState(false);
+  const [expandedSessionIds, setExpandedSessionIds] = useState<string[]>([]);
   const [newSeriesDraft, setNewSeriesDraft] = useState<CreateGroupSeriesDraft>(() => createDefaultGroupSeriesDraft());
   async function load() {
     setLoading(true);
@@ -436,6 +437,13 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     }).length;
   }, [group]);
 
+  function toggleExpandedSession(sessionId: string) {
+    setExpandedSessionIds((previous) =>
+      previous.includes(sessionId)
+        ? previous.filter((id) => id !== sessionId)
+        : [...previous, sessionId],
+    );
+  }
   const availableStudents = useMemo(() => {
     if (!group) return [];
 
@@ -1316,6 +1324,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
               const isSavingAttendance = busyAttendanceSessionId === session.id;
               const sessionNumber = index + 1;
               const statusMeta = getSessionStatusMeta(session, locale);
+          const isExpanded = expandedSessionIds.includes(session.id);
               const markedAttendance = getMarkedAttendanceCount(session);
               const totalAttendance = session.attendanceEntries.length;
               const attendanceProgress = totalAttendance > 0 ? `${markedAttendance}/${totalAttendance}` : "0/0";
@@ -1328,8 +1337,35 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
                 deferDraft.endTime !== session.endTime;
 
               return (
-                <div key={session.id} className="rounded-2xl border border-border bg-background p-4">
-                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div
+              key={session.id}
+              className={
+                isExpanded
+                  ? "rounded-2xl border border-border bg-background p-4"
+                  : "rounded-2xl border border-border bg-background p-4 [&>*:not([data-session-collapse-toggle])]:hidden"
+              }
+            >
+                                                  <button
+                type="button"
+                data-session-collapse-toggle
+                aria-expanded={isExpanded}
+                onClick={() => toggleExpandedSession(session.id)}
+                className="mb-4 flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-start transition-colors hover:bg-muted"
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-foreground">
+                    {t(locale, `الحصة ${sessionNumber}`, `Session ${sessionNumber}`)}
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {session.sessionDate ?? "—"} • {session.startTime} — {session.endTime}
+                  </span>
+                </span>
+
+                <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                  {isExpanded ? t(locale, "إخفاء التفاصيل", "Hide details") : t(locale, "عرض التفاصيل", "Show details")}
+                </span>
+              </button>
+<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
                         <span className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 font-semibold text-brand-700">
