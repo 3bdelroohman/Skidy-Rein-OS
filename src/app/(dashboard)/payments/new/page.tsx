@@ -44,9 +44,9 @@ function methodLabel(m: PaymentMethod, locale: Locale): string {
 }
 
 function normalizeSessionBlock(value: string): number {
-  const parsed = Number(value || 8);
-  if (!Number.isFinite(parsed)) return 8;
-  return Math.max(8, Math.ceil(parsed / 8) * 8);
+  const parsed = Number(value || 4);
+  if (!Number.isFinite(parsed)) return 4;
+  return Math.max(1, Math.round(parsed));
 }
 
 function studentOptionLabel(s: StudentListItem): string {
@@ -203,7 +203,7 @@ export default function NewPaymentPage() {
               </select>
             </Field>
             <Field label={t(locale, "عدد الحصص", "Covered sessions")}>
-              <input type="number" min="8" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
+              <input type="number" min="1" step="1" value={form.sessionsCovered} onChange={(event) => setForm((prev) => ({ ...prev, sessionsCovered: event.target.value }))} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground" />
             </Field>
           </div>
 
@@ -211,7 +211,7 @@ export default function NewPaymentPage() {
             <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
               <TriangleAlert size={18} className="mt-0.5 shrink-0" />
               <p>
-                {t(locale, "سيتم إصدار الفاتورة على " + normalizedSessions + " جلسات بدل " + form.sessionsCovered + " لأن دورة الفوترة معتمدة على مضاعفات 8 جلسات.", "The invoice will be issued for " + normalizedSessions + " sessions instead of " + form.sessionsCovered + ", because the billing cycle is locked to multiples of 8 sessions.")}
+                {t(locale, "سيتم إصدار الفاتورة على " + normalizedSessions + " جلسات بدل " + form.sessionsCovered + " لأن عدد الحصص يجب أن يكون رقمًا صحيحًا موجبًا.", "The invoice will be issued for " + normalizedSessions + " sessions instead of " + form.sessionsCovered + ", because the covered sessions value must be a positive whole number.")}
               </p>
             </div>
           ) : null}

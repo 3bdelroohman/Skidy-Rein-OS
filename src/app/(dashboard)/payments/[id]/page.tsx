@@ -56,6 +56,29 @@ const STATUS_ACTIONS: Array<{ status: PaymentStatus; method?: PaymentMethod | nu
   { status: "overdue" },
 ];
 
+
+type PaymentMoneyLike = {
+  amount: number;
+  currency?: "EGP" | "SAR" | null;
+};
+
+function formatPaymentAmount(payment: PaymentMoneyLike, locale: "ar" | "en"): string {
+  return formatCurrency(payment.amount, locale, payment.currency ?? "EGP");
+}
+
+function formatPaymentTotals(items: PaymentMoneyLike[], locale: "ar" | "en"): string {
+  if (items.length === 0) return formatCurrency(0, locale, "EGP");
+
+  const totals = new Map<"EGP" | "SAR", number>();
+  for (const item of items) {
+    const currency = item.currency ?? "EGP";
+    totals.set(currency, (totals.get(currency) ?? 0) + item.amount);
+  }
+
+  return Array.from(totals.entries())
+    .map(([currency, amount]) => formatCurrency(amount, locale, currency))
+    .join(" · ");
+}
 function getDisplayStatusLabel(status: DisplayStatus, locale: "ar" | "en") {
   return status === "deferred" ? t(locale, "مؤجل", "Deferred") : getPaymentStatusLabel(status, locale);
 }
@@ -176,11 +199,7 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
       setRecordAction(null);
     }
   }
-
-  const siblingTotal = useMemo(
-    () => payment?.siblingPayments.reduce((sum, item) => sum + item.amount, 0) ?? 0,
-    [payment],
-  );
+  const siblingTotals = useMemo(() => formatPaymentTotals(payment?.siblingPayments ?? [], locale), [payment, locale]);
 
   if (!canAccess) {
     return (
@@ -277,7 +296,7 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InfoRow label={t(locale, "الطالب", "Student")} value={payment.studentName} align={isAr ? "left" : "right"} />
               <InfoRow label={t(locale, "ولي الأمر", "Parent")} value={payment.parentName} align={isAr ? "left" : "right"} />
-              <InfoRow label={t(locale, "المبلغ", "Amount")} value={formatCurrency(payment.amount, locale)} align={isAr ? "left" : "right"} />
+              <InfoRow label={t(locale, "المبلغ", "Amount")} value={formatPaymentAmount(payment, locale)} align={isAr ? "left" : "right"} />
               <InfoRow label={t(locale, "طريقة الدفع", "Payment method")} value={getPaymentMethodLabel(payment.method, locale)} align={isAr ? "left" : "right"} />
               <InfoRow label={t(locale, "الاستحقاق الأصلي", "Original due date")} value={formatDate(payment.dueDate, locale)} align={isAr ? "left" : "right"} />
               <InfoRow label={t(locale, "الاستحقاق الفعلي", "Effective due date")} value={formatDate(getPaymentEffectiveDueDate(payment), locale)} align={isAr ? "left" : "right"} />
@@ -338,7 +357,7 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
                   return (
                     <Link key={item.id} href={`/payments/${item.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3 transition-colors hover:bg-muted/30">
                       <div>
-                        <p className="font-semibold text-foreground">{formatCurrency(item.amount, locale)}</p>
+                        <p className="font-semibold text-foreground">{formatPaymentAmount(item, locale)}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(getPaymentEffectiveDueDate(item), locale)}</p>
                       </div>
                       <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: STATUS_META[itemDisplayStatus].bg, color: STATUS_META[itemDisplayStatus].color }}>
@@ -357,8 +376,8 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
             <h3 className="mb-4 flex items-center gap-2 font-bold text-foreground"><CalendarDays size={18} className="text-brand-600" />{t(locale, "ملخص سريع", "Quick summary")}</h3>
             <div className="space-y-3">
               <InfoRow label={t(locale, "الحالة الحالية", "Current status")} value={getDisplayStatusLabel(displayStatus, locale)} align={isAr ? "left" : "right"} />
-              <InfoRow label={t(locale, "قابل للتحصيل", "Collectible amount")} value={formatCurrency(payment.amount, locale)} align={isAr ? "left" : "right"} />
-              <InfoRow label={t(locale, "مدفوعات مرتبطة بالأسرة", "Family related payments")} value={formatCurrency(siblingTotal, locale)} align={isAr ? "left" : "right"} />
+              <InfoRow label={t(locale, "قابل للتحصيل", "Collectible amount")} value={formatPaymentAmount(payment, locale)} align={isAr ? "left" : "right"} />
+              <InfoRow label={t(locale, "مدفوعات مرتبطة بالأسرة", "Family related payments")} value={siblingTotals} align={isAr ? "left" : "right"} />
               <InfoRow label={t(locale, "مرجع الطالب", "Student record")} value={payment.studentId ? t(locale, "متوفر", "Available") : t(locale, "غير مرتبط", "Unlinked")} align={isAr ? "left" : "right"} />
             </div>
           </div>
@@ -430,7 +449,7 @@ export default function PaymentDetailsPage({ params }: { params: Promise<{ id: s
                         <p className="font-semibold text-foreground">{item.studentName}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(getPaymentEffectiveDueDate(item), locale)}</p>
                       </div>
-                      <span className="text-sm font-bold text-foreground">{formatCurrency(item.amount, locale)}</span>
+                      <span className="text-sm font-bold text-foreground">{formatPaymentAmount(item, locale)}</span>
                     </div>
                   </Link>
                 ))}

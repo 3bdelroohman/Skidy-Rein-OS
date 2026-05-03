@@ -49,6 +49,14 @@ interface ListPaymentsOptions {
   includeArchived?: boolean;
 }
 
+interface PaymentCurrencySummary {
+  currency: PaymentCurrency;
+  totalExpected: number;
+  totalCollected: number;
+  totalOverdue: number;
+  collectionRate: number;
+}
+
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -683,6 +691,29 @@ export function buildInvoiceShareMessage(payment: PaymentItem, locale: "ar" | "e
 
 export async function getPaymentsSummary() {
   const payments = await listPayments();
+  const currencies: PaymentCurrency[] = ["EGP", "SAR"];
+
+  const moneyByCurrency: PaymentCurrencySummary[] = currencies
+    .map((currency) => {
+      const scoped = payments.filter((payment) => (payment.currency ?? "EGP") === currency);
+      const totalExpected = scoped.reduce((sum, payment) => sum + payment.amount, 0);
+      const totalCollected = scoped
+        .filter((payment) => payment.status === "paid" || payment.status === "partial")
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      const totalOverdue = scoped
+        .filter((payment) => payment.status === "overdue")
+        .reduce((sum, payment) => sum + payment.amount, 0);
+
+      return {
+        currency,
+        totalExpected,
+        totalCollected,
+        totalOverdue,
+        collectionRate: totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0,
+      };
+    })
+    .filter((item) => item.totalExpected > 0 || item.totalCollected > 0 || item.totalOverdue > 0);
+
   const totalExpected = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalCollected = payments
     .filter((payment) => payment.status === "paid" || payment.status === "partial")
@@ -706,9 +737,10 @@ export async function getPaymentsSummary() {
     totalExpected,
     totalCollected,
     totalOverdue,
+    moneyByCurrency,
     dueToday,
     deferredCount,
-    collectionRate: totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0,
+    collectionRate: 0,
     upcoming,
   };
 }
