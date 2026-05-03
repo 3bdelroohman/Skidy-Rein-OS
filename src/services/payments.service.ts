@@ -520,6 +520,96 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentI
   return payment;
 }
 
+
+export async function updatePayment(input: {
+  paymentId: string;
+  amount: number;
+  currency?: PaymentCurrency;
+  status: PaymentStatus;
+  method: PaymentMethod | null;
+  dueDate: string;
+  paidAt: string | null;
+  sessionsCovered: number;
+  blockStartDate: string | null;
+  blockEndDate: string | null;
+  deferredUntil: string | null;
+  publicNote?: string | null;
+}): Promise<PaymentItem | null> {
+  const existing = await getPaymentById(input.paymentId, { includeArchived: true });
+  if (!existing) return null;
+
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new Error("Payment amount must be greater than zero.");
+  }
+
+  const dueDate = normalizeInputDate(input.dueDate);
+  if (!dueDate) {
+    throw new Error("Due date is required.");
+  }
+
+  const blockStartDate = normalizeInputDate(input.blockStartDate);
+  const blockEndDate = normalizeInputDate(input.blockEndDate);
+  const deferredUntil = normalizeInputDate(input.deferredUntil);
+  const paidAt = normalizeInputDate(input.paidAt);
+
+  if (blockStartDate && blockEndDate && blockEndDate < blockStartDate) {
+    throw new Error("Block end date cannot be earlier than block start date.");
+  }
+
+  if (deferredUntil && deferredUntil < dueDate) {
+    throw new Error("Deferred date cannot be earlier than the due date.");
+  }
+
+  const archiveState = getPaymentArchiveState(existing);
+  const currency = normalizePaymentCurrency(input.currency ?? existing.currency);
+  const sessionsCovered = normalizeSessionBlock(input.sessionsCovered);
+
+  const notes = buildPaymentNotes(input.publicNote, {
+    currency,
+    sessionsCovered,
+    blockStartDate,
+    blockEndDate,
+    deferredUntil,
+    invoiceNumber: existing.invoiceNumber,
+    invoiceIssuedAt: existing.invoiceIssuedAt,
+    archivedAt: archiveState.archivedAt,
+    archivedBy: archiveState.archivedBy,
+  });
+
+  const supabase = assertSupabaseConfigured();
+  const updatePayload = {
+    amount: input.amount,
+    status: input.status,
+    method: input.method,
+    due_date: dueDate,
+    paid_at: paidAt,
+    notes,
+  } satisfies PaymentUpdate;
+
+  const { error } = await supabase.from("payments").update(updatePayload).eq("id", input.paymentId);
+
+  if (error) {
+    console.error("[payments] update failed", error);
+    throw new Error(error.message || "Failed to update payment");
+  }
+
+  return {
+    ...existing,
+    amount: input.amount,
+    currency,
+    status: input.status,
+    method: input.method,
+    dueDate,
+    paidAt,
+    notes,
+    publicNote: input.publicNote?.trim() ? input.publicNote.trim() : null,
+    sessionsCovered,
+    blockStartDate,
+    blockEndDate,
+    deferredUntil,
+  };
+}
+
 export async function updatePaymentStatus(id: string, status: PaymentStatus, method?: PaymentMethod | null): Promise<PaymentItem | null> {
   const current = await listPayments({ includeArchived: true });
   const existing = current.find((payment) => payment.id === id) ?? null;

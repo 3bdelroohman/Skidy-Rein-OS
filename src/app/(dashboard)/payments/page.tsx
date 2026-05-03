@@ -30,19 +30,49 @@ type CurrencySummary = {
   collectionRate: number;
 };
 
-function formatMoneyBreakdown(
-  rows: CurrencySummary[],
-  field: "totalExpected" | "totalCollected" | "totalOverdue",
-  locale: "ar" | "en",
-): string {
-  if (rows.length === 0) return formatCurrency(0, locale, "EGP");
+type MoneyMetricField = "totalExpected" | "totalCollected" | "totalOverdue";
 
-  return rows
-    .map((row) => formatCurrency(row[field], locale, row.currency ?? "EGP"))
-    .join(" · ");
+function getCurrencyLabel(currency: CurrencySummary["currency"], locale: "ar" | "en"): string {
+  return currency === "SAR" ? t(locale, "ريال سعودي", "SAR") : t(locale, "جنيه مصري", "EGP");
 }
 
+function getMoneyFieldLabel(field: MoneyMetricField, locale: "ar" | "en"): string {
+  if (field === "totalCollected") return t(locale, "إجمالي المحصل", "Total collected");
+  if (field === "totalOverdue") return t(locale, "إجمالي المتأخر", "Total overdue");
+  return t(locale, "إجمالي المستحق", "Total expected");
+}
 
+function getMoneyFieldColor(field: MoneyMetricField): string {
+  if (field === "totalCollected") return "text-success-600";
+  if (field === "totalOverdue") return "text-danger-600";
+  return "text-foreground";
+}
+
+function buildMoneyMetricCards(rows: CurrencySummary[], locale: "ar" | "en") {
+  const activeRows: CurrencySummary[] =
+    rows.length > 0
+      ? rows
+      : [
+          {
+            currency: "EGP",
+            totalExpected: 0,
+            totalCollected: 0,
+            totalOverdue: 0,
+            collectionRate: 0,
+          },
+        ];
+
+  const fields: MoneyMetricField[] = ["totalExpected", "totalCollected", "totalOverdue"];
+
+  return activeRows.flatMap((row) =>
+    fields.map((field) => ({
+      key: `${field}-${row.currency}`,
+      label: `${getMoneyFieldLabel(field, locale)} — ${getCurrencyLabel(row.currency, locale)}`,
+      value: formatCurrency(row[field], locale, row.currency),
+      colorClass: getMoneyFieldColor(field),
+    })),
+  );
+}
 const PAYMENT_STATUS_META: Record<DisplayStatus, { color: string; bg: string }> = {
   paid: { color: "#059669", bg: "#ECFDF5" },
   pending: { color: "#D97706", bg: "#FFFBEB" },
@@ -123,6 +153,8 @@ export default function PaymentsPage() {
     };
   }, [payments]);
 
+  const moneyMetricCards = useMemo(() => buildMoneyMetricCards(summary.moneyByCurrency, locale), [summary.moneyByCurrency, locale]);
+
   if (!canAccess) {
     return (
       <PageStateCard
@@ -166,11 +198,13 @@ export default function PaymentsPage() {
           ) : null}
         </div>
       </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {moneyMetricCards.map((card) => (
+          <MetricCard key={card.key} label={card.label} value={card.value} colorClass={card.colorClass} />
+        ))}
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-        <MetricCard label={t(locale, "إجمالي المستحق", "Total expected")} value={formatMoneyBreakdown(summary.moneyByCurrency, "totalExpected", locale)} colorClass="text-foreground" />
-        <MetricCard label={t(locale, "إجمالي المحصل", "Total collected")} value={formatMoneyBreakdown(summary.moneyByCurrency, "totalCollected", locale)} colorClass="text-success-600" />
-        <MetricCard label={t(locale, "إجمالي المتأخر", "Total overdue")} value={formatMoneyBreakdown(summary.moneyByCurrency, "totalOverdue", locale)} colorClass="text-danger-600" />
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-2">
         <MetricCard label={t(locale, "مستحق اليوم", "Due today")} value={String(summary.dueToday)} colorClass="text-amber-600" />
         <MetricCard label={t(locale, "مؤجل حاليًا", "Currently deferred")} value={String(summary.deferredCount)} colorClass="text-violet-600" />
       </div>

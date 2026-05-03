@@ -9,13 +9,17 @@ import { toast } from "sonner";
 import { LoadingState, PageStateCard } from "@/components/shared/page-state";
 import { getPaymentMethodLabel, getPaymentStatusLabel, t } from "@/lib/locale";
 import { useUIStore } from "@/stores/ui-store";
-import { getPaymentDetails } from "@/services/payments.service";
-import { updatePaymentBasic } from "@/services/basic-edit.service";
-import type { PaymentDetails } from "@/types/crm";
+import { getPaymentDetails, updatePayment } from "@/services/payments.service";
+import type { PaymentCurrency, PaymentDetails } from "@/types/crm";
 import type { PaymentMethod, PaymentStatus } from "@/types/common.types";
 
 const PAYMENT_STATUSES = ["paid", "pending", "overdue", "refunded", "partial"] as const satisfies PaymentStatus[];
 const PAYMENT_METHODS = ["bank_transfer", "card", "wallet", "cash", "instapay"] as const satisfies PaymentMethod[];
+const PAYMENT_CURRENCIES = ["EGP", "SAR"] as const satisfies PaymentCurrency[];
+
+function getCurrencyLabel(currency: PaymentCurrency, locale: "ar" | "en"): string {
+  return currency === "SAR" ? t(locale, "ريال سعودي", "SAR") : t(locale, "جنيه مصري", "EGP");
+}
 
 function dateValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : "";
@@ -32,6 +36,7 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
   const [saving, setSaving] = useState(false);
 
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<PaymentCurrency>("EGP");
   const [status, setStatus] = useState<PaymentStatus>("pending");
   const [method, setMethod] = useState<PaymentMethod | "">("");
   const [dueDate, setDueDate] = useState("");
@@ -53,6 +58,7 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
 
       if (data) {
         setAmount(String(data.amount));
+        setCurrency(data.currency ?? "EGP");
         setStatus(data.status);
         setMethod(data.method ?? "");
         setDueDate(dateValue(data.dueDate));
@@ -81,9 +87,10 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
     setSaving(true);
 
     try {
-      await updatePaymentBasic({
+      await updatePayment({
         paymentId: payment.id,
         amount: Number(amount),
+        currency,
         status,
         method: method || null,
         dueDate,
@@ -148,6 +155,15 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
           </label>
 
           <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "العملة", "Currency")}</span>
+            <select value={currency} onChange={(event) => setCurrency(event.target.value as PaymentCurrency)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring">
+              {PAYMENT_CURRENCIES.map((item) => (
+                <option key={item} value={item}>{getCurrencyLabel(item, locale)}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "الحالة", "Status")}</span>
             <select value={status} onChange={(event) => setStatus(event.target.value as PaymentStatus)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring">
               {PAYMENT_STATUSES.map((item) => (
@@ -168,7 +184,7 @@ export default function EditPaymentPage({ params }: { params: Promise<{ id: stri
 
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "عدد الحصص المغطاة", "Covered sessions")}</span>
-            <input type="number" min={8} value={sessionsCovered} onChange={(event) => setSessionsCovered(event.target.value)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring" required />
+            <input type="number" min={1} value={sessionsCovered} onChange={(event) => setSessionsCovered(event.target.value)} className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-ring" required />
           </label>
 
           <DateField label={t(locale, "تاريخ الاستحقاق", "Due date")} value={dueDate} onChange={setDueDate} required />
