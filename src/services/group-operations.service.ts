@@ -538,13 +538,35 @@ export async function deleteGroupPermanently(groupId: string): Promise<void> {
     throw new Error(enrollmentsLoadError.message || "Failed to load group enrollments before deleting");
   }
 
-  const affectedStudentIds = [
-    ...new Set(
-      ((enrollmentRows ?? []) as Array<{ student_id: string | null }>)
-        .map((row) => row.student_id)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
+  const enrollmentStudentIds = ((enrollmentRows ?? []) as Array<{ student_id: string | null }>)
+    .map((row) => row.student_id)
+    .filter((id): id is string => Boolean(id));
+
+  const { data: currentClassStudentRows, error: currentClassStudentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("current_class_id", groupId);
+
+  if (currentClassStudentsError) {
+    throw new Error(currentClassStudentsError.message || "Failed to load students currently assigned to this group");
+  }
+
+  const currentClassStudentIds = ((currentClassStudentRows ?? []) as Array<{ id: string | null }>)
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id));
+
+  const affectedStudentIds = [...new Set([...enrollmentStudentIds, ...currentClassStudentIds])];
+
+  if (currentClassStudentIds.length > 0) {
+    const { error: clearCurrentClassError } = await supabase
+      .from("students")
+      .update({ current_class_id: null })
+      .eq("current_class_id", groupId);
+
+    if (clearCurrentClassError) {
+      throw new Error(clearCurrentClassError.message || "Failed to clear student current group before deleting");
+    }
+  }
 
   if (sessionIds.length > 0) {
     const { error: attendanceDeleteError } = await supabase
