@@ -1,4 +1,4 @@
-﻿import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
 import type { StudentStatus } from "@/types/common.types";
 import type { Database } from "@/types/database.types";
 import type { CreateStudentInput, StudentListItem } from "@/types/crm";
@@ -49,9 +49,15 @@ interface ParentLookup {
   phone: string;
 }
 
+interface ClassLookup {
+  id: string;
+  name: string;
+}
+
 function mapRow(
   row: Database["public"]["Tables"]["students"]["Row"] | Record<string, unknown>,
   parentLookup?: ParentLookup | null,
+  classLookup?: ClassLookup | null,
 ): StudentListItem {
   const record = row as Record<string, unknown>;
   return {
@@ -65,7 +71,7 @@ function mapRow(
     currentCourse: (typeof (record.current_course ?? record.currentCourse) === "string"
       ? (record.current_course ?? record.currentCourse)
       : null) as StudentListItem["currentCourse"],
-    className: null,
+    className: classLookup?.name ?? asNullableString(record.class_name ?? record.className),
     enrollmentDate: asString(record.enrollment_date ?? record.enrollmentDate, new Date().toISOString()),
     sessionsAttended: asNumber(record.sessions_attended ?? record.sessionsAttended, 0),
     totalPaid: asNumber(record.total_paid ?? record.totalPaid, 0),
@@ -103,9 +109,10 @@ export async function listStudents(): Promise<StudentListItem[]> {
   }
 
   try {
-    const [studentsRes, parentsRes] = await Promise.all([
+    const [studentsRes, parentsRes, classesRes] = await Promise.all([
       supabase.from("students").select("*").order("enrollment_date", { ascending: false }),
       supabase.from("parents").select("id, full_name, phone"),
+      supabase.from("classes").select("id, name"),
     ]);
 
     if (studentsRes.error) {
@@ -122,9 +129,15 @@ export async function listStudents(): Promise<StudentListItem[]> {
     const parentsMap = new Map<string, ParentLookup>();
     (parentsRes.data ?? []).forEach((p) => parentsMap.set(p.id, { full_name: p.full_name, phone: p.phone }));
 
+    const classesMap = new Map<string, ClassLookup>();
+    (classesRes.data ?? []).forEach((item) => classesMap.set(item.id, { id: item.id, name: item.name }));
+
     const mapped = studentsRes.data.map((row) => {
+      const record = row as Record<string, unknown>;
       const parentInfo = row.parent_id ? parentsMap.get(row.parent_id) ?? null : null;
-      return mapRow(row, parentInfo);
+      const currentClassId = asNullableString(record.current_class_id);
+      const classInfo = currentClassId ? classesMap.get(currentClassId) ?? null : null;
+      return mapRow(row, parentInfo, classInfo);
     });
 
     saveLocalStudents(mapped);
@@ -160,7 +173,20 @@ export async function getStudentById(id: string): Promise<StudentListItem | null
       parentInfo = parentData ?? null;
     }
 
-    const mapped = mapRow(data, parentInfo);
+    let classInfo: ClassLookup | null = null;
+    const currentClassId = asNullableString((data as Record<string, unknown>).current_class_id);
+
+    if (currentClassId) {
+      const { data: classData } = await supabase
+        .from("classes")
+        .select("id, name")
+        .eq("id", currentClassId)
+        .maybeSingle();
+
+      classInfo = classData ? { id: classData.id, name: classData.name } : null;
+    }
+
+    const mapped = mapRow(data, parentInfo, classInfo);
     saveLocalStudents([mapped, ...getLocalStudents().filter((student) => student.id !== mapped.id)]);
     return mapped;
   } catch (error) {
@@ -169,8 +195,97 @@ export async function getStudentById(id: string): Promise<StudentListItem | null
   }
 }
 
+async function findClassForStudent(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  className: string | null | undefined,
+): Promise<ClassLookup | null> {
+  const targetName = className?.trim();
+
+  if (!targetName) return null;
+
+  const query = supabase
+    .from("classes")
+    .select("id, name")
+    .eq("name", targetName)
+    .limit(1);
+
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    console.error("[students] failed to resolve class by name", error);
+    throw new Error("تعذر التحقق من الجروب المختار.");
+  }
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+  };
+}
+
+async function activateClassEnrollment(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  studentId: string,
+  classId: string,
+  enrolledAt: string,
+): Promise<void> {
+  const { data: existingEnrollment, error: lookupError } = await supabase
+    .from("class_enrollments")
+    .select("student_id")
+    .eq("student_id", studentId)
+    .eq("class_id", classId)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error("[students] failed to check class enrollment", lookupError);
+    throw new Error("تعذر التحقق من ربط الطالب بالجروب.");
+  }
+
+  if (existingEnrollment) {
+    const { error: updateEnrollmentError } = await supabase
+      .from("class_enrollments")
+      .update({
+        is_active: true,
+        enrolled_at: enrolledAt,
+      })
+      .eq("student_id", studentId)
+      .eq("class_id", classId);
+
+    if (updateEnrollmentError) {
+      console.error("[students] failed to reactivate class enrollment", updateEnrollmentError);
+      throw new Error("تعذر إعادة تفعيل ربط الطالب بالجروب.");
+    }
+  } else {
+    const { error: insertEnrollmentError } = await supabase
+      .from("class_enrollments")
+      .insert({
+        student_id: studentId,
+        class_id: classId,
+        is_active: true,
+        enrolled_at: enrolledAt,
+      });
+
+    if (insertEnrollmentError) {
+      console.error("[students] failed to create class enrollment", insertEnrollmentError);
+      throw new Error("تم إنشاء الطالب لكن تعذر ربطه بالجروب.");
+    }
+  }
+
+  const { error: updateStudentError } = await supabase
+    .from("students")
+    .update({ current_class_id: classId })
+    .eq("id", studentId);
+
+  if (updateStudentError) {
+    console.error("[students] failed to update current_class_id", updateStudentError);
+    throw new Error("تم ربط الطالب بالجروب لكن تعذر تحديث الجروب الحالي.");
+  }
+}
 export async function createStudent(input: CreateStudentInput): Promise<StudentListItem> {
   const fullName = input.fullName.trim();
+  const enrollmentDate = input.enrollmentDate ?? new Date().toISOString().split("T")[0];
 
   if (!fullName) {
     throw new Error("اسم الطالب مطلوب.");
@@ -189,8 +304,23 @@ export async function createStudent(input: CreateStudentInput): Promise<StudentL
     throw new Error("تعذر الاتصال بقاعدة البيانات.");
   }
 
+  const selectedClass = await findClassForStudent(
+    supabase,
+    input.className,
+  );
+
+  if (input.className?.trim() && !selectedClass) {
+    throw new Error("الجروب المختار غير موجود.");
+  }
+
   const existing = findExistingStudent(await listStudents(), input);
   if (existing) {
+    if (selectedClass) {
+      await activateClassEnrollment(supabase, existing.id, selectedClass.id, enrollmentDate);
+      const refreshed = await getStudentById(existing.id);
+      return refreshed ?? { ...existing, className: selectedClass.name };
+    }
+
     return existing;
   }
 
@@ -200,7 +330,8 @@ export async function createStudent(input: CreateStudentInput): Promise<StudentL
     parent_id: input.parentId,
     status: input.status ?? "active",
     current_course: input.currentCourse ?? null,
-    enrollment_date: input.enrollmentDate ?? new Date().toISOString().split("T")[0],
+    current_class_id: selectedClass?.id ?? null,
+    enrollment_date: enrollmentDate,
     sessions_attended: input.sessionsAttended ?? 0,
     total_paid: input.totalPaid ?? 0,
   };
@@ -216,13 +347,25 @@ export async function createStudent(input: CreateStudentInput): Promise<StudentL
     throw new Error(error?.message || "تعذر إنشاء سجل الطالب.");
   }
 
+  if (selectedClass) {
+    await activateClassEnrollment(supabase, data.id, selectedClass.id, enrollmentDate);
+  }
+
   const { data: parentData } = await supabase
     .from("parents")
     .select("full_name, phone")
     .eq("id", input.parentId)
     .maybeSingle();
 
-  const created = mapRow(data, parentData);
+  const created = mapRow(
+    {
+      ...data,
+      current_class_id: selectedClass?.id ?? (data as Record<string, unknown>).current_class_id,
+    },
+    parentData,
+    selectedClass,
+  );
+
   saveLocalStudents([created, ...getLocalStudents().filter((item) => item.id !== created.id)]);
   return created;
 }
