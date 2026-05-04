@@ -416,8 +416,6 @@ export default function TeacherDetailsPage({ params }: { params: Promise<{ id: s
 
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-
-
   }, [id, canAccess]);
 
 
