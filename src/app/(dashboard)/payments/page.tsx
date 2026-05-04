@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, PlusCircle, Search, Wallet } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Loader2, PlusCircle, Search } from "lucide-react";
 
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { getPaymentStatusLabel, t } from "@/lib/locale";
@@ -19,7 +19,8 @@ import type { PaymentItem } from "@/types/crm";
 import type { PaymentStatus } from "@/types/common.types";
 import { useCurrentUser } from "@/providers/user-provider";
 import { canAccessPaymentsForUser, canManagePaymentsForUser } from "@/config/roles";
-import { LoadingState, PageStateCard } from "@/components/shared/page-state";
+import { PageStateCard } from "@/components/shared/page-state";
+import { PageHeader } from "@/components/ui/page-header";
 
 type DisplayStatus = PaymentStatus | "deferred";
 type CurrencySummary = {
@@ -175,29 +176,20 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-border bg-card p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
-              <Wallet size={28} className="text-brand-600" />
-              {t(locale, "المدفوعات والفوترة", "Payments & billing")}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t(
-                locale,
-                "الفاتورة الافتراضية مبنية على كل 8 جلسات، ويمكن تأجيل الاستحقاق عند الاتفاق مع ولي الأمر. السجلات المؤرشفة لا تظهر هنا حتى يبقى التشغيل اليومي نظيفًا.",
-                "The default billing cycle is one invoice for every 8 sessions, with flexible deferral when agreed with the parent. Archived records are hidden from this list to keep daily operations clean.",
-              )}
-            </p>
-          </div>
-          {canManage ? (
-            <Link href="/payments/new" className="inline-flex items-center gap-2 rounded-2xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
-              <PlusCircle size={18} />
-              {t(locale, "إضافة دفعة", "Add payment")}
+      <PageHeader
+        title={isAr ? "\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a \u0648\u0627\u0644\u0641\u0648\u062a\u0631\u0629" : "Payments & Billing"}
+        subtitle={isAr ? "\u0627\u0644\u062f\u0641\u0639\u0627\u062a \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629 \u0643\u0644 8 \u062c\u0644\u0633\u0627\u062a" : "Default cycle: 8 sessions per invoice"}
+        actions={
+          canManage ? (
+            <Link href="/payments/new">
+              <button className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-brand-700)] px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-brand-600)]">
+                <PlusCircle className="h-4 w-4" />
+                {isAr ? "\u0625\u0636\u0627\u0641\u0629 \u062f\u0641\u0639\u0629" : "Add payment"}
+              </button>
             </Link>
-          ) : null}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {moneyMetricCards.map((card) => (
           <MetricCard key={card.key} label={card.label} value={card.value} colorClass={card.colorClass} />
@@ -239,7 +231,9 @@ export default function PaymentsPage() {
           </div>
 
           {loading ? (
-            <LoadingState titleAr="جارٍ تحميل المدفوعات" titleEn="Loading payments" descriptionAr="يتم تحميل سجلات المدفوعات والفواتير." descriptionEn="Payment records and invoices are being loaded." />
+            <div className="flex min-h-[20vh] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand-500)]" />
+            </div>
           ) : !hasRealPayments ? (
             <PageStateCard
               icon={AlertCircle}
