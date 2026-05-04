@@ -8,6 +8,7 @@ import { useCurrentUser } from "@/providers/user-provider";
 import { useUIStore } from "@/stores/ui-store";
 import { t } from "@/lib/locale";
 import { getActionCenterData, getActionToneStyles } from "@/services/operations.service";
+import { getDataQualityActionCenterData } from "@/services/data-quality.service";
 import { LoadingState } from "@/components/shared/page-state";
 import type { ActionCenterData, ActionCenterItem } from "@/types/crm";
 
@@ -17,6 +18,7 @@ const ICONS = {
   payment: Wallet,
   student: Users2,
   schedule: CalendarClock,
+  data_quality: CircleAlert,
 } as const;
 
 export default function ActionCenterPage() {
@@ -30,16 +32,26 @@ export default function ActionCenterPage() {
     let isMounted = true;
     async function load() {
       setLoading(true);
-      const next = await getActionCenterData(
-        {
-          role: user.role,
-          fullName: user.fullName,
-          fullNameAr: user.fullNameAr,
-        },
-        locale,
-      );
+      const [next, dataQuality] = await Promise.all([
+        getActionCenterData(
+          {
+            role: user.role,
+            fullName: user.fullName,
+            fullNameAr: user.fullNameAr,
+          },
+          locale,
+        ),
+        getDataQualityActionCenterData(locale),
+      ]);
+
       if (isMounted) {
-        setData(next);
+        setData({
+          ...next,
+          metrics: [...next.metrics, ...dataQuality.metrics],
+          critical: [...dataQuality.critical, ...next.critical],
+          mediumPriority: [...dataQuality.mediumPriority, ...next.mediumPriority],
+          informational: [...dataQuality.informational, ...next.informational],
+        });
         setLoading(false);
       }
     }

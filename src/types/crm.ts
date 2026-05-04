@@ -396,7 +396,8 @@ export type ActionCenterItemCategory =
   | "lead"
   | "payment"
   | "student"
-  | "schedule";
+  | "schedule"
+  | "data_quality";
 
 export type ActionCenterItemPriority = "critical" | "high" | "medium" | "info";
 
