@@ -1,0 +1,254 @@
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database.types";
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key || typeof window === "undefined") return null;
+  return createBrowserClient<Database>(url, key);
+}
+
+type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
+type ParentRow = Database["public"]["Tables"]["parents"]["Row"];
+type StudentRow = Database["public"]["Tables"]["students"]["Row"];
+
+function normalizePhone(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "").replace(/^20/, "");
+}
+
+function normalizeName(value: string | null | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[Ù‹-ÙŸ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function samePhone(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = normalizePhone(a);
+  const right = normalizePhone(b);
+  return left.length > 0 && left === right;
+}
+
+function sameName(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = normalizeName(a);
+  const right = normalizeName(b);
+  return left.length > 0 && left === right;
+}
+
+function requireParentIdentity(lead: LeadRow): void {
+  if (!lead.parent_name || !lead.parent_phone) {
+    throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ Ù„Ø£Ù† Ø§Ø³Ù… ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø± Ø£Ùˆ Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ ØºÙŠØ± Ù…ÙƒØªÙ…Ù„.");
+  }
+}
+
+function hasEnoughStudentIdentity(lead: LeadRow): boolean {
+  return Boolean(lead.child_name && lead.child_age && lead.child_age >= 4);
+}
+
+async function getLeadById(leadId: string, supabase: ReturnType<typeof getSupabaseClient>) {
+  const { data, error } = await supabase!
+    .from("leads")
+    .select("*")
+    .eq("id", leadId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(error?.message || "ØªØ¹Ø°Ø± Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ù…Ø­ØªÙ…Ù„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨.");
+  }
+
+  return data as LeadRow;
+}
+
+function findParent(lead: LeadRow, parents: ParentRow[]): ParentRow | null {
+  return (
+    parents.find((parent) => lead.parent_id && parent.id === lead.parent_id) ??
+    parents.find((parent) => samePhone(parent.phone, lead.parent_phone)) ??
+    parents.find((parent) => samePhone(parent.whatsapp, lead.parent_phone)) ??
+    parents.find((parent) => sameName(parent.full_name, lead.parent_name)) ??
+    null
+  );
+}
+
+function findStudent(lead: LeadRow, parent: ParentRow, students: StudentRow[]): StudentRow | null {
+  return (
+    students.find((student) => student.parent_id === parent.id && sameName(student.full_name, lead.child_name)) ??
+    students.find((student) => sameName(student.full_name, lead.child_name) && student.parent_id === parent.id) ??
+    null
+  );
+}
+
+async function ensureLeadEnrollmentInternal(
+  lead: LeadRow,
+  supabase: ReturnType<typeof getSupabaseClient>,
+  parents: ParentRow[],
+  students: StudentRow[],
+): Promise<{ parentId: string; studentId: string | null }> {
+  requireParentIdentity(lead);
+
+  let parent = findParent(lead, parents);
+
+  if (!parent) {
+    const { data, error } = await supabase!
+      .from("parents")
+      .insert({
+        full_name: lead.parent_name,
+        phone: lead.parent_phone,
+        whatsapp: lead.parent_whatsapp ?? lead.parent_phone,
+      })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ ÙˆÙ„ÙŠ Ø§Ù„Ø£Ù…Ø±.");
+    }
+
+    parent = data as ParentRow;
+    parents.unshift(parent);
+  }
+
+  let student = hasEnoughStudentIdentity(lead) ? findStudent(lead, parent, students) : null;
+
+  if (hasEnoughStudentIdentity(lead) && !student) {
+    const { data, error } = await supabase!
+      .from("students")
+      .insert({
+        full_name: lead.child_name,
+        lead_id: lead.id,
+        age: lead.child_age,
+        parent_id: parent.id,
+        status: "active" as const,
+        current_course: lead.suggested_course ?? null,
+        enrollment_date: lead.won_at ?? new Date().toISOString().split("T")[0],
+        sessions_attended: 0,
+        total_paid: 0,
+      })
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ Ø§Ù„Ø·Ø§Ù„Ø¨.");
+    }
+
+    student = data as StudentRow;
+    students.unshift(student);
+  } else if (
+    student &&
+    (
+      student.parent_id !== parent.id ||
+      !student.lead_id ||
+      (!student.current_course && lead.suggested_course)
+    )
+  ) {
+    const { data, error } = await supabase!
+      .from("students")
+      .update({
+        parent_id: parent.id,
+        lead_id: student.lead_id ?? lead.id,
+        current_course: student.current_course ?? lead.suggested_course ?? null,
+      })
+      .eq("id", student.id)
+      .select("*")
+      .single();
+
+    if (!error && data) {
+      student = data as StudentRow;
+      const index = students.findIndex((item) => item.id === student!.id);
+      if (index >= 0) students[index] = student;
+    }
+  }
+
+  if (lead.parent_id !== parent.id || !lead.won_at) {
+    await supabase!
+      .from("leads")
+      .update({
+        parent_id: parent.id,
+        won_at: lead.won_at ?? new Date().toISOString(),
+      })
+      .eq("id", lead.id);
+  }
+
+  return { parentId: parent.id, studentId: student?.id ?? null };
+}
+
+export async function ensureLeadEnrollment(leadId: string): Promise<{ parentId: string; studentId: string | null }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. ØªØ£ÙƒØ¯ Ù…Ù† Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Supabase Ø«Ù… Ø£Ø¹Ø¯ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©.");
+  }
+
+  const lead = await getLeadById(leadId, supabase);
+  const [{ data: parents, error: parentsError }, { data: students, error: studentsError }] = await Promise.all([
+    supabase.from("parents").select("*"),
+    supabase.from("students").select("*"),
+  ]);
+
+  if (parentsError || studentsError) {
+    throw new Error(parentsError?.message || studentsError?.message || "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø±Ø¨Ø· Ø§Ù„Ø­Ø§Ù„ÙŠØ©.");
+  }
+
+  return ensureLeadEnrollmentInternal(lead, supabase, parents ?? [], students ?? []);
+}
+
+export async function syncWonLeadsToEnrollments(): Promise<number> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return 0;
+
+  const [{ data: leads, error: leadsError }, { data: parents, error: parentsError }, { data: students, error: studentsError }] = await Promise.all([
+    supabase.from("leads").select("*").eq("stage", "won").order("created_at", { ascending: false }),
+    supabase.from("parents").select("*"),
+    supabase.from("students").select("*"),
+  ]);
+
+  if (leadsError || parentsError || studentsError) {
+    console.error("[enrollment] sync failed", leadsError || parentsError || studentsError);
+    return 0;
+  }
+
+  let repaired = 0;
+  const mutableParents = [...(parents ?? [])] as ParentRow[];
+  const mutableStudents = [...(students ?? [])] as StudentRow[];
+
+  for (const lead of leads ?? []) {
+    try {
+      const parentBefore = mutableParents.length;
+      const studentBefore = mutableStudents.length;
+      await ensureLeadEnrollmentInternal(lead as LeadRow, supabase, mutableParents, mutableStudents);
+      if (mutableParents.length > parentBefore || mutableStudents.length > studentBefore) {
+        repaired += 1;
+      }
+    } catch (error) {
+      console.warn("[enrollment] skipped won lead during sync", lead.id, error);
+    }
+  }
+
+  return repaired;
+}
+
+export async function getEnrollmentTargetsForLead(
+  leadId: string,
+): Promise<{ parentId: string | null; studentId: string | null }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { parentId: null, studentId: null };
+  }
+
+  try {
+    const lead = await getLeadById(leadId, supabase);
+    const [{ data: parents }, { data: students }] = await Promise.all([
+      supabase.from("parents").select("*"),
+      supabase.from("students").select("*"),
+    ]);
+
+    const parent = findParent(lead, (parents ?? []) as ParentRow[]);
+    if (!parent) {
+      return { parentId: lead.parent_id ?? null, studentId: null };
+    }
+
+    const student = findStudent(lead, parent, (students ?? []) as StudentRow[]);
+    return { parentId: parent.id, studentId: student?.id ?? null };
+  } catch (error) {
+    console.warn("[enrollment] failed to resolve enrollment targets", leadId, error);
+    return { parentId: null, studentId: null };
+  }
+}
