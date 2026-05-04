@@ -10,7 +10,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
-    "_ops/**",
+    "_ops/**", "src_backup2/**", "src_backup3/**",
     "next-env.d.ts",
 
     // Local temp / AI / batch artifacts
