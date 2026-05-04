@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { MessageCircle, Plus, Search, Users } from "lucide-react";
+import { Loader2, PlusCircle, Users, MessageCircle, Baby } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
-import { t } from "@/lib/locale";
-import { cn } from "@/lib/utils";
-import { extractLeadIdFromProjectionId, listParentsWithRelations } from "@/services/relations.service";
+import { listParentsWithRelations } from "@/services/relations.service";
 import type { ParentListItem } from "@/types/crm";
-import { EmptySearchState, LoadingState } from "@/components/shared/page-state";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { SearchBar } from "@/components/ui/search-bar";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function ParentsPage() {
   const locale = useUIStore((state) => state.locale);
@@ -28,119 +30,196 @@ export default function ParentsPage() {
       }
     }
     load();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  const projectedCount = useMemo(() => parents.filter((parent) => Boolean(extractLeadIdFromProjectionId(parent.id))).length, [parents]);
-  const assignedOwnerCount = useMemo(() => parents.filter((parent) => Boolean(parent.ownerName)).length, [parents]);
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const total = parents.length;
+    const multiChildren = parents.filter((p) => p.childrenCount > 1).length;
+    const hasWhatsapp = parents.filter((p) => !!p.whatsapp).length;
+    const totalChildren = parents.reduce((acc, p) => acc + p.childrenCount, 0);
+    return { total, multiChildren, hasWhatsapp, totalChildren };
+  }, [parents]);
 
+  // ── Filtered list ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return parents.filter((parent) => {
-      if (!query) return true;
-      return (
-        parent.fullName.toLowerCase().includes(query) ||
-        parent.phone.includes(query) ||
-        parent.children.some((child) => child.toLowerCase().includes(query))
-      );
-    });
+    const q = search.trim().toLowerCase();
+    if (!q) return parents;
+    return parents.filter((parent) =>
+      parent.fullName.toLowerCase().includes(q) ||
+      parent.phone.includes(q) ||
+      (parent.email ?? "").toLowerCase().includes(q) ||
+      (parent.city ?? "").toLowerCase().includes(q) ||
+      parent.children.some((c) => c.toLowerCase().includes(q))
+    );
   }, [parents, search]);
 
+  const hasResults = filtered.length > 0;
+
+  // ── Loading state ──────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand-500)]" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
-          <Users size={28} className="text-brand-600" />
-          {t(locale, "أولياء الأمور", "Parents")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t(locale, "متابعة بيانات التواصل وربط أولياء الأمور بالأطفال والعملاء المحتملين", "Track contact details and link parents with students and open leads")}</p>
-        </div>
-        <Link href="/parents/new" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
-          <Plus size={18} />
-          {t(locale, "إضافة ولي أمر", "Add parent")}
-        </Link>
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <PageHeader
+        title={isAr ? "أولياء الأمور" : "Parents"}
+        subtitle={
+          isAr
+            ? `${stats.total} ولي أمر مسجّل`
+            : `${stats.total} parent${stats.total !== 1 ? "s" : ""} registered`
+        }
+        actions={
+          <Link href="/parents/new">
+            <Button size="sm" className="gap-1.5">
+              <PlusCircle className="h-4 w-4" />
+              {isAr ? "إضافة ولي أمر" : "Add Parent"}
+            </Button>
+          </Link>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          tone="brand"
+          label={isAr ? "إجمالي أولياء الأمور" : "Total Parents"}
+          value={stats.total}
+          icon={<Users className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="info"
+          label={isAr ? "أكثر من طالب" : "Multiple Children"}
+          value={stats.multiChildren}
+          icon={<Baby className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="success"
+          label={isAr ? "لديهم واتساب" : "On WhatsApp"}
+          value={stats.hasWhatsapp}
+          icon={<MessageCircle className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="neutral"
+          label={isAr ? "إجمالي الأبناء" : "Total Children"}
+          value={stats.totalChildren}
+          icon={<Users className="h-5 w-5" />}
+        />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <MetricCard title={t(locale, "إجمالي أولياء الأمور", "Total parents")} value={String(parents.length)} />
-        <MetricCard title={t(locale, "من العملاء الحاليين", "From current customers")} value={String(projectedCount)} />
-        <MetricCard title={t(locale, "لهم مسؤول", "Assigned owner")} value={String(assignedOwnerCount)} />
+      {/* Search */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder={isAr ? "ابحث بالاسم أو التليفون أو اسم الطالب…" : "Search by name, phone, or child name…"}
+          className="sm:max-w-xs"
+        />
       </div>
 
-      <div className="relative max-w-md">
-        <Search size={18} className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isAr ? "right-3" : "left-3")} />
-        <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t(locale, "بحث بالاسم أو الهاتف أو اسم الطفل", "Search by name, phone, or child name")} className={cn("w-full rounded-xl border border-border bg-card py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring", isAr ? "pr-10 pl-4" : "pl-10 pr-4")} />
-      </div>
-
-      {loading ? (
-        <LoadingState
-          titleAr="جارِ تحميل أولياء الأمور"
-          titleEn="Loading parents"
-          descriptionAr="يتم الآن تجهيز ملفات أولياء الأمور وربط الأطفال والعملاء المحتملين المرتبطين بهم."
-          descriptionEn="Preparing parent profiles and linking related students and open leads."
+      {/* List */}
+      {!hasResults ? (
+        <EmptyState
+          icon={<Users className="h-10 w-10" />}
+          title={
+            search
+              ? (isAr ? "لا توجد نتائج" : "No results found")
+              : (isAr ? "لا يوجد أولياء أمور بعد" : "No parents yet")
+          }
+          description={
+            search
+              ? (isAr ? "جرّب تغيير كلمة البحث" : "Try changing your search")
+              : (isAr ? "ابدأ بإضافة أول ولي أمر في النظام" : "Start by adding the first parent")
+          }
+          action={
+            !search ? (
+              <Link href="/parents/new">
+                <Button size="sm" className="gap-1.5">
+                  <PlusCircle className="h-4 w-4" />
+                  {isAr ? "إضافة ولي أمر" : "Add Parent"}
+                </Button>
+              </Link>
+            ) : undefined
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((parent) => (
-            <Link key={parent.id} href={`/parents/${parent.id}`} className="rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-brand-md">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-foreground">{parent.fullName}</p>
-                    {extractLeadIdFromProjectionId(parent.id) ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{t(locale, "من العملاء الحاليين", "From current customers")}</span> : null}
+            <li key={parent.id}>
+              <Link
+                href={`/parents/${parent.id}`}
+                className="group block h-full rounded-lg border border-border bg-card p-4 shadow-xs transition-all hover:shadow-md hover:border-[var(--color-brand-300)] hover:-translate-y-0.5"
+              >
+                {/* Name + children count badge */}
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-foreground leading-tight">
+                    {parent.fullName}
+                  </h3>
+                  <span className="shrink-0 rounded-full bg-[var(--color-brand-50)] px-2 py-0.5 text-xs font-medium text-[var(--color-brand-700)]">
+                    {parent.childrenCount}{" "}
+                    {isAr
+                      ? parent.childrenCount === 1 ? "طالب" : "طلاب"
+                      : parent.childrenCount === 1 ? "child" : "children"}
+                  </span>
+                </div>
+
+                {/* City */}
+                {parent.city && (
+                  <p className="mb-3 text-xs text-muted-foreground">{parent.city}</p>
+                )}
+
+                {/* Children names */}
+                {parent.children.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-1">
+                    {parent.children.slice(0, 3).map((child) => (
+                      <span
+                        key={child}
+                        className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs text-[var(--color-neutral-700)]"
+                      >
+                        {child}
+                      </span>
+                    ))}
+                    {parent.children.length > 3 && (
+                      <span className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs text-[var(--color-neutral-600)]">
+                        +{parent.children.length - 3}
+                      </span>
+                    )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{parent.phone}</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{t(locale, "المسؤول", "Owner")}: {parent.ownerName ?? t(locale, "غير مخصص", "Unassigned")}</p>
-                </div>
-                {parent.whatsapp ? <span className="rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold text-success-600">WhatsApp</span> : null}
-              </div>
+                )}
 
-              <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                <div className="rounded-xl bg-muted/50 p-2">
-                  <p className="text-lg font-bold text-foreground">{parent.childrenCount}</p>
-                  <p className="text-muted-foreground">{t(locale, "أطفال", "Children")}</p>
-                </div>
-                <div className="rounded-xl bg-muted/50 p-2">
-                  <p className="text-lg font-bold text-foreground">{parent.city ?? "—"}</p>
-                  <p className="text-muted-foreground">{t(locale, "المدينة", "City")}</p>
-                </div>
-              </div>
+                {/* Owner */}
+                {parent.ownerName && (
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    {isAr ? "المسؤول: " : "Owner: "}
+                    <span className="font-medium text-foreground">{parent.ownerName}</span>
+                  </p>
+                )}
 
-              <div className="mt-3 border-t border-border pt-3">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground">{t(locale, "الأطفال المرتبطون", "Linked children")}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {parent.children.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">{t(locale, "لا يوجد طلاب مرتبطون بعد", "No students linked yet")}</span>
-                  ) : (
-                    parent.children.map((child) => (
-                      <span key={child} className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] text-brand-700 dark:bg-brand-950 dark:text-brand-300">{child}</span>
-                    ))
+                {/* Contact */}
+                <div className="mt-auto border-t border-border pt-3 text-xs text-muted-foreground space-y-1">
+                  <p dir="ltr">{parent.phone}</p>
+                  {parent.whatsapp && parent.whatsapp !== parent.phone && (
+                    <p dir="ltr" className="flex items-center gap-1">
+                      <MessageCircle className="h-3 w-3 shrink-0" />
+                      {parent.whatsapp}
+                    </p>
+                  )}
+                  {parent.email && (
+                    <p className="truncate" dir="ltr">{parent.email}</p>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageCircle size={14} />
-                <span>{parent.whatsapp ?? t(locale, "واتساب غير متوفر", "WhatsApp not available")}</span>
-              </div>
-            </Link>
+              </Link>
+            </li>
           ))}
-          {!loading && filtered.length === 0 ? <div className="col-span-full"><EmptySearchState /></div> : null}
-        </div>
+        </ul>
       )}
-    </div>
-  );
-}
-
-
-function MetricCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-semibold text-muted-foreground">{title}</p>
-      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
     </div>
   );
 }
