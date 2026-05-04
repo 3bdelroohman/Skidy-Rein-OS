@@ -148,7 +148,7 @@ function createSuggestedGroupSeriesDraft(
   const lastSession = datedSessions[datedSessions.length - 1] ?? null;
 
   if (!lastSession?.sessionDate) {
-    const baseDate = current.firstSessionDate || groupData.startDate || getLocalDateInput();
+    const baseDate = groupData.startDate || current.firstSessionDate || getLocalDateInput();
     return {
       ...current,
       firstSessionDate: baseDate,

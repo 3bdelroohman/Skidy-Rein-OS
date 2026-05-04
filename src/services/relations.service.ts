@@ -349,15 +349,14 @@ export async function listTeachersWithRelations(): Promise<TeacherListItem[]> {
     const linkedSessions = findSessionsForTeacher(teacher, sessions);
     const classNames = linkedSessions.map((session) => normalizeName(session.className));
     const linkedStudents = students.filter((student) => {
-      const classMatch = student.className ? classNames.includes(normalizeName(student.className)) : false;
-      const courseMatch = student.currentCourse ? teacher.specialization.includes(student.currentCourse) : false;
-      return classMatch || courseMatch;
+      const classMatch = student.className ? classNames.includes(normalizeName(student.className)) : false;
+      return classMatch;
     });
 
     return {
       ...teacher,
-      classesCount: linkedSessions.length || teacher.classesCount,
-      studentsCount: linkedStudents.length || teacher.studentsCount,
+      classesCount: new Set(linkedSessions.map((session) => normalizeName(session.className))).size,
+      studentsCount: new Set(linkedStudents.map((student) => student.id)).size,
     };
   });
 }
@@ -375,9 +374,8 @@ export async function getTeacherDetails(id: string): Promise<TeacherDetails | nu
   const linkedSessions = findSessionsForTeacher(teacher, sessions);
   const classNames = linkedSessions.map((session) => normalizeName(session.className));
   const linkedStudents = students.filter((student) => {
-    const classMatch = student.className ? classNames.includes(normalizeName(student.className)) : false;
-    const courseMatch = student.currentCourse ? teacher.specialization.includes(student.currentCourse) : false;
-    return classMatch || courseMatch;
+    const classMatch = student.className ? classNames.includes(normalizeName(student.className)) : false;
+    return classMatch;
   });
 
   const evaluation = getTeacherEvaluation(teacher.id);
