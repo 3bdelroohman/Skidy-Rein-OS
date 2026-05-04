@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   Clock,
   GraduationCap,
+  Loader2,
   Phone,
   Target,
   TrendingUp,
@@ -27,8 +28,8 @@ import { getDashboardOperationToneStyles, getDashboardOverview } from "@/service
 import { getOwnerSnapshot, type OwnerSnapshotItem } from "@/services/owner-summary.service";
 import { useUIStore } from "@/stores/ui-store";
 import { t } from "@/lib/locale";
-import { LoadingState } from "@/components/shared/page-state";
 import type { DashboardActionItem, DashboardOverview, DashboardOperationItem } from "@/types/crm";
+import { PageHeader } from "@/components/ui/page-header";
 
 function isManagement(role: string): boolean {
   return role === "admin" || role === "owner";
@@ -46,10 +47,10 @@ const DASHBOARD_GLYPHS: Record<string, LucideIcon> = {
 };
 
 const ACTION_TONE_STYLES: Record<DashboardActionItem["tone"], { bg: string; color: string; border: string }> = {
-  brand: { bg: "#EEF2FF", color: "#4338CA", border: "#C7D2FE" },
+  brand:   { bg: "#EEF2FF", color: "#4338CA", border: "#C7D2FE" },
   success: { bg: "#ECFDF5", color: "#059669", border: "#A7F3D0" },
   warning: { bg: "#FFFBEB", color: "#D97706", border: "#FCD34D" },
-  info: { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" },
+  info:    { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" },
 };
 
 export default function DashboardPage() {
@@ -63,25 +64,21 @@ export default function DashboardPage() {
   useEffect(() => {
     let isMounted = true;
     async function load() {
-      setLoading(true);
-      const [data, ownerData] = await Promise.all([getDashboardOverview(
-        {
-          role: user.role,
-          fullName: user.fullName,
-          fullNameAr: user.fullNameAr,
-        },
-        locale,
-      ), getOwnerSnapshot()]);
+      const [data, ownerData] = await Promise.all([
+        getDashboardOverview(
+          { role: user.role, fullName: user.fullName, fullNameAr: user.fullNameAr },
+          locale,
+        ),
+        getOwnerSnapshot(),
+      ]);
       if (isMounted) {
         setOverview(data);
         setOwnerSnapshot(ownerData.slice(0, 4));
         setLoading(false);
       }
     }
-    load();
-    return () => {
-      isMounted = false;
-    };
+    void load();
+    return () => { isMounted = false; };
   }, [locale, user.fullName, user.fullNameAr, user.role]);
 
   const displayName = isAr ? user.fullNameAr : user.fullName;
@@ -90,57 +87,57 @@ export default function DashboardPage() {
   const quickLinks = useMemo(() => {
     if (user.role === "sales") {
       return [
-        { label: t(locale, "العملاء المحتملون", "Leads"), href: "/leads", icon: Users, color: "#6366F1", bg: "#EEF2FF" },
-        { label: t(locale, "المتابعات", "Follow-ups"), href: "/follow-ups", icon: ClipboardCheck, color: "#8B5CF6", bg: "#F5F3FF" },
-        { label: t(locale, "المدفوعات", "Payments"), href: "/payments", icon: Wallet, color: "#10B981", bg: "#ECFDF5" },
-        { label: t(locale, "الطلاب", "Students"), href: "/students", icon: GraduationCap, color: "#0D9488", bg: "#F0FDFA" },
+        { label: t(locale, "\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0645\u062d\u062a\u0645\u0644\u0648\u0646", "Leads"),       href: "/leads",       icon: Users,         color: "#6366F1", bg: "#EEF2FF" },
+        { label: t(locale, "\u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0627\u062a",                                                           "Follow-ups"),  href: "/follow-ups",  icon: ClipboardCheck, color: "#8B5CF6", bg: "#F5F3FF" },
+        { label: t(locale, "\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a",                                                           "Payments"),    href: "/payments",    icon: Wallet,         color: "#10B981", bg: "#ECFDF5" },
+        { label: t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628",                                                                             "Students"),    href: "/students",    icon: GraduationCap,  color: "#0D9488", bg: "#F0FDFA" },
       ];
     }
-
     return [
-      { label: t(locale, "الطلاب", "Students"), href: "/students", icon: GraduationCap, color: "#059669", bg: "#ECFDF5" },
-      { label: t(locale, "الجدول", "Schedule"), href: "/schedule", icon: CalendarDays, color: "#2563EB", bg: "#EFF6FF" },
-      { label: t(locale, "المتابعات", "Follow-ups"), href: "/follow-ups", icon: ClipboardCheck, color: "#8B5CF6", bg: "#F5F3FF" },
-      { label: t(locale, "المدفوعات", "Payments"), href: "/payments", icon: Wallet, color: "#D97706", bg: "#FFFBEB" },
+      { label: t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628",    "Students"),   href: "/students",    icon: GraduationCap,  color: "#059669", bg: "#ECFDF5" },
+      { label: t(locale, "\u0627\u0644\u062c\u062f\u0648\u0644",    "Schedule"),   href: "/schedule",    icon: CalendarDays,   color: "#2563EB", bg: "#EFF6FF" },
+      { label: t(locale, "\u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0627\u062a", "Follow-ups"), href: "/follow-ups", icon: ClipboardCheck, color: "#8B5CF6", bg: "#F5F3FF" },
+      { label: t(locale, "\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a", "Payments"),   href: "/payments",   icon: Wallet,         color: "#D97706", bg: "#FFFBEB" },
     ];
   }, [locale, user.role]);
 
-  const pendingCount = overview?.followUps.filter((item) => item.status !== "completed").length ?? 0;
-  const completedCount = overview?.followUps.filter((item) => item.status === "completed").length ?? 0;
-  const urgentCount = overview?.followUps.filter((item) => item.status === "urgent").length ?? 0;
+  const pendingCount   = overview?.followUps.filter((i) => i.status !== "completed").length ?? 0;
+  const completedCount = overview?.followUps.filter((i) => i.status === "completed").length ?? 0;
+  const urgentCount    = overview?.followUps.filter((i) => i.status === "urgent").length    ?? 0;
 
   if (loading || !overview) {
     return (
-      <LoadingState
-        titleAr="جارِ تحميل لوحة التشغيل"
-        titleEn="Loading dashboard"
-        descriptionAr="يتم الآن تجهيز البيانات التشغيلية والمهام والتنبيهات."
-        descriptionEn="Preparing operational data, tasks, and alerts."
-      />
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand-500)]" />
+      </div>
     );
   }
 
+  /* ── Non-management view ──────────────────────────────────────────────── */
   if (!isMgmt) {
     return (
-      <div className="space-y-6">
-        <HeroCard title={t(locale, `مرحباً، ${displayName}`, `Welcome, ${displayName}`)} subtitle={t(locale, "هذه أهم الأشياء التي تحتاج انتباهك الآن", "Here is what needs your attention right now")} />
+      <div className="space-y-6 p-4 sm:p-6">
+        <PageHeader
+          title={isAr ? `\u0645\u0631\u062d\u0628\u0627\u064b\u060c ${displayName}` : `Welcome, ${displayName}`}
+          subtitle={isAr ? "\u0647\u0630\u0647 \u0623\u0647\u0645 \u0627\u0644\u0623\u0634\u064a\u0627\u0621 \u0627\u0644\u062a\u064a \u062a\u062d\u062a\u0627\u062c \u0627\u0646\u062a\u0628\u0627\u0647\u0643 \u0627\u0644\u0622\u0646" : "Here is what needs your attention right now"}
+        />
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <MiniStat icon={ClipboardCheck} value={overview.followUps.length} label={t(locale, "متابعات اليوم", "Today follow-ups")} bg="#EEF2FF" color="#6366F1" />
-          <MiniStat icon={CheckCircle2} value={completedCount} label={t(locale, "مكتملة", "Completed")} bg="#ECFDF5" color="#059669" />
-          <MiniStat icon={Clock} value={pendingCount} label={t(locale, "معلّقة", "Pending")} bg="#FFFBEB" color="#D97706" />
-          <MiniStat icon={AlertCircle} value={urgentCount} label={t(locale, "عاجلة", "Urgent")} bg="#FEF2F2" color="#DC2626" />
+          <MiniStat icon={ClipboardCheck} value={overview.followUps.length} label={t(locale, "\u0645\u062a\u0627\u0628\u0639\u0627\u062a \u0627\u0644\u064a\u0648\u0645",  "Today follow-ups")} bg="#EEF2FF" color="#6366F1" />
+          <MiniStat icon={CheckCircle2}   value={completedCount}             label={t(locale, "\u0645\u0643\u062a\u0645\u0644\u0629",                                       "Completed")}        bg="#ECFDF5" color="#059669" />
+          <MiniStat icon={Clock}          value={pendingCount}               label={t(locale, "\u0645\u0639\u0644\u0651\u0642\u0629",                                       "Pending")}          bg="#FFFBEB" color="#D97706" />
+          <MiniStat icon={AlertCircle}    value={urgentCount}                label={t(locale, "\u0639\u0627\u062c\u0644\u0629",                                             "Urgent")}           bg="#FEF2F2" color="#DC2626" />
         </div>
 
-        <OwnershipSnapshot locale={locale} title={t(locale, "ملخص المسؤولين", "Owner snapshot")} items={ownerSnapshot} />
+        <OwnershipSnapshot locale={locale} title={t(locale, "\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646", "Owner snapshot")} items={ownerSnapshot} />
 
-                <DashboardSectionTitle title={t(locale, "وصول سريع", "Quick access")} />
+        <DashboardSectionTitle title={t(locale, "\u0648\u0635\u0648\u0644 \u0633\u0631\u064a\u0639", "Quick access")} />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {quickLinks.map((link) => {
             const Icon = link.icon;
             return (
-              <Link key={link.href} href={link.href} className="group flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl transition-transform group-hover:scale-105" style={{ background: link.bg }}>
+              <Link key={link.href} href={link.href} className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-105" style={{ background: link.bg }}>
                   <Icon size={24} style={{ color: link.color }} />
                 </div>
                 <span className="text-xs font-semibold text-foreground">{link.label}</span>
@@ -151,45 +148,46 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
-            <TaskCard locale={locale}
+            <TaskCard
+              locale={locale}
               isAr={isAr}
               tasks={overview.followUps}
-              title={t(locale, "مهامي اليوم", "My tasks today")}
-              emptyLabel={t(locale, "لا توجد متابعات لك اليوم", "No follow-ups for you today")}
+              title={t(locale, "\u0645\u0647\u0627\u0645\u064a \u0627\u0644\u064a\u0648\u0645", "My tasks today")}
+              emptyLabel={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u062a\u0627\u0628\u0639\u0627\u062a \u0644\u0643 \u0627\u0644\u064a\u0648\u0645", "No follow-ups for you today")}
             />
-
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <DashboardSectionTitle title={t(locale, "ما يجب التركيز عليه", "What to focus on")} icon={Target} />
+            <div className="rounded-xl border border-border bg-card p-5">
+              <DashboardSectionTitle title={t(locale, "\u0645\u0627 \u064a\u062c\u0628 \u0627\u0644\u062a\u0631\u0643\u064a\u0632 \u0639\u0644\u064a\u0647", "What to focus on")} icon={Target} />
               {overview.recommendations.length === 0 ? (
-                <EmptyPanel label={t(locale, "كل شيء تحت السيطرة الآن", "Everything is under control right now")} />
+                <EmptyPanel label={t(locale, "\u0643\u0644 \u0634\u064a\u0621 \u062a\u062d\u062a \u0627\u0644\u0633\u064a\u0637\u0631\u0629 \u0627\u0644\u0622\u0646", "Everything is under control right now")} />
               ) : (
                 <div className="space-y-3">
                   {overview.recommendations.map((item) => (
-                    <div key={item} className="rounded-2xl border border-border bg-background p-4 text-sm text-foreground">
-                      {item}
-                    </div>
+                    <div key={item} className="rounded-xl border border-border bg-background p-4 text-sm text-foreground">{item}</div>
                   ))}
                 </div>
               )}
             </div>
           </div>
-
           <div className="space-y-6">
             <OperationsGrid locale={locale} items={overview.operations} compact />
-            <QuickActionGrid title={t(locale, "الخطوات التالية", "Next steps")} isAr={isAr} actions={overview.quickActions} compact />
+            <QuickActionGrid title={t(locale, "\u0627\u0644\u062e\u0637\u0648\u0627\u062a \u0627\u0644\u062a\u0627\u0644\u064a\u0629", "Next steps")} isAr={isAr} actions={overview.quickActions} compact />
           </div>
         </div>
       </div>
     );
   }
 
+  /* ── Management view ──────────────────────────────────────────────────── */
   return (
-    <div className="space-y-6">
-      <HeroCard title={t(locale, `مرحباً، ${displayName}`, `Welcome, ${displayName}`)} subtitle={t(locale, "هذه لقطة تشغيلية سريعة للأكاديمية الآن", "This is your operational snapshot for the academy right now")} />
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title={isAr ? `\u0645\u0631\u062d\u0628\u0627\u064b\u060c ${displayName}` : `Welcome, ${displayName}`}
+        subtitle={isAr ? "\u0644\u0642\u0637\u0629 \u062a\u0634\u063a\u064a\u0644\u064a\u0629 \u0633\u0631\u064a\u0639\u0629 \u0644\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629 \u0627\u0644\u0622\u0646" : "Your operational snapshot for the academy right now"}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {overview.managementStats.map((stat) => (
-          <div key={stat.label} className="relative overflow-hidden rounded-3xl p-5 text-white" style={{ background: `linear-gradient(135deg, ${stat.bg}, ${stat.bg}dd)` }}>
+          <div key={stat.label} className="relative overflow-hidden rounded-xl p-5 text-white" style={{ background: `linear-gradient(135deg, ${stat.bg}, ${stat.bg}dd)` }}>
             <p className="text-sm opacity-90">{stat.label}</p>
             <p className="mt-2 text-3xl font-bold">{stat.value}</p>
             {stat.change && <p className="mt-2 text-xs opacity-80">{stat.change}</p>}
@@ -201,8 +199,8 @@ export default function DashboardPage() {
         {overview.secondaryStats.map((stat) => {
           const Icon = stat.icon ? DASHBOARD_GLYPHS[stat.icon] : Clock;
           return (
-            <div key={stat.label} className="rounded-2xl border border-border bg-card p-4">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: stat.bg }}>
+            <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: stat.bg }}>
                 <Icon size={20} style={{ color: stat.color }} />
               </div>
               <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
@@ -214,20 +212,26 @@ export default function DashboardPage() {
 
       <OperationsGrid locale={locale} items={overview.operations} />
 
-      <OwnershipSnapshot locale={locale} title={t(locale, "توزيع المسؤولية", "Ownership distribution")} items={ownerSnapshot} />
+      <OwnershipSnapshot locale={locale} title={t(locale, "\u062a\u0648\u0632\u064a\u0639 \u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0629", "Ownership distribution")} items={ownerSnapshot} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <DashboardSectionTitle title={t(locale, "تنبيهات سريعة", "Quick alerts")} icon={BellDot} />
+          <div className="rounded-xl border border-border bg-card p-5">
+            <DashboardSectionTitle title={t(locale, "\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0633\u0631\u064a\u0639\u0629", "Quick alerts")} icon={BellDot} />
             {overview.alerts.length === 0 ? (
-              <EmptyPanel label={t(locale, "لا توجد تنبيهات حرجة الآن", "There are no urgent alerts right now")} />
+              <EmptyPanel label={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u062d\u0631\u062c\u0629 \u0627\u0644\u0622\u0646", "There are no urgent alerts right now")} />
             ) : (
               <div className="space-y-2">
                 {overview.alerts.map((alert) => {
                   const Icon = DASHBOARD_GLYPHS[alert.icon] ?? AlertCircle;
                   return (
-                    <div key={`${alert.icon}-${alert.text}`} className={cn("flex items-start gap-3 rounded-2xl border p-3", alert.type === "danger" && "border-red-200 bg-red-50/40 dark:border-red-900/30 dark:bg-red-950/10", alert.type === "warning" && "border-amber-200 bg-amber-50/40 dark:border-amber-900/30 dark:bg-amber-950/10", alert.type === "info" && "border-blue-200 bg-blue-50/40 dark:border-blue-900/30 dark:bg-blue-950/10", alert.type === "success" && "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/30 dark:bg-emerald-950/10")}>
+                    <div key={`${alert.icon}-${alert.text}`} className={cn(
+                      "flex items-start gap-3 rounded-xl border p-3",
+                      alert.type === "danger"  && "border-red-200    bg-red-50/40    dark:border-red-900/30    dark:bg-red-950/10",
+                      alert.type === "warning" && "border-amber-200  bg-amber-50/40  dark:border-amber-900/30  dark:bg-amber-950/10",
+                      alert.type === "info"    && "border-blue-200   bg-blue-50/40   dark:border-blue-900/30   dark:bg-blue-950/10",
+                      alert.type === "success" && "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/30 dark:bg-emerald-950/10",
+                    )}>
                       <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl bg-background/80 text-foreground">
                         <Icon size={16} />
                       </div>
@@ -239,17 +243,18 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <TaskCard locale={locale}
+          <TaskCard
+            locale={locale}
             isAr={isAr}
             tasks={overview.followUps.slice(0, 6)}
-            title={t(locale, "مهام اليوم", "Today tasks")}
-            emptyLabel={t(locale, "لا توجد مهام مسجلة الآن", "No tasks recorded right now")}
+            title={t(locale, "\u0645\u0647\u0627\u0645 \u0627\u0644\u064a\u0648\u0645", "Today tasks")}
+            emptyLabel={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0647\u0627\u0645 \u0645\u0633\u062c\u0644\u0629 \u0627\u0644\u0622\u0646", "No tasks recorded right now")}
           />
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <DashboardSectionTitle title={t(locale, "قراءة سريعة للمسار", "Pipeline snapshot")} icon={TrendingUp} />
+          <div className="rounded-xl border border-border bg-card p-5">
+            <DashboardSectionTitle title={t(locale, "\u0642\u0631\u0627\u0621\u0629 \u0633\u0631\u064a\u0639\u0629 \u0644\u0644\u0645\u0633\u0627\u0631", "Pipeline snapshot")} icon={TrendingUp} />
             <div className="space-y-4">
               {overview.funnel.map((item) => (
                 <div key={item.label} className="space-y-2">
@@ -265,18 +270,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <QuickActionGrid title={t(locale, "تشغيل سريع", "Fast execution")} isAr={isAr} actions={overview.quickActions} />
+          <QuickActionGrid title={t(locale, "\u062a\u0634\u063a\u064a\u0644 \u0633\u0631\u064a\u0639", "Fast execution")} isAr={isAr} actions={overview.quickActions} />
 
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <DashboardSectionTitle title={t(locale, "توصيات تشغيلية", "Operational recommendations")} icon={Target} />
+          <div className="rounded-xl border border-border bg-card p-5">
+            <DashboardSectionTitle title={t(locale, "\u062a\u0648\u0635\u064a\u0627\u062a \u062a\u0634\u063a\u064a\u0644\u064a\u0629", "Operational recommendations")} icon={Target} />
             {overview.recommendations.length === 0 ? (
-              <EmptyPanel label={t(locale, "لا توجد توصيات إضافية الآن", "There are no extra recommendations right now")} />
+              <EmptyPanel label={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0648\u0635\u064a\u0627\u062a \u0625\u0636\u0627\u0641\u064a\u0629 \u0627\u0644\u0622\u0646", "There are no extra recommendations right now")} />
             ) : (
               <div className="space-y-3">
                 {overview.recommendations.map((item) => (
-                  <div key={item} className="rounded-2xl border border-border bg-background p-4 text-sm text-foreground">
-                    {item}
-                  </div>
+                  <div key={item} className="rounded-xl border border-border bg-background p-4 text-sm text-foreground">{item}</div>
                 ))}
               </div>
             )}
@@ -287,19 +290,12 @@ export default function DashboardPage() {
   );
 }
 
-function HeroCard({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="rounded-3xl border border-border bg-card p-6">
-      <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-      <p className="mt-1 text-muted-foreground">{subtitle}</p>
-    </div>
-  );
-}
+/* ── Sub-components ───────────────────────────────────────────────────────── */
 
 function DashboardSectionTitle({ title, icon: Icon, className }: { title: string; icon?: LucideIcon; className?: string }) {
   return (
     <h3 className={cn("mb-4 flex items-center gap-2 text-base font-bold text-foreground", className)}>
-      {Icon ? <Icon size={18} className="text-brand-600" /> : null}
+      {Icon ? <Icon size={18} className="text-[var(--color-brand-600)]" /> : null}
       {title}
     </h3>
   );
@@ -307,8 +303,8 @@ function DashboardSectionTitle({ title, icon: Icon, className }: { title: string
 
 function MiniStat({ icon: Icon, value, label, bg, color }: { icon: LucideIcon; value: number; label: string; bg: string; color: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: bg }}>
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: bg }}>
         <Icon size={18} style={{ color }} />
       </div>
       <p className="text-2xl font-bold text-foreground">{value}</p>
@@ -319,13 +315,13 @@ function MiniStat({ icon: Icon, value, label, bg, color }: { icon: LucideIcon; v
 
 function OperationsGrid({ locale, items, compact = false }: { locale: "ar" | "en"; items: DashboardOperationItem[]; compact?: boolean }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <DashboardSectionTitle title={t(locale, "إشارات التشغيل", "Operational signals")} icon={TrendingUp} />
+    <div className="rounded-xl border border-border bg-card p-5">
+      <DashboardSectionTitle title={t(locale, "\u0625\u0634\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644", "Operational signals")} icon={TrendingUp} />
       <div className={cn("grid gap-3", compact ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4")}>
         {items.map((item) => {
           const tone = getDashboardOperationToneStyles(item.tone);
           return (
-            <div key={item.title} className="rounded-2xl border p-4" style={{ background: tone.bg, borderColor: `${tone.color}33` }}>
+            <div key={item.title} className="rounded-xl border p-4" style={{ background: tone.bg, borderColor: `${tone.color}33` }}>
               <p className="text-xs font-semibold" style={{ color: tone.color }}>{item.title}</p>
               <p className="mt-2 text-2xl font-bold text-foreground">{item.value}</p>
               <p className="mt-2 text-xs text-muted-foreground">{item.subtitle}</p>
@@ -339,13 +335,13 @@ function OperationsGrid({ locale, items, compact = false }: { locale: "ar" | "en
 
 function QuickActionGrid({ title, isAr, actions, compact = false }: { title: string; isAr: boolean; actions: DashboardActionItem[]; compact?: boolean }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       <DashboardSectionTitle title={title} icon={Target} />
       <div className={cn("grid gap-3", compact ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
         {actions.map((action) => {
           const tone = ACTION_TONE_STYLES[action.tone];
           return (
-            <Link key={`${action.href}-${action.title}`} href={action.href} className="group rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm" style={{ borderColor: tone.border, background: tone.bg }}>
+            <Link key={`${action.href}-${action.title}`} href={action.href} className="group rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-sm" style={{ borderColor: tone.border, background: tone.bg }}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold" style={{ color: tone.color }}>{action.title}</p>
@@ -363,15 +359,14 @@ function QuickActionGrid({ title, isAr, actions, compact = false }: { title: str
 
 function TaskCard({ locale, isAr, tasks, title, emptyLabel }: { locale: "ar" | "en"; isAr: boolean; tasks: DashboardOverview["followUps"]; title: string; emptyLabel: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
         <DashboardSectionTitle title={title} icon={ClipboardCheck} className="mb-0" />
-        <Link href="/follow-ups" className="flex items-center gap-1 text-xs font-semibold text-brand-600 transition-colors hover:text-brand-700">
-          {t(locale, "عرض الكل", "View all")}
+        <Link href="/follow-ups" className="flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-600)] transition-colors hover:text-[var(--color-brand-700)]">
+          {t(locale, "\u0639\u0631\u0636 \u0627\u0644\u0643\u0644", "View all")}
           {isAr ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
         </Link>
       </div>
-
       {tasks.length === 0 ? (
         <EmptyPanel label={emptyLabel} />
       ) : (
@@ -380,7 +375,11 @@ function TaskCard({ locale, isAr, tasks, title, emptyLabel }: { locale: "ar" | "
             const badge = DASHBOARD_TASK_STATUS_META[item.status];
             const badgeLabel = isAr ? badge.label : badge.labelEn;
             return (
-              <div key={item.id} className={cn("flex items-center gap-3 rounded-2xl border p-3 transition-colors", item.status === "completed" ? "border-border/50 opacity-60" : "border-border hover:bg-muted/50", item.status === "urgent" && "border-red-200 bg-red-50/30 dark:border-red-900/30 dark:bg-red-950/10")}>
+              <div key={item.id} className={cn(
+                "flex items-center gap-3 rounded-xl border p-3 transition-colors",
+                item.status === "completed" ? "border-border/50 opacity-60" : "border-border hover:bg-muted/50",
+                item.status === "urgent" && "border-red-200 bg-red-50/30 dark:border-red-900/30 dark:bg-red-950/10",
+              )}>
                 <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.dot }} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -394,7 +393,12 @@ function TaskCard({ locale, isAr, tasks, title, emptyLabel }: { locale: "ar" | "
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="text-[11px] text-muted-foreground">{item.time}</span>
                   {item.status !== "completed" && (
-                    <a href={`https://wa.me/?text=${encodeURIComponent(`${t(locale, "متابعة", "Follow-up")}: ${item.name} — ${item.reason}`)}`} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-400">
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`${t(locale, "\u0645\u062a\u0627\u0628\u0639\u0629", "Follow-up")}: ${item.name} \u2013 ${item.reason}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-[var(--color-brand-50)] text-[var(--color-brand-600)] transition-colors hover:bg-[var(--color-brand-100)] dark:bg-[var(--color-brand-950)] dark:text-[var(--color-brand-400)]"
+                    >
                       <Phone size={14} />
                     </a>
                   )}
@@ -409,24 +413,27 @@ function TaskCard({ locale, isAr, tasks, title, emptyLabel }: { locale: "ar" | "
 }
 
 function EmptyPanel({ label }: { label: string }) {
-  return <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">{label}</div>;
+  return (
+    <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+      {label}
+    </div>
+  );
 }
-
 
 function OwnershipSnapshot({ locale, title, items }: { locale: "ar" | "en"; title: string; items: OwnerSnapshotItem[] }) {
   if (items.length === 0) return null;
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       <DashboardSectionTitle title={title} icon={Users} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => (
-          <div key={item.key} className="rounded-2xl border border-border bg-background p-4">
+          <div key={item.key} className="rounded-xl border border-border bg-background p-4">
             <p className="text-sm font-semibold text-foreground">{item.displayName}</p>
             <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-              <p>{t(locale, "عملاء محتملون", "Leads")}: <span className="font-semibold text-foreground">{item.leadCount}</span></p>
-              <p>{t(locale, "مشترك", "Won")}: <span className="font-semibold text-foreground">{item.wonLeadCount}</span></p>
-              <p>{t(locale, "أولياء أمور", "Parents")}: <span className="font-semibold text-foreground">{item.parentCount}</span></p>
-              <p>{t(locale, "طلاب", "Students")}: <span className="font-semibold text-foreground">{item.studentCount}</span></p>
+              <p>{t(locale, "\u0639\u0645\u0644\u0627\u0621 \u0645\u062d\u062a\u0645\u0644\u0648\u0646", "Leads")}:   <span className="font-semibold text-foreground">{item.leadCount}</span></p>
+              <p>{t(locale, "\u0645\u0634\u062a\u0631\u0643",                                         "Won")}:     <span className="font-semibold text-foreground">{item.wonLeadCount}</span></p>
+              <p>{t(locale, "\u0623\u0648\u0644\u064a\u0627\u0621 \u0623\u0645\u0648\u0631",           "Parents")}: <span className="font-semibold text-foreground">{item.parentCount}</span></p>
+              <p>{t(locale, "\u0637\u0644\u0627\u0628",                                               "Students")}: <span className="font-semibold text-foreground">{item.studentCount}</span></p>
             </div>
           </div>
         ))}
