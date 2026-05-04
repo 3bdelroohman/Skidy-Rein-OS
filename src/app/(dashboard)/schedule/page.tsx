@@ -64,14 +64,14 @@ function getScheduleWeekStatusLabel(weekStart: string, locale: "ar" | "en"): str
   const currentWeek = getScheduleWeekStartDateInput();
 
   if (weekStart === currentWeek) {
-    return t(locale, "الأسبوع الحالي", "Current week");
+    return t(locale, "\u0627\u0644\u0623\u0633\u0628\u0648\u0639 \u0627\u0644\u062D\u0627\u0644\u064A", "Current week");
   }
 
   if (weekStart < currentWeek) {
-    return t(locale, "أسبوع سابق", "Past week");
+    return t(locale, "\u0623\u0633\u0628\u0648\u0639 \u0633\u0627\u0628\u0642", "Past week");
   }
 
-  return t(locale, "أسبوع قادم", "Upcoming week");
+  return t(locale, "\u0623\u0633\u0628\u0648\u0639 \u0642\u0627\u062F\u0645", "Upcoming week");
 }
 
 function isSessionInsideWeek(session: ScheduleSessionItem, weekStart: string, weekEnd: string): boolean {
@@ -161,79 +161,92 @@ export default function SchedulePage() {
       </div>
 
       <div className="rounded-3xl border border-border bg-card/95 p-4 shadow-sm">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-brand-700/10 px-3 py-1 text-[11px] font-black text-brand-700 ring-1 ring-brand-700/20">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_1.45fr_1fr] xl:items-stretch">
+          <button
+            type="button"
+            onClick={() => setWeekStart((current) => addDaysToDateInput(current, -7))}
+            className="group rounded-2xl border border-border bg-background p-4 text-start transition-colors hover:border-brand-300 hover:bg-brand-50/60"
+          >
+            <span className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">
+              {t(locale, "\u0627\u0644\u0623\u0633\u0628\u0648\u0639 \u0627\u0644\u0633\u0627\u0628\u0642", "Previous week")}
+            </span>
+            <span className="mt-2 block text-sm font-black text-foreground group-hover:text-brand-800">
+              {formatScheduleWeekRange(
+                addDaysToDateInput(weekStart, -7),
+                addDaysToDateInput(weekStart, -1),
+                locale,
+              )}
+            </span>
+          </button>
+
+          <div className="rounded-2xl border border-brand-700/20 bg-brand-700/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="rounded-full bg-brand-700 px-3 py-1 text-[11px] font-black text-white">
                 {getScheduleWeekStatusLabel(weekStart, locale)}
               </span>
-              <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                {weekStart} → {weekEnd}
+
+              <span className="rounded-full bg-background px-3 py-1 text-[11px] font-bold text-muted-foreground ring-1 ring-border">
+                {t(locale, "\u062D\u0635\u0635 \u0627\u0644\u0623\u0633\u0628\u0648\u0639", "Week sessions")}: {filtered.length}
               </span>
             </div>
 
-            <div>
-              <h2 className="text-xl font-black text-foreground">
+            <div className="mt-4 text-center">
+              <p className="text-[11px] font-bold text-muted-foreground">
+                {t(locale, "\u0627\u0644\u0623\u0633\u0628\u0648\u0639 \u0627\u0644\u0645\u0639\u0631\u0648\u0636", "Visible week")}
+              </p>
+              <h2 className="mt-1 text-xl font-black text-foreground">
                 {formatScheduleWeekRange(weekStart, weekEnd, locale)}
               </h2>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 {t(
                   locale,
-                  "الجدول يعرض حصص الأسبوع المختار فقط حتى لا تتكدس حصص الأسابيع القادمة في نفس اليوم.",
-                  "The timetable shows only the selected week so future weekly sessions do not stack under the same day.",
+                  "\u0627\u0644\u062C\u062F\u0648\u0644 \u064A\u0639\u0631\u0636 \u0623\u0633\u0628\u0648\u0639\u064B\u0627 \u0648\u0627\u062D\u062F\u064B\u0627 \u0641\u0642\u0637 \u062D\u062A\u0649 \u0644\u0627 \u062A\u062A\u0643\u062F\u0633 \u0627\u0644\u062D\u0635\u0635.",
+                  "The timetable shows one week at a time so sessions do not stack.",
                 )}
               </p>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="rounded-2xl border border-border bg-background px-4 py-3 text-center sm:min-w-24">
-              <p className="text-[11px] font-semibold text-muted-foreground">
-                {t(locale, "حصص الأسبوع", "Week sessions")}
-              </p>
-              <p className="mt-1 text-2xl font-black text-foreground">{filtered.length}</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-background p-2 sm:flex sm:items-center">
-              <button
-                type="button"
-                onClick={() => setWeekStart((current) => addDaysToDateInput(current, -7))}
-                className="rounded-xl px-3 py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-              >
-                {t(locale, "السابق", "Previous")}
-              </button>
-
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-center">
               <button
                 type="button"
                 onClick={() => setWeekStart(getScheduleWeekStartDateInput())}
-                className="rounded-xl bg-brand-700 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-brand-600"
+                className="rounded-xl bg-brand-700 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-brand-600"
               >
-                {t(locale, "الحالي", "Current")}
+                {t(locale, "\u0627\u0644\u0639\u0648\u062F\u0629 \u0644\u0644\u0623\u0633\u0628\u0648\u0639 \u0627\u0644\u062D\u0627\u0644\u064A", "Back to current week")}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setWeekStart((current) => addDaysToDateInput(current, 7))}
-                className="rounded-xl px-3 py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-              >
-                {t(locale, "التالي", "Next")}
-              </button>
+              <label className="flex flex-col gap-1 text-[11px] font-bold text-muted-foreground">
+                {t(locale, "\u0627\u0630\u0647\u0628 \u0644\u0623\u064A \u0623\u0633\u0628\u0648\u0639", "Jump to any week")}
+                <input
+                  type="date"
+                  value={weekStart}
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      setWeekStart(getScheduleWeekStartDateInput(event.target.value));
+                    }
+                  }}
+                  className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none transition-colors focus:border-brand-500"
+                />
+              </label>
             </div>
-
-            <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">
-              {t(locale, "اذهب لتاريخ", "Jump to date")}
-              <input
-                type="date"
-                value={weekStart}
-                onChange={(event) => {
-                  if (event.target.value) {
-                    setWeekStart(getScheduleWeekStartDateInput(event.target.value));
-                  }
-                }}
-                className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground outline-none transition-colors focus:border-brand-500"
-              />
-            </label>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setWeekStart((current) => addDaysToDateInput(current, 7))}
+            className="group rounded-2xl border border-border bg-background p-4 text-start transition-colors hover:border-brand-300 hover:bg-brand-50/60"
+          >
+            <span className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">
+              {t(locale, "\u0627\u0644\u0623\u0633\u0628\u0648\u0639 \u0627\u0644\u062A\u0627\u0644\u064A", "Next week")}
+            </span>
+            <span className="mt-2 block text-sm font-black text-foreground group-hover:text-brand-800">
+              {formatScheduleWeekRange(
+                addDaysToDateInput(weekStart, 7),
+                addDaysToDateInput(weekStart, 13),
+                locale,
+              )}
+            </span>
+          </button>
         </div>
       </div>
 
