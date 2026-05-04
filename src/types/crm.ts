@@ -496,6 +496,7 @@ export interface CreateScheduleEntryInput {
   teacherId: string;
   course: CourseType;
   day: number;
+  sessionDate?: string | null;
   startTime: string;
   endTime: string;
 }

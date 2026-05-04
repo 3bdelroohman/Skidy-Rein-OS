@@ -21,6 +21,7 @@ interface ScheduleEntryFormProps {
     className?: string;
     teacherId?: string;
     course?: CourseType;
+    sessionDate?: string;
   };
 }
 
@@ -49,17 +50,40 @@ function getCourseLabel(course: CourseType, locale: "ar" | "en") {
   return locale === "ar" ? labels[course].ar : labels[course].en;
 }
 
+function getLocalDateInput(): string {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function getWeekdayFromDateInput(dateValue: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return new Date().getDay();
+  }
+
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(year, month - 1, day).getDay();
+}
+
 export function ScheduleEntryForm({ title, description, submitLabel, successMessage, onSubmit, cancelHref = "/schedule", initialValues }: ScheduleEntryFormProps) {
   const router = useRouter();
   const locale = useUIStore((state) => state.locale);
   const isAr = locale === "ar";
   const [loading, setLoading] = useState(false);
   const [teachers, setTeachers] = useState<TeacherListItem[]>([]);
+
+  const initialSessionDate =
+    typeof initialValues?.sessionDate === "string" && initialValues.sessionDate
+      ? initialValues.sessionDate
+      : getLocalDateInput();
   const [form, setForm] = useState({
     className: initialValues?.className ?? "",
     teacherId: initialValues?.teacherId ?? "",
     course: initialValues?.course ?? ("scratch" as CourseType),
-    day: "0",
+    sessionDate: initialSessionDate,
+    day: String(getWeekdayFromDateInput(initialSessionDate)),
     startTime: "16:00",
     endTime: "17:00",
   });
@@ -90,7 +114,10 @@ export function ScheduleEntryForm({ title, description, submitLabel, successMess
         className: form.className.trim(),
         teacherId: form.teacherId,
         course: form.course,
-        day: Number(form.day),
+        day: getWeekdayFromDateInput(form.sessionDate),
+
+        sessionDate: form.sessionDate,
+
         startTime: form.startTime,
         endTime: form.endTime,
       });
@@ -128,11 +155,28 @@ export function ScheduleEntryForm({ title, description, submitLabel, successMess
                 {COURSE_OPTIONS.map((course) => <option key={course} value={course}>{getCourseLabel(course, locale)}</option>)}
               </select>
             </div>
+            <Field
+              label={t(locale, "\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u062D\u0635\u0629", "Session date")}
+              value={form.sessionDate}
+              onChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  sessionDate: value,
+                  day: String(getWeekdayFromDateInput(value)),
+                }))
+              }
+              type="date"
+            />
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">{t(locale, "اليوم", "Day")}</label>
-              <select value={form.day} onChange={(event) => setForm((prev) => ({ ...prev, day: event.target.value }))} className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-ring">
-                {Array.from({ length: 7 }, (_, day) => <option key={day} value={day}>{getDayLabel(day, locale)}</option>)}
-              </select>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t(locale, "\u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u0645\u062D\u0633\u0648\u0628", "Calculated day")}
+              </label>
+              <div className="w-full rounded-xl border border-input bg-muted/50 px-4 py-2.5 text-sm font-semibold text-foreground">
+                {getDayLabel(getWeekdayFromDateInput(form.sessionDate), locale)}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t(locale, "\u064A\u062A\u062D\u062F\u062F \u062A\u0644\u0642\u0627\u0626\u064A\u064B\u0627 \u0645\u0646 \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u062D\u0635\u0629.", "Automatically calculated from the session date.")}
+              </p>
             </div>
             <Field label={t(locale, "وقت البداية", "Start time")} value={form.startTime} onChange={(value) => setForm((prev) => ({ ...prev, startTime: value }))} type="time" />
             <Field label={t(locale, "وقت النهاية", "End time")} value={form.endTime} onChange={(value) => setForm((prev) => ({ ...prev, endTime: value }))} type="time" />

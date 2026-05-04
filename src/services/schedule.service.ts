@@ -395,10 +395,18 @@ export async function createScheduleEntry(input: CreateScheduleEntryInput): Prom
     throw new Error("Select a valid teacher before saving.");
   }
 
+  const explicitSessionDate =
+    typeof input.sessionDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.sessionDate)
+      ? input.sessionDate
+      : null;
+  const resolvedDay = explicitSessionDate ? new Date(explicitSessionDate + "T00:00:00").getDay() : input.day;
+
   const existing = await listScheduleSessions();
   const clash = existing.find((session) => {
     if ((session.teacherId ?? "") !== input.teacherId) return false;
-    if (session.day !== input.day) return false;
+    if (explicitSessionDate) {
+      if (session.sessionDate !== explicitSessionDate) return false;
+    } else if (session.day !== input.day) return false;
     const startsInside = input.startTime >= session.startTime && input.startTime < session.endTime;
     const endsInside = input.endTime > session.startTime && input.endTime <= session.endTime;
     const wraps = input.startTime <= session.startTime && input.endTime >= session.endTime;
@@ -421,14 +429,20 @@ export async function createScheduleEntry(input: CreateScheduleEntryInput): Prom
     throw new Error("Course type not found in courses table. Make sure it exists.");
   }
 
-  // Calculate session_date from day-of-week number
-  const today = new Date();
-  const currentDay = today.getDay();
-  const targetDay = input.day;
-  const daysUntil = (targetDay - currentDay + 7) % 7;
-  const sessionDate = new Date(today);
-  sessionDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
-  const sessionDateStr = formatDateForDb(sessionDate);
+  // Prefer the explicit date selected in the form; fall back to weekday only for legacy callers.
+  let sessionDateStr: string;
+
+  if (explicitSessionDate) {
+    sessionDateStr = explicitSessionDate;
+  } else {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const targetDay = input.day;
+    const daysUntil = (targetDay - currentDay + 7) % 7;
+    const sessionDate = new Date(today);
+    sessionDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
+    sessionDateStr = formatDateForDb(sessionDate);
+  }
 
   // Step 1: Create class (NO time fields - those belong to sessions)
   const { data: classData, error: classError } = await supabase
@@ -472,7 +486,7 @@ export async function createScheduleEntry(input: CreateScheduleEntryInput): Prom
     id: sessionData.id,
     classId: classData.id,
     teacherId: input.teacherId,
-    day: input.day,
+    day: resolvedDay,
     startTime: input.startTime,
     endTime: input.endTime,
     className: input.className,
