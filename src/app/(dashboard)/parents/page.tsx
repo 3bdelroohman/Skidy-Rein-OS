@@ -544,7 +544,7 @@ export default function ParentsPage() {
                       <span
 
 
-                        key={${parent.id}-${childIndex}}
+                        key={`${parent.id}-${childIndex}`}
 
 
                         className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs text-[var(--color-neutral-700)]"
