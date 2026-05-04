@@ -23,11 +23,44 @@ function getCourseColors(course: CourseType) {
   return STAGE_COLORS[stage];
 }
 
+
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDaysToDateInput(value: string, days: number): string {
+  const date = parseDateInput(value);
+  date.setDate(date.getDate() + days);
+  return toDateInput(date);
+}
+
+function getScheduleWeekStartDateInput(value = toDateInput(new Date())): string {
+  const date = parseDateInput(value);
+  date.setDate(date.getDate() - date.getDay());
+  return toDateInput(date);
+}
+
+function isSessionInsideWeek(session: ScheduleSessionItem, weekStart: string, weekEnd: string): boolean {
+  if (!session.sessionDate) return true;
+
+  const sessionDate = session.sessionDate.slice(0, 10);
+  return sessionDate >= weekStart && sessionDate <= weekEnd;
+}
+
 export default function SchedulePage() {
   const locale = useUIStore((state) => state.locale);
   const isAr = locale === "ar";
   const [search, setSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState<CourseType | "all">("all");
+  const [weekStart, setWeekStart] = useState(() => getScheduleWeekStartDateInput());
   const [sessions, setSessions] = useState<ScheduleSessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState({
@@ -53,14 +86,18 @@ export default function SchedulePage() {
     return () => { isMounted = false; };
   }, []);
 
+  const weekEnd = useMemo(() => addDaysToDateInput(weekStart, 6), [weekStart]);
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return sessions.filter((session) => {
+      const matchWeek = isSessionInsideWeek(session, weekStart, weekEnd);
+
       const matchCourse = courseFilter === "all" || session.course === courseFilter;
       const matchSearch = !query || session.className.toLowerCase().includes(query) || session.teacher.toLowerCase().includes(query);
-      return matchCourse && matchSearch;
+      return matchWeek && matchCourse && matchSearch;
     });
-  }, [courseFilter, search, sessions]);
+  }, [courseFilter, search, sessions, weekEnd, weekStart]);
 
   const grouped = useMemo(() => {
     return Array.from({ length: 7 }, (_, dayIndex) => ({
@@ -95,6 +132,45 @@ export default function SchedulePage() {
         <MiniMetric label={t(locale, "إجمالي المقاعد", "Total seats")} value={overview.totalStudents} />
         <MiniMetric label={t(locale, "عدد المدرسين", "Teachers")} value={overview.uniqueTeachers} />
         <MiniMetric label={t(locale, "أكثر يوم ازدحاماً", "Busiest day")} value={getDayLabel(overview.busiestDay, locale) + " (" + overview.busiestDayCount + ")"} />
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-bold text-foreground">
+              {t(locale, "الأسبوع المعروض", "Visible week")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {weekStart} — {weekEnd} · {filtered.length} {t(locale, "حصة مطابقة", "matching sessions")}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setWeekStart((current) => addDaysToDateInput(current, -7))}
+              className="rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              {t(locale, "الأسبوع السابق", "Previous week")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setWeekStart(getScheduleWeekStartDateInput())}
+              className="rounded-xl bg-brand-700 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600"
+            >
+              {t(locale, "هذا الأسبوع", "This week")}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setWeekStart((current) => addDaysToDateInput(current, 7))}
+              className="rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+            >
+              {t(locale, "الأسبوع التالي", "Next week")}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
