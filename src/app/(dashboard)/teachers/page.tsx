@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Calculator, Mail, Phone, PlusCircle, Search } from "lucide-react";
+import { BookOpen, GraduationCap, Loader2, PlusCircle, Users } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { COURSE_TYPE_LABELS, COURSE_TYPE_EN_LABELS } from "@/config/labels";
 import { getEmploymentTypeLabel, t } from "@/lib/locale";
-import { cn } from "@/lib/utils";
 import { listTeachersWithRelations } from "@/services/relations.service";
 import type { TeacherListItem } from "@/types/crm";
-import { EmptySearchState, LoadingState } from "@/components/shared/page-state";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { SearchBar } from "@/components/ui/search-bar";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -23,139 +26,211 @@ export default function TeachersPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function load() {
-      setLoading(true);
-      const data = await listTeachersWithRelations();
-      if (isMounted) {
-        setTeachers(data);
-        setLoading(false);
-      }
-    }
-    load();
+    setLoading(true);
+    listTeachersWithRelations()
+      .then((data) => { if (isMounted) setTeachers(data); })
+      .finally(() => { if (isMounted) setLoading(false); });
     return () => { isMounted = false; };
   }, []);
 
+  const stats = useMemo(() => {
+    const total = teachers.length;
+    const active = teachers.filter((t) => t.isActive).length;
+    const uniqueSpecializations = new Set(teachers.flatMap((t) => t.specialization)).size;
+    const totalStudents = teachers.reduce((acc, t) => acc + t.studentsCount, 0);
+    return { total, active, uniqueSpecializations, totalStudents };
+  }, [teachers]);
+
   const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase();
     return teachers.filter((teacher) => {
-      const matchStatus = statusFilter === "all" || (statusFilter === "active" ? teacher.isActive : !teacher.isActive);
-      if (!matchStatus) return false;
-      if (!query) return true;
+      const matchesStatus =
+        statusFilter === "all" ? true
+        : statusFilter === "active" ? teacher.isActive
+        : !teacher.isActive;
+      if (!matchesStatus) return false;
+      if (!q) return true;
       return (
-        teacher.fullName.toLowerCase().includes(query) ||
-        teacher.specialization.some((item) => (isAr ? COURSE_TYPE_LABELS[item] : COURSE_TYPE_EN_LABELS[item]).toLowerCase().includes(query))
+        teacher.fullName.toLowerCase().includes(q) ||
+        teacher.phone.includes(q) ||
+        (teacher.email ?? "").toLowerCase().includes(q)
       );
     });
-  }, [teachers, search, isAr, statusFilter]);
+  }, [teachers, search, statusFilter]);
 
-  const totals = useMemo(() => ({
-    active: teachers.filter((teacher) => teacher.isActive).length,
-    inactive: teachers.filter((teacher) => !teacher.isActive).length,
-    classes: filtered.reduce((sum, teacher) => sum + teacher.classesCount, 0),
-    students: filtered.reduce((sum, teacher) => sum + teacher.studentsCount, 0),
-  }), [teachers, filtered]);
+  const hasResults = filtered.length > 0;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand-500)]" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
-            <BookOpen size={28} className="text-brand-600" />
-            {t(locale, "المدرسين", "Teachers")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t(locale, "إدارة فريق المدرسين وربطهم بالكلاسات والطلاب والحسابات المالية", "Manage teachers, their linked classes and students, plus financial tracking")}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/teachers/finance" className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
-            <Calculator size={16} />
-            {t(locale, "حسابات المدرسين", "Teacher accounts")}
+    <div className="space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title={isAr ? "المعلمون" : "Teachers"}
+        subtitle={
+          isAr
+            ? `${stats.total} معلم مسجّل`
+            : `${stats.total} teacher${stats.total !== 1 ? "s" : ""} registered`
+        }
+        actions={
+          <Link href="/teachers/new">
+            <Button size="sm" className="gap-1.5">
+              <PlusCircle className="h-4 w-4" />
+              {isAr ? "إضافة معلم" : "Add Teacher"}
+            </Button>
           </Link>
-          <Link href="/teachers/new" className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
-            <PlusCircle size={16} />
-            {t(locale, "إضافة مدرس", "Add teacher")}
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <SummaryCard label={t(locale, "مدرسون نشطون", "Active teachers")} value={String(totals.active)} />
-        <SummaryCard label={t(locale, "الكلاسات الحالية", "Current classes")} value={String(totals.classes)} />
-        <SummaryCard label={t(locale, "الطلاب المرتبطون", "Linked students")} value={String(totals.students)} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          tone="brand"
+          label={isAr ? "إجمالي المعلمين" : "Total Teachers"}
+          value={stats.total}
+          icon={<Users className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="success"
+          label={isAr ? "نشطون" : "Active"}
+          value={stats.active}
+          icon={<GraduationCap className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="info"
+          label={isAr ? "تخصصات مختلفة" : "Specializations"}
+          value={stats.uniqueSpecializations}
+          icon={<BookOpen className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="neutral"
+          label={isAr ? "إجمالي الطلاب" : "Total Students"}
+          value={stats.totalStudents}
+          icon={<Users className="h-5 w-5" />}
+        />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search size={18} className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isAr ? "right-3" : "left-3")} />
-          <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t(locale, "بحث بالاسم أو التخصص...", "Search by name or specialization...")} className={cn("w-full rounded-xl border border-border bg-card py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring", isAr ? "pr-10 pl-4" : "pl-10 pr-4")} />
-        </div>
-        <div className="flex gap-2">
-          {(["all", "active", "inactive"] as StatusFilter[]).map((f) => {
-            const label = f === "all" ? t(locale, "الكل", "All") : f === "active" ? t(locale, "نشط", "Active") : t(locale, "غير نشط", "Inactive");
-            const count = f === "all" ? teachers.length : f === "active" ? totals.active : totals.inactive;
-            return (
-              <button key={f} onClick={() => setStatusFilter(f)} className={"rounded-xl px-4 py-2 text-sm font-medium transition-colors " + (statusFilter === f ? "bg-brand-700 text-white" : "border border-border bg-card text-foreground hover:bg-muted")}>
-                {label} ({count})
-              </button>
-            );
-          })}
-        </div>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder={isAr ? "ابحث بالاسم أو التليفون أو الإيميل…" : "Search by name, phone, or email…"}
+          className="sm:max-w-xs"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground shadow-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]"
+        >
+          <option value="all">{isAr ? "الكل" : "All"}</option>
+          <option value="active">{isAr ? "نشط" : "Active"}</option>
+          <option value="inactive">{isAr ? "غير نشط" : "Inactive"}</option>
+        </select>
       </div>
 
-      {loading ? (
-        <LoadingState
-          titleAr="جارِ تحميل المدرسين"
-          titleEn="Loading teachers"
-          descriptionAr="يتم الآن تجهيز ملفات المدرسين وربطهم بالكلاسات والطلاب المرتبطين."
-          descriptionEn="Teacher profiles are being linked with actual classes and students now."
+      {!hasResults ? (
+        <EmptyState
+          icon={<GraduationCap className="h-10 w-10" />}
+          title={
+            search || statusFilter !== "all"
+              ? (isAr ? "لا توجد نتائج" : "No results found")
+              : (isAr ? "لا يوجد معلمون بعد" : "No teachers yet")
+          }
+          description={
+            search || statusFilter !== "all"
+              ? (isAr ? "جرّب تغيير كلمة البحث أو الفلتر" : "Try changing your search or filter")
+              : (isAr ? "ابدأ بإضافة أول معلم في النظام" : "Start by adding the first teacher")
+          }
+          action={
+            !search && statusFilter === "all" ? (
+              <Link href="/teachers/new">
+                <Button size="sm" className="gap-1.5">
+                  <PlusCircle className="h-4 w-4" />
+                  {isAr ? "إضافة معلم" : "Add Teacher"}
+                </Button>
+              </Link>
+            ) : undefined
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((teacher) => (
-            <Link key={teacher.id} href={"/teachers/" + teacher.id} className="rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-brand-md">
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-700">
-                  <span className="font-bold text-white">{teacher.fullName.replace("أ. ", "").charAt(0)}</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold text-foreground">{teacher.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{getEmploymentTypeLabel(teacher.employment, locale)}</p>
-                </div>
-                {teacher.isActive
-                  ? <span className="shrink-0 rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold text-success-600">{t(locale, "نشط", "Active")}</span>
-                  : <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300">{t(locale, "غير نشط", "Inactive")}</span>
-                }
-              </div>
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((teacher) => {
+            const specs = teacher.specialization
+              .map((s) => (isAr ? COURSE_TYPE_LABELS[s] : COURSE_TYPE_EN_LABELS[s]))
+              .filter(Boolean);
+            return (
+              <li key={teacher.id}>
+                <Link
+                  href={`/teachers/${teacher.id}`}
+                  className="group block h-full rounded-lg border border-border bg-card p-4 shadow-xs transition-all hover:shadow-md hover:border-[var(--color-brand-300)] hover:-translate-y-0.5"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <h3 className="font-semibold text-foreground leading-tight">
+                      {teacher.fullName}
+                    </h3>
+                    <span
+                      className={[
+                        "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                        teacher.isActive
+                          ? "bg-[var(--color-success-100)] text-[var(--color-success-700)]"
+                          : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-600)]",
+                      ].join(" ")}
+                    >
+                      {teacher.isActive ? (isAr ? "نشط" : "Active") : (isAr ? "غير نشط" : "Inactive")}
+                    </span>
+                  </div>
 
-              <div className="mb-3 flex flex-wrap gap-1.5">
-                {teacher.specialization.map((item) => (
-                  <span key={item} className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] text-brand-700 dark:bg-brand-950 dark:text-brand-300">{isAr ? COURSE_TYPE_LABELS[item] : COURSE_TYPE_EN_LABELS[item]}</span>
-                ))}
-              </div>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    {getEmploymentTypeLabel(teacher.employment, locale)}
+                  </p>
 
-              <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                <div className="rounded-xl bg-muted/50 p-2">
-                  <p className="text-lg font-bold text-foreground">{teacher.classesCount}</p>
-                  <p className="text-muted-foreground">{t(locale, "كلاسات", "Classes")}</p>
-                </div>
-                <div className="rounded-xl bg-muted/50 p-2">
-                  <p className="text-lg font-bold text-foreground">{teacher.studentsCount}</p>
-                  <p className="text-muted-foreground">{t(locale, "طلاب", "Students")}</p>
-                </div>
-              </div>
+                  {specs.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-1">
+                      {specs.slice(0, 3).map((label) => (
+                        <span
+                          key={label}
+                          className="rounded-full bg-[var(--color-brand-50)] px-2 py-0.5 text-xs text-[var(--color-brand-700)]"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                      {specs.length > 3 && (
+                        <span className="rounded-full bg-[var(--color-neutral-100)] px-2 py-0.5 text-xs text-[var(--color-neutral-600)]">
+                          +{specs.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-              <div className="mt-3 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2"><Phone size={14} /><span dir="ltr">{teacher.phone}</span></div>
-                <div className="flex items-center gap-2"><Mail size={14} /><span dir="ltr">{teacher.email ?? t(locale, "غير متوفر", "N/A")}</span></div>
-              </div>
-            </Link>
-          ))}
-          {!loading && filtered.length === 0 ? <div className="col-span-full"><EmptySearchState /></div> : null}
-        </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="h-3.5 w-3.5" />
+                      {teacher.classesCount}{" "}
+                      {isAr ? "جروب" : "group" + (teacher.classesCount !== 1 ? "s" : "")}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      {teacher.studentsCount}{" "}
+                      {isAr ? "طالب" : "student" + (teacher.studentsCount !== 1 ? "s" : "")}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground space-y-1">
+                    <p dir="ltr">{teacher.phone}</p>
+                    {teacher.email && (
+                      <p className="truncate" dir="ltr">{teacher.email}</p>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-border bg-card p-5"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-bold text-foreground">{value}</p></div>;
 }
