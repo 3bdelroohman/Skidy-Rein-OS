@@ -2,23 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Filter, LayoutGrid, List, Plus, Search, Users } from "lucide-react";
+import { Flame, LayoutGrid, List, Loader2, PlusCircle, TrendingUp, Users } from "lucide-react";
 import { StageBadge } from "@/components/leads/stage-badge";
 import { TemperatureBadge } from "@/components/leads/temperature-badge";
 import { LeadsKanban } from "@/components/leads/leads-kanban";
-import { FILTER_EN_LABELS, FILTER_LABELS, TEMPERATURE_EN_LABELS, TEMPERATURE_LABELS } from "@/config/labels";
+import { TEMPERATURE_EN_LABELS, TEMPERATURE_LABELS } from "@/config/labels";
 import { STAGE_CONFIGS } from "@/config/stages";
-import { t, getStageLabel } from "@/lib/locale";
+import { getStageLabel } from "@/lib/locale";
 import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils";
 import { listLeads } from "@/services/leads.service";
-import { LoadingState, EmptySearchState } from "@/components/shared/page-state";
 import type { LeadListItem } from "@/types/crm";
 import type { LeadStage, LeadTemperature } from "@/types/common.types";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { SearchBar } from "@/components/ui/search-bar";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function LeadsPage() {
-  const router = useRouter();
   const locale = useUIStore((state) => state.locale);
   const isAr = locale === "ar";
   const [search, setSearch] = useState("");
@@ -30,117 +32,255 @@ export default function LeadsPage() {
 
   useEffect(() => {
     let isMounted = true;
-    async function load() {
-      setLoading(true);
-      const data = await listLeads();
-      if (isMounted) {
-        setLeads(data);
-        setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      isMounted = false;
-    };
+    listLeads()
+      .then((data) => { if (isMounted) setLeads(data); })
+      .finally(() => { if (isMounted) setLoading(false); });
+    return () => { isMounted = false; };
   }, []);
 
-  const filteredLeads = useMemo(() => {
+  // ── Stats (على كل الـ leads بدون فلتر) ────────────────────────────────────
+  const stats = useMemo(() => {
+    const total = leads.length;
+    const hot = leads.filter((l) => l.temperature === "hot").length;
+    const pending = leads.filter(
+      (l) => l.stage !== "won" && l.stage !== "lost"
+    ).length;
+    const converted = leads.filter((l) => l.stage === "won").length;
+    const conversionRate =
+      total > 0 ? Math.round((converted / total) * 100) : 0;
+    return { total, hot, pending, conversionRate };
+  }, [leads]);
+
+  // ── Filtered list ──────────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return leads.filter((lead) => {
-      const matchesSearch = search === "" || lead.childName.includes(search) || lead.parentName.includes(search) || lead.parentPhone.includes(search);
-      const matchesStage = stageFilter === "all" || lead.stage === stageFilter;
-      const matchesTemp = tempFilter === "all" || lead.temperature === tempFilter;
-      return matchesSearch && matchesStage && matchesTemp;
+      if (stageFilter !== "all" && lead.stage !== stageFilter) return false;
+      if (tempFilter !== "all" && lead.temperature !== tempFilter) return false;
+      if (!q) return true;
+      return (
+        lead.parentName.toLowerCase().includes(q) ||
+        lead.parentPhone.includes(q) ||
+        lead.childName.toLowerCase().includes(q) ||
+        lead.assignedToName.toLowerCase().includes(q)
+      );
     });
   }, [leads, search, stageFilter, tempFilter]);
 
-  const stageStats = useMemo(() => {
-    const stats: Record<string, number> = { all: leads.length };
-    leads.forEach((lead) => {
-      stats[lead.stage] = (stats[lead.stage] || 0) + 1;
-    });
-    return stats;
-  }, [leads]);
+  const hasResults = filtered.length > 0;
+  const stageKeys = Object.keys(STAGE_CONFIGS) as LeadStage[];
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-brand-500)]" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground"><Users size={28} className="text-brand-600" />{t(locale, "العملاء المحتملين", "Leads")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t(locale, "إدارة ومتابعة مسار العملاء المحتملين", "Manage and track the lead pipeline")}</p>
-        </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* Header */}
+      <PageHeader
+        title={isAr ? "العملاء المحتملون" : "Leads"}
+        subtitle={
+          isAr
+            ? `${stats.total} lead مسجّل`
+            : `${stats.total} lead${stats.total !== 1 ? "s" : ""} registered`
+        }
+        actions={
+          <Link href="/leads/new">
+            <Button size="sm" className="gap-1.5">
+              <PlusCircle className="h-4 w-4" />
+              {isAr ? "إضافة lead" : "Add Lead"}
+            </Button>
+          </Link>
+        }
+      />
 
-        <Link href="/leads/new" className={cn("inline-flex items-center gap-2 rounded-xl px-4 py-2.5 bg-brand-700 text-sm font-semibold text-white shadow-brand-md transition-colors hover:bg-brand-600")}>
-          <Plus size={18} />
-          {t(locale, "إضافة عميل", "Add lead")}
-        </Link>
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          tone="brand"
+          label={isAr ? "إجمالي الـ Leads" : "Total Leads"}
+          value={stats.total}
+          icon={<Users className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="danger"
+          label={isAr ? "ساخنون" : "Hot Leads"}
+          value={stats.hot}
+          icon={<Flame className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="warning"
+          label={isAr ? "قيد المتابعة" : "In Progress"}
+          value={stats.pending}
+          icon={<Users className="h-5 w-5" />}
+        />
+        <StatCard
+          tone="success"
+          label={isAr ? "نسبة التحويل" : "Conversion Rate"}
+          value={`${stats.conversionRate}%`}
+          icon={<TrendingUp className="h-5 w-5" />}
+        />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <button onClick={() => setStageFilter("all")} className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", stageFilter === "all" ? "bg-brand-700 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80")}>{(isAr ? FILTER_LABELS.allStages : FILTER_EN_LABELS.allStages)} ({stageStats.all || 0})</button>
-        {Object.values(STAGE_CONFIGS).map((stage) => (
-          <button key={stage.key} onClick={() => setStageFilter(stage.key)} className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-90" style={{ backgroundColor: stageFilter === stage.key ? stage.color : stage.bgColor, color: stageFilter === stage.key ? "white" : stage.textColor }}>
-            {getStageLabel(stage.key, locale)} ({stageStats[stage.key] || 0})
+      {/* Filters + View toggle */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder={isAr ? "ابحث بالاسم أو التليفون أو الطالب…" : "Search by name, phone, or child…"}
+            className="sm:max-w-xs"
+          />
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value as LeadStage | "all")}
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground shadow-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]"
+          >
+            <option value="all">{isAr ? "كل المراحل" : "All Stages"}</option>
+            {stageKeys.map((s) => (
+              <option key={s} value={s}>
+                {getStageLabel(s, locale)}
+              </option>
+            ))}
+          </select>
+          <select
+            value={tempFilter}
+            onChange={(e) => setTempFilter(e.target.value as LeadTemperature | "all")}
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground shadow-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]"
+          >
+            <option value="all">{isAr ? "كل الدرجات" : "All Temps"}</option>
+            <option value="hot">{isAr ? TEMPERATURE_LABELS.hot : TEMPERATURE_EN_LABELS.hot}</option>
+            <option value="warm">{isAr ? TEMPERATURE_LABELS.warm : TEMPERATURE_EN_LABELS.warm}</option>
+            <option value="cold">{isAr ? TEMPERATURE_LABELS.cold : TEMPERATURE_EN_LABELS.cold}</option>
+          </select>
+        </div>
+
+        {/* View toggle */}
+        <div className="flex items-center gap-1 rounded-md border border-border bg-card p-1 self-start sm:self-auto">
+          <button
+            onClick={() => setView("table")}
+            className={cn(
+              "flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors",
+              view === "table"
+                ? "bg-[var(--color-brand-500)] text-white"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <List className="h-3.5 w-3.5" />
+            {isAr ? "قائمة" : "List"}
           </button>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search size={18} className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isAr ? "right-3" : "left-3")} />
-          <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t(locale, "ابحث باسم الطفل أو ولي الأمر أو الهاتف", "Search by child, parent, or phone")} className={cn("w-full rounded-xl border border-border bg-card py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring", isAr ? "pr-10 pl-4" : "pl-10 pr-4")} />
-        </div>
-
-        <div className="flex gap-2">
-          <div className="relative">
-            <Filter size={16} className={cn("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isAr ? "right-3" : "left-3")} />
-            <select value={tempFilter} onChange={(event) => setTempFilter(event.target.value as LeadTemperature | "all")} className={cn("appearance-none rounded-xl border border-border bg-card py-2.5 text-sm text-foreground", isAr ? "pr-9 pl-4" : "pl-9 pr-4")}>
-              <option value="all">{isAr ? FILTER_LABELS.allTemperatures : FILTER_EN_LABELS.allTemperatures}</option>
-              {Object.entries(isAr ? TEMPERATURE_LABELS : TEMPERATURE_EN_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </div>
-
-          <div className="flex rounded-xl border border-border bg-card p-1">
-            <button onClick={() => setView("table")} className={cn("rounded-lg px-3 py-1.5 transition-colors", view === "table" ? "bg-brand-700 text-white" : "text-muted-foreground")} title={t(locale, "عرض جدول", "Table view")}><List size={16} /></button>
-            <button onClick={() => setView("kanban")} className={cn("rounded-lg px-3 py-1.5 transition-colors", view === "kanban" ? "bg-brand-700 text-white" : "text-muted-foreground")} title={t(locale, "عرض كانبان", "Kanban view")}><LayoutGrid size={16} /></button>
-          </div>
+          <button
+            onClick={() => setView("kanban")}
+            className={cn(
+              "flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors",
+              view === "kanban"
+                ? "bg-[var(--color-brand-500)] text-white"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            {isAr ? "كانبان" : "Kanban"}
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <LoadingState titleAr="جارِ تحميل العملاء" titleEn="Loading leads" descriptionAr="يتم الآن تجهيز مسار العملاء المحتملين." descriptionEn="Preparing the lead pipeline." />
-      ) : filteredLeads.length === 0 ? (
-        <EmptySearchState />
-      ) : view === "kanban" ? (
-        <LeadsKanban leads={filteredLeads} />
-      ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className={cn("px-4 py-3 font-semibold text-muted-foreground", isAr ? "text-right" : "text-left")}>{t(locale, "الطفل", "Child")}</th>
-                  <th className={cn("px-4 py-3 font-semibold text-muted-foreground", isAr ? "text-right" : "text-left")}>{t(locale, "ولي الأمر", "Parent")}</th>
-                  <th className={cn("px-4 py-3 font-semibold text-muted-foreground", isAr ? "text-right" : "text-left")}>{t(locale, "المرحلة", "Stage")}</th>
-                  <th className={cn("px-4 py-3 font-semibold text-muted-foreground", isAr ? "text-right" : "text-left")}>{t(locale, "الاهتمام", "Temperature")}</th>
-                  <th className={cn("px-4 py-3 font-semibold text-muted-foreground", isAr ? "text-right" : "text-left")}>{t(locale, "المسؤول", "Owner")}</th>
-                  <th className={cn("px-4 py-3 font-semibold text-muted-foreground", isAr ? "text-right" : "text-left")}>{t(locale, "آخر متابعة", "Last contact")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLeads.map((lead) => (
-                  <tr key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3"><p className="font-semibold text-foreground">{lead.childName}</p><p className="text-xs text-muted-foreground">{lead.childAge} {t(locale, "سنة", "years")}</p></td>
-                    <td className="px-4 py-3"><p className="text-foreground">{lead.parentName}</p><p className="text-xs text-muted-foreground">{lead.parentPhone}</p></td>
-                    <td className="px-4 py-3"><StageBadge stage={lead.stage} /></td>
-                    <td className="px-4 py-3"><TemperatureBadge temperature={lead.temperature} /></td>
-                    <td className="px-4 py-3 text-foreground">{lead.assignedToName}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{lead.lastContactAt ? new Date(lead.lastContactAt).toLocaleDateString(isAr ? "ar-EG" : "en-US") : t(locale, "لم يتم", "Not yet")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {/* Kanban view */}
+      {view === "kanban" && (
+        <LeadsKanban leads={filtered} />
+      )}
+
+      {/* List view */}
+      {view === "table" && (
+        <>
+          {!hasResults ? (
+            <EmptyState
+              icon={<Users className="h-10 w-10" />}
+              title={
+                search || stageFilter !== "all" || tempFilter !== "all"
+                  ? (isAr ? "لا توجد نتائج" : "No results found")
+                  : (isAr ? "لا يوجد leads بعد" : "No leads yet")
+              }
+              description={
+                search || stageFilter !== "all" || tempFilter !== "all"
+                  ? (isAr ? "جرّب تغيير الفلاتر أو كلمة البحث" : "Try changing your filters or search")
+                  : (isAr ? "ابدأ بإضافة أول lead في النظام" : "Start by adding the first lead")
+              }
+              action={
+                !search && stageFilter === "all" && tempFilter === "all" ? (
+                  <Link href="/leads/new">
+                    <Button size="sm" className="gap-1.5">
+                      <PlusCircle className="h-4 w-4" />
+                      {isAr ? "إضافة lead" : "Add Lead"}
+                    </Button>
+                  </Link>
+                ) : undefined
+              }
+            />
+          ) : (
+            <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((lead) => (
+                <li key={lead.id}>
+                  <Link
+                    href={`/leads/${lead.id}`}
+                    className="group block h-full rounded-lg border border-border bg-card p-4 shadow-xs transition-all hover:shadow-md hover:border-[var(--color-brand-300)] hover:-translate-y-0.5"
+                  >
+                    {/* Parent name + temperature */}
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-foreground leading-tight">
+                        {lead.parentName}
+                      </h3>
+                      <TemperatureBadge temperature={lead.temperature} />
+                    </div>
+
+                    {/* Child name + age */}
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      {lead.childName}
+                      {lead.childAge ? (
+                        <span className="ms-1 text-xs">
+                          ({lead.childAge} {isAr ? "سنة" : "y/o"})
+                        </span>
+                      ) : null}
+                    </p>
+
+                    {/* Stage badge */}
+                    <div className="mb-3">
+                      <StageBadge stage={lead.stage} />
+                    </div>
+
+                    {/* Assigned to */}
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      {isAr ? "مسؤول: " : "Assigned: "}
+                      <span className="font-medium text-foreground">
+                        {lead.assignedToName}
+                      </span>
+                    </p>
+
+                    {/* Last contact */}
+                    {lead.lastContactAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {isAr ? "آخر تواصل: " : "Last contact: "}
+                        {new Date(lead.lastContactAt).toLocaleDateString(
+                          isAr ? "ar-EG" : "en-GB",
+                          { day: "numeric", month: "short", year: "numeric" }
+                        )}
+                      </p>
+                    )}
+
+                    {/* Contact */}
+                    <div className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+                      <p dir="ltr">{lead.parentPhone}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );

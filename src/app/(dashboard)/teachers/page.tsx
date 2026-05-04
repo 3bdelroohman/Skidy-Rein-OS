@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BookOpen, GraduationCap, Loader2, PlusCircle, Users } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { COURSE_TYPE_LABELS, COURSE_TYPE_EN_LABELS } from "@/config/labels";
-import { getEmploymentTypeLabel, t } from "@/lib/locale";
+import { getEmploymentTypeLabel } from "@/lib/locale";
 import { listTeachersWithRelations } from "@/services/relations.service";
 import type { TeacherListItem } from "@/types/crm";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ export default function TeachersPage() {
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
     listTeachersWithRelations()
       .then((data) => { if (isMounted) setTeachers(data); })
       .finally(() => { if (isMounted) setLoading(false); });
