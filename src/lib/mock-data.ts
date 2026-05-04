@@ -13,10 +13,13 @@ import type { FollowUpItem, LeadActivityItem } from "@/types/crm";
 // into a real customer environment. If anything imports this file in
 // a production build, log a loud warning so it shows up in monitoring.
 // ────────────────────────────────────────────────────────────
-if (process.env.NODE_ENV === "production") {
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true"
+) {
   console.warn(
-    "[mock-data] WARNING: demo data module loaded in a production build. " +
-    "Ensure NEXT_PUBLIC_ALLOW_DEMO_FALLBACK is not set to 'true' in production."
+    "[mock-data] WARNING: demo fallback is enabled in a production build. " +
+      "Set NEXT_PUBLIC_ALLOW_DEMO_FALLBACK to false or remove it before client delivery.",
   );
 }
 
