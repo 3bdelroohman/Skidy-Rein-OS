@@ -418,7 +418,7 @@ export default function OwnershipCenterPage() {
                 {data.buckets.map((bucket) => (
 
 
-                  <tr key={bucket.ownerName + bucket.ownerRole} className="border-b border-border/70">
+                  <tr key={bucket.ownerName} className="border-b border-border/70">
 
 
                     <td className="px-3 py-3 font-semibold text-foreground">{bucket.ownerName}</td>
