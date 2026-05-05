@@ -31,15 +31,15 @@ function matchesAssignee(nameAr: string, ctx: DashboardContext): boolean {
 function getToneBg(tone: DashboardOperationItem["tone"]): string {
   switch (tone) {
     case "success":
-      return "#ECFDF5";
+      return "var(--color-success-50)";
     case "warning":
-      return "#FFFBEB";
+      return "var(--color-warning-50)";
     case "danger":
-      return "#FEF2F2";
+      return "var(--color-danger-50)";
     case "info":
-      return "#EFF6FF";
+      return "var(--color-info-50)";
     default:
-      return "#EEF2FF";
+      return "var(--color-brand-50)";
   }
 }
 
@@ -321,16 +321,16 @@ export async function getDashboardOverview(
         ],
     secondaryStats: isOps
       ? [
-          { label: t(locale, "جلسات اليوم", "Today's sessions"), value: sessions.length.toLocaleString("en-US"), icon: "calendar", bg: "#EFF6FF", color: "#2563EB" },
-          { label: t(locale, "طلاب بحاجة متابعة", "Students at risk"), value: atRiskStudents.toLocaleString("en-US"), icon: "warning", bg: "#FEF2F2", color: "#DC2626" },
-          { label: t(locale, "طلاب تجريبيون", "Trial students"), value: trialStudents.toLocaleString("en-US"), icon: "clock", bg: "#FFFBEB", color: "#D97706" },
-          { label: t(locale, "مدفوعات معلقة", "Pending payments"), value: pendingPaymentsCount.toLocaleString("en-US"), icon: "wallet", bg: "#F5F3FF", color: "#7C3AED" },
+          { label: t(locale, "جلسات اليوم", "Today's sessions"), value: sessions.length.toLocaleString("en-US"), icon: "calendar", bg: "var(--color-info-50)", color: "var(--color-info-600)" },
+          { label: t(locale, "طلاب بحاجة متابعة", "Students at risk"), value: atRiskStudents.toLocaleString("en-US"), icon: "warning", bg: "var(--color-danger-50)", color: "var(--color-danger-600)" },
+          { label: t(locale, "طلاب تجريبيون", "Trial students"), value: trialStudents.toLocaleString("en-US"), icon: "clock", bg: "var(--color-warning-50)", color: "var(--color-warning-600)" },
+          { label: t(locale, "مدفوعات معلقة", "Pending payments"), value: pendingPaymentsCount.toLocaleString("en-US"), icon: "wallet", bg: "var(--color-brand-50)", color: "var(--color-brand-600)" },
         ]
       : [
-          { label: t(locale, "سيشن تجريبية", "Trial sessions"), value: bookedTrials.toLocaleString("en-US"), icon: "calendar", bg: "#EFF6FF", color: "#2563EB" },
-          { label: t(locale, "طلاب بحاجة متابعة", "Students at risk"), value: atRiskStudents.toLocaleString("en-US"), icon: "warning", bg: "#FEF2F2", color: "#DC2626" },
-          { label: t(locale, "متابعات متأخرة", "Overdue follow-ups"), value: overdueFollowUps.toLocaleString("en-US"), icon: "clock", bg: "#FFFBEB", color: "#D97706" },
-          { label: t(locale, "مدفوعات معلقة", "Pending payments"), value: pendingPaymentsCount.toLocaleString("en-US"), icon: "wallet", bg: "#F5F3FF", color: "#7C3AED" },
+          { label: t(locale, "سيشن تجريبية", "Trial sessions"), value: bookedTrials.toLocaleString("en-US"), icon: "calendar", bg: "var(--color-info-50)", color: "var(--color-info-600)" },
+          { label: t(locale, "طلاب بحاجة متابعة", "Students at risk"), value: atRiskStudents.toLocaleString("en-US"), icon: "warning", bg: "var(--color-danger-50)", color: "var(--color-danger-600)" },
+          { label: t(locale, "متابعات متأخرة", "Overdue follow-ups"), value: overdueFollowUps.toLocaleString("en-US"), icon: "clock", bg: "var(--color-warning-50)", color: "var(--color-warning-600)" },
+          { label: t(locale, "مدفوعات معلقة", "Pending payments"), value: pendingPaymentsCount.toLocaleString("en-US"), icon: "wallet", bg: "var(--color-brand-50)", color: "var(--color-brand-600)" },
         ],
     alerts,
     funnel: isOps
@@ -386,13 +386,13 @@ export function getDashboardOperationToneStyles(tone: DashboardOperationItem["to
     bg: getToneBg(tone),
     color:
       tone === "danger"
-        ? "#DC2626"
+        ? "var(--color-danger-600)"
         : tone === "warning"
-          ? "#D97706"
+          ? "var(--color-warning-600)"
           : tone === "success"
-            ? "#059669"
+            ? "var(--color-success-600)"
             : tone === "info"
-              ? "#2563EB"
-              : "#4338CA",
+              ? "var(--color-info-600)"
+              : "var(--color-brand-600)",
   };
 }
