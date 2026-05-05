@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 
@@ -98,7 +98,7 @@ export default function LeadsPage() {
 
 
 
-  const [search, setSearch] = useState("جادون");
+  const [search, setSearch] = useState("");
 
 
 
@@ -354,7 +354,7 @@ export default function LeadsPage() {
 
 
 
-            : `${stats.total} lead${stats.total !== 1 ? "s" : "جادون"} registered`
+            : `${stats.total} lead${stats.total !== 1 ? "s" : ""} registered`
 
 
 
@@ -438,7 +438,7 @@ export default function LeadsPage() {
 
 
 
-          tone="danger"
+          tone="warning"
 
 
 
