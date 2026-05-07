@@ -87,17 +87,17 @@ export default function DashboardPage() {
   const quickLinks = useMemo(() => {
     if (user.role === "sales") {
       return [
-        { label: t(locale, "\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0645\u062d\u062a\u0645\u0644\u0648\u0646", "Leads"),      href: "/leads",       icon: Users,          color: "var(--color-brand-600)",   bg: "var(--color-brand-50)"   },
-        { label: t(locale, "\u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0627\u062a",                                          "Follow-ups"), href: "/follow-ups",  icon: ClipboardCheck, color: "var(--color-brand-600)",   bg: "var(--color-brand-50)"   },
-        { label: t(locale, "\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a",                                          "Payments"),   href: "/payments",    icon: Wallet,         color: "var(--color-success-600)", bg: "var(--color-success-50)" },
-        { label: t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628",                                                            "Students"),   href: "/students",    icon: GraduationCap,  color: "var(--color-success-600)", bg: "var(--color-success-50)" },
+        { label: t(locale, "العملاء المحتملون", "Leads"),      href: "/leads",       icon: Users,          color: "var(--color-brand-600)",   bg: "var(--color-brand-50)"   },
+        { label: t(locale, "المتابعات",                                          "Follow-ups"), href: "/follow-ups",  icon: ClipboardCheck, color: "var(--color-brand-600)",   bg: "var(--color-brand-50)"   },
+        { label: t(locale, "المدفوعات",                                          "Payments"),   href: "/payments",    icon: Wallet,         color: "var(--color-success-600)", bg: "var(--color-success-50)" },
+        { label: t(locale, "الطلاب",                                                            "Students"),   href: "/students",    icon: GraduationCap,  color: "var(--color-success-600)", bg: "var(--color-success-50)" },
       ];
     }
     return [
-      { label: t(locale, "\u0627\u0644\u0637\u0644\u0627\u0628",                                                              "Students"),   href: "/students",   icon: GraduationCap,  color: "var(--color-success-600)", bg: "var(--color-success-50)" },
-      { label: t(locale, "\u0627\u0644\u062c\u062f\u0648\u0644",                                                              "Schedule"),   href: "/schedule",   icon: CalendarDays,   color: "var(--color-info-600)",    bg: "var(--color-info-50)"    },
-      { label: t(locale, "\u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0627\u062a",                                            "Follow-ups"), href: "/follow-ups", icon: ClipboardCheck, color: "var(--color-brand-600)",   bg: "var(--color-brand-50)"   },
-      { label: t(locale, "\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a",                                            "Payments"),   href: "/payments",   icon: Wallet,         color: "var(--color-warning-600)", bg: "var(--color-warning-50)" },
+      { label: t(locale, "الطلاب",                                                              "Students"),   href: "/students",   icon: GraduationCap,  color: "var(--color-success-600)", bg: "var(--color-success-50)" },
+      { label: t(locale, "الجدول",                                                              "Schedule"),   href: "/schedule",   icon: CalendarDays,   color: "var(--color-info-600)",    bg: "var(--color-info-50)"    },
+      { label: t(locale, "المتابعات",                                            "Follow-ups"), href: "/follow-ups", icon: ClipboardCheck, color: "var(--color-brand-600)",   bg: "var(--color-brand-50)"   },
+      { label: t(locale, "المدفوعات",                                            "Payments"),   href: "/payments",   icon: Wallet,         color: "var(--color-warning-600)", bg: "var(--color-warning-50)" },
     ];
   }, [locale, user.role]);
 
@@ -118,20 +118,20 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6 p-4 sm:p-6">
         <PageHeader
-          title={isAr ? `\u0645\u0631\u062d\u0628\u0627\u064b\u060c ${displayName}` : `Welcome, ${displayName}`}
-          subtitle={isAr ? "\u0647\u0630\u0647 \u0623\u0647\u0645 \u0627\u0644\u0623\u0634\u064a\u0627\u0621 \u0627\u0644\u062a\u064a \u062a\u062d\u062a\u0627\u062c \u0627\u0646\u062a\u0628\u0627\u0647\u0643 \u0627\u0644\u0622\u0646" : "Here is what needs your attention right now"}
+          title={isAr ? `مرحباً، ${displayName}` : `Welcome, ${displayName}`}
+          subtitle={isAr ? "هذه أهم الأشياء التي تحتاج انتباهك الآن" : "Here is what needs your attention right now"}
         />
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <MiniStat icon={ClipboardCheck} value={overview.followUps.length} label={t(locale, "\u0645\u062a\u0627\u0628\u0639\u0627\u062a \u0627\u0644\u064a\u0648\u0645",  "Today follow-ups")} tone="brand"   />
-          <MiniStat icon={CheckCircle2}   value={completedCount}             label={t(locale, "\u0645\u0643\u062a\u0645\u0644\u0629",                                      "Completed")}        tone="success" />
-          <MiniStat icon={Clock}          value={pendingCount}               label={t(locale, "\u0645\u0639\u0644\u0651\u0642\u0629",                                      "Pending")}          tone="warning" />
-          <MiniStat icon={AlertCircle}    value={urgentCount}                label={t(locale, "\u0639\u0627\u062c\u0644\u0629",                                            "Urgent")}           tone="danger"  />
+          <MiniStat icon={ClipboardCheck} value={overview.followUps.length} label={t(locale, "متابعات اليوم",  "Today follow-ups")} tone="brand"   />
+          <MiniStat icon={CheckCircle2}   value={completedCount}             label={t(locale, "مكتملة",                                      "Completed")}        tone="success" />
+          <MiniStat icon={Clock}          value={pendingCount}               label={t(locale, "معلّقة",                                      "Pending")}          tone="warning" />
+          <MiniStat icon={AlertCircle}    value={urgentCount}                label={t(locale, "عاجلة",                                            "Urgent")}           tone="danger"  />
         </div>
 
-        <OwnershipSnapshot locale={locale} title={t(locale, "\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646", "Owner snapshot")} items={ownerSnapshot} />
+        <OwnershipSnapshot locale={locale} title={t(locale, "ملخص المسؤولين", "Owner snapshot")} items={ownerSnapshot} />
 
-        <DashboardSectionTitle title={t(locale, "\u0648\u0635\u0648\u0644 \u0633\u0631\u064a\u0639", "Quick access")} />
+        <DashboardSectionTitle title={t(locale, "وصول سريع", "Quick access")} />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {quickLinks.map((link) => {
             const Icon = link.icon;
@@ -152,13 +152,13 @@ export default function DashboardPage() {
               locale={locale}
               isAr={isAr}
               tasks={overview.followUps}
-              title={t(locale, "\u0645\u0647\u0627\u0645\u064a \u0627\u0644\u064a\u0648\u0645", "My tasks today")}
-              emptyLabel={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u062a\u0627\u0628\u0639\u0627\u062a \u0644\u0643 \u0627\u0644\u064a\u0648\u0645", "No follow-ups for you today")}
+              title={t(locale, "مهامي اليوم", "My tasks today")}
+              emptyLabel={t(locale, "لا توجد متابعات لك اليوم", "No follow-ups for you today")}
             />
             <div className="rounded-xl border border-border bg-card p-5">
-              <DashboardSectionTitle title={t(locale, "\u0645\u0627 \u064a\u062c\u0628 \u0627\u0644\u062a\u0631\u0643\u064a\u0632 \u0639\u0644\u064a\u0647", "What to focus on")} icon={Target} />
+              <DashboardSectionTitle title={t(locale, "ما يجب التركيز عليه", "What to focus on")} icon={Target} />
               {overview.recommendations.length === 0 ? (
-                <EmptyPanel label={t(locale, "\u0643\u0644 \u0634\u064a\u0621 \u062a\u062d\u062a \u0627\u0644\u0633\u064a\u0637\u0631\u0629 \u0627\u0644\u0622\u0646", "Everything is under control right now")} />
+                <EmptyPanel label={t(locale, "كل شيء تحت السيطرة الآن", "Everything is under control right now")} />
               ) : (
                 <div className="space-y-3">
                   {overview.recommendations.map((item) => (
@@ -170,7 +170,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-6">
             <OperationsGrid locale={locale} items={overview.operations} compact />
-            <QuickActionGrid title={t(locale, "\u0627\u0644\u062e\u0637\u0648\u0627\u062a \u0627\u0644\u062a\u0627\u0644\u064a\u0629", "Next steps")} isAr={isAr} actions={overview.quickActions} compact />
+            <QuickActionGrid title={t(locale, "الخطوات التالية", "Next steps")} isAr={isAr} actions={overview.quickActions} compact />
           </div>
         </div>
       </div>
@@ -181,8 +181,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
-        title={isAr ? `\u0645\u0631\u062d\u0628\u0627\u064b\u060c ${displayName}` : `Welcome, ${displayName}`}
-        subtitle={isAr ? "\u0644\u0642\u0637\u0629 \u062a\u0634\u063a\u064a\u0644\u064a\u0629 \u0633\u0631\u064a\u0639\u0629 \u0644\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629 \u0627\u0644\u0622\u0646" : "Your operational snapshot for the academy right now"}
+        title={isAr ? `مرحباً، ${displayName}` : `Welcome, ${displayName}`}
+        subtitle={isAr ? "لقطة تشغيلية سريعة للأكاديمية الآن" : "Your operational snapshot for the academy right now"}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -212,14 +212,14 @@ export default function DashboardPage() {
 
       <OperationsGrid locale={locale} items={overview.operations} />
 
-      <OwnershipSnapshot locale={locale} title={t(locale, "\u062a\u0648\u0632\u064a\u0639 \u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0629", "Ownership distribution")} items={ownerSnapshot} />
+      <OwnershipSnapshot locale={locale} title={t(locale, "توزيع المسؤولية", "Ownership distribution")} items={ownerSnapshot} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
           <div className="rounded-xl border border-border bg-card p-5">
-            <DashboardSectionTitle title={t(locale, "\u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0633\u0631\u064a\u0639\u0629", "Quick alerts")} icon={BellDot} />
+            <DashboardSectionTitle title={t(locale, "تنبيهات سريعة", "Quick alerts")} icon={BellDot} />
             {overview.alerts.length === 0 ? (
-              <EmptyPanel label={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u062d\u0631\u062c\u0629 \u0627\u0644\u0622\u0646", "There are no urgent alerts right now")} />
+              <EmptyPanel label={t(locale, "لا توجد تنبيهات حرجة الآن", "There are no urgent alerts right now")} />
             ) : (
               <div className="space-y-2">
                 {overview.alerts.map((alert) => {
@@ -247,14 +247,14 @@ export default function DashboardPage() {
             locale={locale}
             isAr={isAr}
             tasks={overview.followUps.slice(0, 6)}
-            title={t(locale, "\u0645\u0647\u0627\u0645 \u0627\u0644\u064a\u0648\u0645", "Today tasks")}
-            emptyLabel={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0647\u0627\u0645 \u0645\u0633\u062c\u0644\u0629 \u0627\u0644\u0622\u0646", "No tasks recorded right now")}
+            title={t(locale, "مهام اليوم", "Today tasks")}
+            emptyLabel={t(locale, "لا توجد مهام مسجلة الآن", "No tasks recorded right now")}
           />
         </div>
 
         <div className="space-y-6">
           <div className="rounded-xl border border-border bg-card p-5">
-            <DashboardSectionTitle title={t(locale, "\u0642\u0631\u0627\u0621\u0629 \u0633\u0631\u064a\u0639\u0629 \u0644\u0644\u0645\u0633\u0627\u0631", "Pipeline snapshot")} icon={TrendingUp} />
+            <DashboardSectionTitle title={t(locale, "قراءة سريعة للمسار", "Pipeline snapshot")} icon={TrendingUp} />
             <div className="space-y-4">
               {overview.funnel.map((item) => (
                 <div key={item.label} className="space-y-2">
@@ -270,12 +270,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <QuickActionGrid title={t(locale, "\u062a\u0634\u063a\u064a\u0644 \u0633\u0631\u064a\u0639", "Fast execution")} isAr={isAr} actions={overview.quickActions} />
+          <QuickActionGrid title={t(locale, "تشغيل سريع", "Fast execution")} isAr={isAr} actions={overview.quickActions} />
 
           <div className="rounded-xl border border-border bg-card p-5">
-            <DashboardSectionTitle title={t(locale, "\u062a\u0648\u0635\u064a\u0627\u062a \u062a\u0634\u063a\u064a\u0644\u064a\u0629", "Operational recommendations")} icon={Target} />
+            <DashboardSectionTitle title={t(locale, "توصيات تشغيلية", "Operational recommendations")} icon={Target} />
             {overview.recommendations.length === 0 ? (
-              <EmptyPanel label={t(locale, "\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0648\u0635\u064a\u0627\u062a \u0625\u0636\u0627\u0641\u064a\u0629 \u0627\u0644\u0622\u0646", "There are no extra recommendations right now")} />
+              <EmptyPanel label={t(locale, "لا توجد توصيات إضافية الآن", "There are no extra recommendations right now")} />
             ) : (
               <div className="space-y-3">
                 {overview.recommendations.map((item) => (
@@ -326,7 +326,7 @@ function MiniStat({ icon: Icon, value, label, tone }: { icon: LucideIcon; value:
 function OperationsGrid({ locale, items, compact = false }: { locale: "ar" | "en"; items: DashboardOperationItem[]; compact?: boolean }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
-      <DashboardSectionTitle title={t(locale, "\u0625\u0634\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644", "Operational signals")} icon={TrendingUp} />
+      <DashboardSectionTitle title={t(locale, "إشارات التشغيل", "Operational signals")} icon={TrendingUp} />
       <div className={cn("grid gap-3", compact ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4")}>
         {items.map((item) => {
           const tone = getDashboardOperationToneStyles(item.tone);
@@ -373,7 +373,7 @@ function TaskCard({ locale, isAr, tasks, title, emptyLabel }: { locale: "ar" | "
       <div className="mb-4 flex items-center justify-between">
         <DashboardSectionTitle title={title} icon={ClipboardCheck} className="mb-0" />
         <Link href="/follow-ups" className="flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-600)] transition-colors hover:text-[var(--color-brand-700)]">
-          {t(locale, "\u0639\u0631\u0636 \u0627\u0644\u0643\u0644", "View all")}
+          {t(locale, "عرض الكل", "View all")}
           {isAr ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
         </Link>
       </div>
@@ -404,7 +404,7 @@ function TaskCard({ locale, isAr, tasks, title, emptyLabel }: { locale: "ar" | "
                   <span className="text-[11px] text-muted-foreground">{item.time}</span>
                   {item.status !== "completed" && (
                     <a
-                      href={`https://wa.me/?text=${encodeURIComponent(`${t(locale, "\u0645\u062a\u0627\u0628\u0639\u0629", "Follow-up")}: ${item.name} \u2013 ${item.reason}`)}`}
+                      href={`https://wa.me/?text=${encodeURIComponent(`${t(locale, "متابعة", "Follow-up")}: ${item.name} – ${item.reason}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-[var(--color-brand-50)] text-[var(--color-brand-600)] transition-colors hover:bg-[var(--color-brand-100)] dark:bg-[var(--color-brand-950)] dark:text-[var(--color-brand-400)]"
@@ -440,10 +440,10 @@ function OwnershipSnapshot({ locale, title, items }: { locale: "ar" | "en"; titl
           <div key={item.key} className="rounded-xl border border-border bg-background p-4">
             <p className="text-sm font-semibold text-foreground">{item.displayName}</p>
             <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-              <p>{t(locale, "\u0639\u0645\u0644\u0627\u0621 \u0645\u062d\u062a\u0645\u0644\u0648\u0646", "Leads")}:   <span className="font-semibold text-foreground">{item.leadCount}</span></p>
-              <p>{t(locale, "\u0645\u0634\u062a\u0631\u0643",                                          "Won")}:     <span className="font-semibold text-foreground">{item.wonLeadCount}</span></p>
-              <p>{t(locale, "\u0623\u0648\u0644\u064a\u0627\u0621 \u0623\u0645\u0648\u0631",            "Parents")}: <span className="font-semibold text-foreground">{item.parentCount}</span></p>
-              <p>{t(locale, "\u0637\u0644\u0627\u0628",                                                "Students")}: <span className="font-semibold text-foreground">{item.studentCount}</span></p>
+              <p>{t(locale, "عملاء محتملون", "Leads")}:   <span className="font-semibold text-foreground">{item.leadCount}</span></p>
+              <p>{t(locale, "مشترك",                                          "Won")}:     <span className="font-semibold text-foreground">{item.wonLeadCount}</span></p>
+              <p>{t(locale, "أولياء أمور",            "Parents")}: <span className="font-semibold text-foreground">{item.parentCount}</span></p>
+              <p>{t(locale, "طلاب",                                                "Students")}: <span className="font-semibold text-foreground">{item.studentCount}</span></p>
             </div>
           </div>
         ))}
