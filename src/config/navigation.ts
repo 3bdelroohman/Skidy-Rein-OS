@@ -1,186 +1,190 @@
-import {
-  Layers3,
-  LayoutDashboard,
-  Zap,
-  Users,
-  GraduationCap,
-  UserCircle,
-  BookOpen,
-  Wallet,
-  CircleDollarSign,
-  CalendarDays,
-  ClipboardCheck,
-  ClipboardList,
-  BarChart3,
-  ShieldCheck,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
-import type { UserRole } from "@/types/common.types";
-
-/**
- * Sidebar navigation — single source of truth
- * Owner = same access as Admin
- * @author Abdelrahman
- */
-
-export interface NavigationItem {
-  titleAr: string;
-  titleEn: string;
-  href: string;
-  icon: LucideIcon;
-  roles: UserRole[];
-  badge?: number;
-}
-
-export interface NavigationGroup {
-  labelAr: string;
-  labelEn: string;
-  items: NavigationItem[];
-}
-
-export const navigationGroups: NavigationGroup[] = [
-  {
-    labelAr: "الرئيسية",
-    labelEn: "Overview",
-    items: [
-      {
-        titleAr: "لوحة التحكم",
-        titleEn: "Dashboard",
-        href: "/",
-        icon: LayoutDashboard,
-        roles: ["admin", "owner", "sales", "ops"],
-      },
-    ],
-  },
-  {
-    labelAr: "المبيعات",
-    labelEn: "Sales",
-    items: [
-      {
-        titleAr: "العملاء المحتملين",
-        titleEn: "Leads",
-        href: "/leads",
-        icon: Users,
-        roles: ["admin", "owner", "sales"],
-      },
-      {
-        titleAr: "المتابعات",
-        titleEn: "Follow-ups",
-        href: "/follow-ups",
-        icon: ClipboardCheck,
-        roles: ["admin", "owner", "sales", "ops"],
-      },
-      {
-        titleAr: "مركز الإجراءات",
-        titleEn: "Action Center",
-        href: "/action-center",
-        icon: Zap,
-        roles: ["admin", "owner", "sales", "ops"],
-      },
-    ],
-  },
-  {
-    labelAr: "الأكاديمية",
-    labelEn: "Academy",
-    items: [
-      {
-        titleAr: "الطلاب",
-        titleEn: "Students",
-        href: "/students",
-        icon: GraduationCap,
-        roles: ["admin", "owner", "sales", "ops"],
-      },
-      {
-        titleAr: "أولياء الأمور",
-        titleEn: "Parents",
-        href: "/parents",
-        icon: UserCircle,
-        roles: ["admin", "owner", "ops"],
-      },
-      {
-        titleAr: "المدرسين",
-        titleEn: "Teachers",
-        href: "/teachers",
-        icon: BookOpen,
-        roles: ["admin", "owner", "ops"],
-      },
-      {
-        titleAr: "الجدول",
-        titleEn: "Schedule",
-        href: "/schedule",
-        icon: CalendarDays,
-        roles: ["admin", "owner", "ops"],
-      },
-      {
-        titleAr: "مركز الأوبريشن",
-        titleEn: "Operations Center",
-        href: "/operations-center",
-        icon: ClipboardList,
-        roles: ["admin", "owner", "ops"],
-      },
-
-      {
-        titleAr: "الجروبات",
-        titleEn: "Groups",
-        href: "/groups",
-        icon: Layers3,
-        roles: ["admin", "owner", "ops"],
-      },
-    ],
-  },
-  {
-    labelAr: "المالية",
-    labelEn: "Finance",
-    items: [
-      {
-        titleAr: "مركز الأكاونت",
-        titleEn: "Account Center",
-        href: "/account-center",
-        icon: CircleDollarSign,
-        roles: ["admin", "owner", "sales"],
-      },
-
-      {
-        titleAr: "المدفوعات",
-        titleEn: "Payments",
-        href: "/payments",
-        icon: Wallet,
-        roles: ["admin", "owner", "sales", "ops"],
-      },
-    ],
-  },
-  {
-    labelAr: "التحليلات",
-    labelEn: "Analytics",
-    items: [
-      {
-        titleAr: "التقارير",
-        titleEn: "Reports",
-        href: "/reports",
-        icon: BarChart3,
-        roles: ["admin", "owner"],
-      },
-      {
-        titleAr: "مركز الملكية",
-        titleEn: "Ownership Center",
-        href: "/ownership-center",
-        icon: ShieldCheck,
-        roles: ["admin", "owner"],
-      },
-    ],
-  },
-  {
-    labelAr: "النظام",
-    labelEn: "System",
-    items: [
-      {
-        titleAr: "الإعدادات",
-        titleEn: "Settings",
-        href: "/settings",
-        icon: Settings,
-        roles: ["admin", "owner"],
-      },
-    ],
-  },
-];
+import {
+  Layers3,
+  LayoutDashboard,
+  Zap,
+  Users,
+  GraduationCap,
+  UserCircle,
+  BookOpen,
+  Wallet,
+  CircleDollarSign,
+  CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  BarChart3,
+  ShieldCheck,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
+import type { UserRole } from "@/types/common.types";
+
+/**
+ * Sidebar navigation — single source of truth
+ * Owner = same access as Admin
+ * @author Abdelrahman
+ */
+
+export interface NavigationItem {
+  titleAr: string;
+  titleEn: string;
+  href: string;
+  icon: LucideIcon;
+  roles: UserRole[];
+  badge?: number;
+}
+
+export interface NavigationGroup {
+  labelAr: string;
+  labelEn: string;
+  items: NavigationItem[];
+}
+
+export const navigationGroups: NavigationGroup[] = [
+  {
+    labelAr: "الرئيسية",
+    labelEn: "Overview",
+    items: [
+      {
+        titleAr: "لوحة التحكم",
+        titleEn: "Dashboard",
+        href: "/",
+        icon: LayoutDashboard,
+        roles: ["admin", "owner", "sales", "ops"],
+      },
+    ],
+  },
+  {
+    labelAr: "المبيعات",
+    labelEn: "Sales",
+    items: [
+      {
+        titleAr: "العملاء المحتملون",
+        titleEn: "Leads",
+        href: "/leads",
+        icon: Users,
+        roles: ["admin", "owner", "sales"],
+      },
+      {
+        titleAr: "المتابعات",
+        titleEn: "Follow-ups",
+        href: "/follow-ups",
+        icon: ClipboardCheck,
+        roles: ["admin", "owner", "sales", "ops"],
+      },
+      {
+        titleAr: "المهام العاجلة",
+        titleEn: "Action Center",
+        href: "/action-center",
+        icon: Zap,
+        roles: ["admin", "owner", "sales", "ops"],
+      },
+    ],
+  },
+  {
+    labelAr: "الأكاديمية",
+    labelEn: "Academy",
+    items: [
+      {
+        titleAr: "الطلاب",
+        titleEn: "Students",
+        href: "/students",
+        icon: GraduationCap,
+        roles: ["admin", "owner", "sales", "ops"],
+      },
+      {
+        titleAr: "أولياء الأمور",
+        titleEn: "Parents",
+        href: "/parents",
+        icon: UserCircle,
+        roles: ["admin", "owner", "ops"],
+      },
+      {
+        titleAr: "المدرسون",
+        titleEn: "Teachers",
+        href: "/teachers",
+        icon: BookOpen,
+        roles: ["admin", "owner", "ops"],
+      },
+      {
+        titleAr: "الفصول",
+        titleEn: "Classes",
+        href: "/groups",
+        icon: Layers3,
+        roles: ["admin", "owner", "ops"],
+      },
+      {
+        titleAr: "الجدول",
+        titleEn: "Schedule",
+        href: "/schedule",
+        icon: CalendarDays,
+        roles: ["admin", "owner", "ops"],
+      },
+    ],
+  },
+  {
+    labelAr: "المالية",
+    labelEn: "Finance",
+    items: [
+      {
+        titleAr: "المدفوعات",
+        titleEn: "Payments",
+        href: "/payments",
+        icon: Wallet,
+        roles: ["admin", "owner", "sales", "ops"],
+      },
+      {
+        titleAr: "مراجعة المالية",
+        titleEn: "Finance Review",
+        href: "/account-center",
+        icon: CircleDollarSign,
+        roles: ["admin", "owner", "sales"],
+      },
+    ],
+  },
+  {
+    labelAr: "التشغيل",
+    labelEn: "Operations",
+    items: [
+      {
+        titleAr: "صحة النظام",
+        titleEn: "Ops Health",
+        href: "/operations-center",
+        icon: ClipboardList,
+        roles: ["admin", "owner", "ops"],
+      },
+    ],
+  },
+  {
+    labelAr: "التحليلات",
+    labelEn: "Analytics",
+    items: [
+      {
+        titleAr: "التقارير",
+        titleEn: "Reports",
+        href: "/reports",
+        icon: BarChart3,
+        roles: ["admin", "owner"],
+      },
+      {
+        titleAr: "مراجعة المالك",
+        titleEn: "Owner Review",
+        href: "/ownership-center",
+        icon: ShieldCheck,
+        roles: ["admin", "owner"],
+      },
+    ],
+  },
+  {
+    labelAr: "النظام",
+    labelEn: "System",
+    items: [
+      {
+        titleAr: "الإعدادات",
+        titleEn: "Settings",
+        href: "/settings",
+        icon: Settings,
+        roles: ["admin", "owner"],
+      },
+    ],
+  },
+];
