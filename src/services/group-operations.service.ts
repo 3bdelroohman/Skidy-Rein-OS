@@ -2186,7 +2186,7 @@ export async function listGroups(): Promise<GroupListItem[]> {
 
       [...classSessions]
 
-        .filter((session) => Boolean(session.session_date) && new Date(session.session_date) >= new Date())
+        .filter((session) => !!session.session_date && new Date(session.session_date as string) >= new Date())
 
         .sort(
 
@@ -2350,7 +2350,7 @@ export async function getGroupDetails(groupId: string): Promise<GroupDetails | n
 
     [...sessions]
 
-      .filter((session) => Boolean(session.sessionDate) && new Date(session.sessionDate) >= new Date())
+      .filter((session): session is typeof session & { sessionDate: string } => !!session.sessionDate && new Date(session.sessionDate as string) >= new Date())
 
       .sort(
 
