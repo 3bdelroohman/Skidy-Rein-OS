@@ -1,552 +1,1656 @@
-import { createBrowserClient } from "@supabase/ssr";
-import type { CourseType } from "@/types/common.types";
-import type { Database } from "@/types/database.types";
-import type { CreateScheduleEntryInput, ParentListItem, ScheduleSessionDetails, ScheduleSessionItem, StudentListItem, TeacherListItem } from "@/types/crm";
-import { isBrowser, readStorage, writeStorage } from "@/services/storage";
-import { listParents } from "@/services/parents.service";
-import { listStudents } from "@/services/students.service";
-import { listTeachers } from "@/services/teachers.service";
-
-const SCHEDULE_KEY = "skidy.crm.schedule";
-const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
-const VALID_COURSES: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi", "web", "ai"];
-
-const DEFAULT_SCHEDULE: ScheduleSessionItem[] = [
-  { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTime: "17:00", className: "Scratch A", teacher: "أ. محمود", students: 5, course: "scratch", sessionDate: null },
-  { id: "2", classId: "class-2", teacherId: "2", day: 0, startTime: "17:30", endTime: "18:30", className: "Python A", teacher: "أ. دينا", students: 4, course: "python", sessionDate: null },
-  { id: "3", classId: "class-3", teacherId: "3", day: 1, startTime: "16:00", endTime: "17:00", className: "Scratch B", teacher: "أ. كريم", students: 6, course: "scratch", sessionDate: null },
-  { id: "4", classId: "class-4", teacherId: "2", day: 2, startTime: "18:00", endTime: "19:00", className: "AI Intro", teacher: "أ. دينا", students: 3, course: "ai", sessionDate: null },
-  { id: "5", classId: "class-5", teacherId: "3", day: 3, startTime: "17:00", endTime: "18:00", className: "Web Starters", teacher: "أ. كريم", students: 4, course: "web", sessionDate: null },
-  { id: "6", classId: "class-6", teacherId: "1", day: 4, startTime: "16:30", endTime: "17:30", className: "Scratch Trial", teacher: "أ. محمود", students: 5, course: "scratch", sessionDate: null },
-];
-
-type RawClassRow = {
-  id?: string | null;
-  teacher_id?: string | null;
-  name?: string | null;
-  course_id?: string | null;
-  max_students?: number | null;
-  current_students?: number | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  is_active?: boolean | null;
-  meeting_link?: string | null;
-  schedule_notes?: string | null;
-  teacher_session_duration_minutes?: number | null;
-  teacher_session_rate?: number | null;
-  teacher_finance_notes?: string | null;
-};
-
-type RawSessionRow = {
-  id?: string | null;
-  class_id?: string | null;
-  teacher_id?: string | null;
-  session_date?: string | null;
-  start_time?: string | null;
-  end_time?: string | null;
-  topic?: string | null;
-  notes?: string | null;
-  meeting_link?: string | null;
-  is_cancelled?: boolean | null;
-};
-
-type RawEnrollmentRow = {
-  class_id?: string | null;
-  is_active?: boolean | null;
-};
-
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key || !isBrowser()) return null;
-  return createBrowserClient<Database>(url, key);
-}
-
-function sortSessions(items: ScheduleSessionItem[]): ScheduleSessionItem[] {
-  return [...items].sort((a, b) => {
-    if (a.day !== b.day) return a.day - b.day;
-    return a.startTime.localeCompare(b.startTime);
-  });
-}
-
-function asString(value: unknown, fallback = ""): string {
-  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
-}
-
-function asNullableString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0 ? value : null;
-}
-
-
-function asCourse(value: unknown, fallback: CourseType = "scratch"): CourseType {
-  return VALID_COURSES.includes(value as CourseType) ? (value as CourseType) : fallback;
-}
-
-function normalizeName(value: string | null | undefined): string {
-  return (value ?? "")
-    .toLowerCase()
-    .replace(/أ\.?\s*/g, "")
-    .replace(/[?-?]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getLocalSchedule(): ScheduleSessionItem[] {
-  return sortSessions(readStorage(SCHEDULE_KEY, ALLOW_DEMO ? DEFAULT_SCHEDULE : []));
-}
-
-function saveLocalSchedule(items: ScheduleSessionItem[]): void {
-  writeStorage(SCHEDULE_KEY, sortSessions(items));
-}
-
-function clearLocalSchedule(): void {
-  writeStorage(SCHEDULE_KEY, []);
-}
-
-function inferTeacher(
-  teacherId: string | null,
-  rawTeacher: unknown,
-  teachers: TeacherListItem[],
-): TeacherListItem | null {
-  if (teacherId) {
-    const direct = teachers.find((teacher) => teacher.id === teacherId);
-    if (direct) return direct;
-  }
-
-  const byName = asString(rawTeacher);
-  if (!byName) return null;
-  const target = normalizeName(byName);
-  return teachers.find((teacher) => {
-    const name = normalizeName(teacher.fullName);
-    return name.includes(target) || target.includes(name);
-  }) ?? null;
-}
-
-
-
-
-function formatDateForDb(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-function trimTime(v: string): string {
-  const p = v.split(":");
-  return p.length >= 2 ? p[0] + ":" + p[1] : v;
-}
-
-function cleanClassName(v: string): string {
-  return v.replace(/\s*\([^)]*\)\s*/g, "").trim() || v;
-}
-function mapSessionFromClass(
-  row: RawClassRow,
-  teachers: TeacherListItem[],
-  enrollmentCount: number,
-  courseMap: Map<string, CourseType>,
-): ScheduleSessionItem {
-  const teacher = inferTeacher(asNullableString(row.teacher_id), null, teachers);
-  const id = asString(row.id, `class-${Math.random().toString(36).slice(2, 8)}`);
-
-  return {
-    id,
-    classId: asNullableString(row.id),
-    teacherId: asNullableString(row.teacher_id),
-    day: row.start_date ? new Date(row.start_date).getDay() : 0,
-    startTime: "16:00",
-    endTime: "17:00",
-    className: cleanClassName(asString(row.name, "Class")),
-    teacher: teacher?.fullName ?? "مدرس غير محدد",
-    students: enrollmentCount,
-    course: asCourse(row.course_id ? courseMap.get(row.course_id) : null),
-    sessionDate: null,
-      teacherSessionDurationMinutes: row.teacher_session_duration_minutes ?? null,
-    teacherSessionRate: row.teacher_session_rate ?? null,
-    teacherFinanceNotes: row.teacher_finance_notes ?? null,
-} satisfies ScheduleSessionItem;
-}
-
-function mapSessionFromSession(
-  row: RawSessionRow,
-  classMap: Map<string, RawClassRow>,
-  teachers: TeacherListItem[],
-  studentsCount: number,
-  courseMap: Map<string, CourseType>,
-): ScheduleSessionItem {
-  const classRow = row.class_id ? classMap.get(row.class_id) ?? null : null;
-  const teacher = inferTeacher(asNullableString(row.teacher_id ?? classRow?.teacher_id), null, teachers);
-  const id = asString(row.id, `session-${Math.random().toString(36).slice(2, 8)}`);
-
-  return {
-    id,
-    classId: asNullableString(row.class_id),
-    teacherId: asNullableString(row.teacher_id ?? classRow?.teacher_id),
-    day: row.session_date ? new Date(row.session_date).getDay() : 0,
-    startTime: trimTime(asString(row.start_time, "16:00")),
-    endTime: trimTime(asString(row.end_time, "17:00")),
-    className: cleanClassName(asString(classRow?.name ?? row.topic, "Session")),
-    teacher: teacher?.fullName ?? "مدرس غير محدد",
-    students: studentsCount,
-    course: asCourse(classRow?.course_id ? courseMap.get(classRow.course_id) : null),
-    sessionDate: asNullableString(row.session_date),
-      teacherSessionDurationMinutes: classRow?.teacher_session_duration_minutes ?? null,
-    teacherSessionRate: classRow?.teacher_session_rate ?? null,
-    teacherFinanceNotes: classRow?.teacher_finance_notes ?? null,
-} satisfies ScheduleSessionItem;
-}
-
-async function buildStudentsTeachersParents(): Promise<{
-  students: StudentListItem[];
-  teachers: TeacherListItem[];
-  parents: ParentListItem[];
-}> {
-  const [students, teachers, parents] = await Promise.all([listStudents(), listTeachers(), listParents()]);
-  return { students, teachers, parents };
-}
-
-export async function listScheduleSessions(): Promise<ScheduleSessionItem[]> {
-  const local = getLocalSchedule();
-  const supabase = getSupabaseClient();
-  if (!supabase) return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
-
-  try {
-    const [{ students, teachers }, classesResponse, sessionsResponse, coursesResponse, enrollmentsResponse] = await Promise.all([
-      buildStudentsTeachersParents(),
-      supabase.from("classes").select("*"),
-      supabase.from("sessions").select("*").order("session_date", { ascending: false }),
-      supabase.from("courses").select("id, type"),
-      supabase.from("class_enrollments").select("*"),
-    ]);
-
-    const classesRows = ((classesResponse.data ?? []) as RawClassRow[]);
-    const sessionRows = ((sessionsResponse.data ?? []) as RawSessionRow[]);
-    const enrollmentRows = ((enrollmentsResponse.data ?? []) as RawEnrollmentRow[]);
-
-    if (
-      classesResponse.error ||
-      sessionsResponse.error ||
-      enrollmentsResponse.error ||
-      (coursesResponse as { error: unknown }).error
-    ) {
-      console.error(
-        "[schedule] failed to load from Supabase",
-        classesResponse.error ||
-          sessionsResponse.error ||
-          enrollmentsResponse.error ||
-          (coursesResponse as { error: unknown }).error,
-      );
-      return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
-    }
-
-    const courseMap = new Map<string, CourseType>();
-    ((coursesResponse as { data: { id: string; type: string }[] | null }).data ?? []).forEach((c) =>
-      courseMap.set(c.id, c.type as CourseType),
-    );
-
-    if (classesRows.length === 0 && sessionRows.length === 0) {
-      clearLocalSchedule();
-      return ALLOW_DEMO ? DEFAULT_SCHEDULE : [];
-    }
-
-    const enrollmentCountByClassId = new Map<string, number>();
-    enrollmentRows.forEach((row) => {
-      if (!row.class_id) return;
-      const isActive = row.is_active ?? true;
-      if (!isActive) return;
-      enrollmentCountByClassId.set(row.class_id, (enrollmentCountByClassId.get(row.class_id) ?? 0) + 1);
-    });
-
-    const classMap = new Map(
-      classesRows
-        .map((row) => [asString(row.id), row] as const)
-        .filter(([id]) => id.length > 0),
-    );
-
-    const classIdsWithSessions = new Set(
-      sessionRows.map((row) => row.class_id).filter((id): id is string => typeof id === "string" && id.length > 0),
-    );
-
-    const mappedFromSessions = sessionRows.map((row) => {
-      const studentsCount = row.class_id ? (enrollmentCountByClassId.get(row.class_id) ?? 0) : 0;
-      return mapSessionFromSession(row, classMap, teachers, studentsCount, courseMap);
-    });
-
-    const mappedStandaloneClasses = classesRows
-      .filter((row) => {
-        const id = asString(row.id);
-        return !id || !classIdsWithSessions.has(id);
-      })
-      .map((row) => {
-        const id = asString(row.id);
-        const fallbackStudents = students.filter((student) => student.className === row.name).length;
-        return mapSessionFromClass(row, teachers, enrollmentCountByClassId.get(id) ?? fallbackStudents, courseMap);
-      });
-
-    const merged = sortSessions([...mappedFromSessions, ...mappedStandaloneClasses]);
-    saveLocalSchedule(merged);
-    return merged;
-  } catch (error) {
-    console.error("[schedule] unexpected failure", error);
-    return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
-  }
-}
-
-export async function getScheduleSessionById(id: string): Promise<ScheduleSessionItem | null> {
-  const items = await listScheduleSessions();
-  return items.find((session) => session.id === id) ?? null;
-}
-
-export async function getScheduleSessionDetails(id: string): Promise<ScheduleSessionDetails | null> {
-  const [session, students, teachers, parents, allSessions] = await Promise.all([
-    getScheduleSessionById(id),
-    listStudents(),
-    listTeachers(),
-    listParents(),
-    listScheduleSessions(),
-  ]);
-
-  if (!session) return null;
-
-  const teacherRecord = session.teacherId
-    ? teachers.find((teacher) => teacher.id === session.teacherId) ?? null
-    : teachers.find((teacher) => normalizeName(teacher.fullName) === normalizeName(session.teacher)) ?? null;
-
-  const supabase = getSupabaseClient();
-  let linkedStudents: StudentListItem[] = [];
-
-  if (session.classId && supabase) {
-    const { data: enrollmentRows, error: enrollmentError } = await supabase
-      .from("class_enrollments")
-      .select("student_id")
-      .eq("class_id", session.classId)
-      .eq("is_active", true);
-
-    if (enrollmentError) {
-      console.error("[schedule] failed to load session enrollments", enrollmentError);
-    }
-
-    const linkedStudentIds = new Set(
-      ((enrollmentRows ?? []) as Array<{ student_id?: string | null }>)
-        .map((row) => row.student_id)
-        .filter((value): value is string => Boolean(value)),
-    );
-
-    linkedStudents = students.filter((student) => linkedStudentIds.has(student.id));
-  }
-
-  if (linkedStudents.length === 0 && (!session.classId || !supabase)) {
-    linkedStudents = students.filter((student) => {
-      const classMatch = student.className ? normalizeName(student.className) === normalizeName(session.className) : false;
-      return classMatch;
-    });
-  }
-  const linkedParentIds = Array.from(new Set(linkedStudents.map((student) => student.parentId).filter((value): value is string => Boolean(value))));
-  const linkedParents = parents.filter((parent) => linkedParentIds.includes(parent.id));
-  const siblingSessions = allSessions.filter(
-    (item) => item.id !== session.id && ((session.classId && item.classId === session.classId) || normalizeName(item.className) === normalizeName(session.className)),
-  );
-
-  return {
-    ...session,
-    teacherRecord,
-    linkedStudents,
-    linkedParentIds,
-    linkedParents,
-    siblingSessions,
-  };
-}
-
-export async function getScheduleOverview(): Promise<{
-  sessionsCount: number;
-  totalStudents: number;
-  uniqueTeachers: number;
-  busiestDay: number;
-  busiestDayCount: number;
-}> {
-  const sessions = await listScheduleSessions();
-  const totalStudents = sessions.reduce((sum, session) => sum + session.students, 0);
-  const uniqueTeachers = new Set(sessions.map((session) => session.teacherId ?? session.teacher)).size;
-  const busiestDay = sessions.reduce<Record<number, number>>((acc, session) => {
-    acc[session.day] = (acc[session.day] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  const busiestDayEntry = Object.entries(busiestDay).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
-
-  return {
-    sessionsCount: sessions.length,
-    totalStudents,
-    uniqueTeachers,
-    busiestDay: busiestDayEntry ? Number(busiestDayEntry[0]) : 0,
-    busiestDayCount: busiestDayEntry ? Number(busiestDayEntry[1]) : 0,
-  };
-}
-
-
-export async function createScheduleEntry(input: CreateScheduleEntryInput): Promise<ScheduleSessionItem> {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    throw new Error("Supabase client not available. Login first.");
-  }
-
-  const teachers = await listTeachers();
-  const teacher = teachers.find((item) => item.id === input.teacherId) ?? null;
-  if (!teacher) {
-    throw new Error("Select a valid teacher before saving.");
-  }
-
-  const explicitSessionDate =
-    typeof input.sessionDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.sessionDate)
-      ? input.sessionDate
-      : null;
-  const resolvedDay = explicitSessionDate ? new Date(explicitSessionDate + "T00:00:00").getDay() : input.day;
-
-  const existing = await listScheduleSessions();
-  const clash = existing.find((session) => {
-    if ((session.teacherId ?? "") !== input.teacherId) return false;
-    if (explicitSessionDate) {
-      if (session.sessionDate !== explicitSessionDate) return false;
-    } else if (session.day !== input.day) return false;
-    const startsInside = input.startTime >= session.startTime && input.startTime < session.endTime;
-    const endsInside = input.endTime > session.startTime && input.endTime <= session.endTime;
-    const wraps = input.startTime <= session.startTime && input.endTime >= session.endTime;
-    return startsInside || endsInside || wraps;
-  });
-
-  if (clash) {
-    throw new Error("Schedule conflict with " + clash.className + " for the same teacher.");
-  }
-
-  // Look up course_id from courses table using course type
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id")
-    .eq("type", input.course)
-    .eq("is_active", true)
-    .limit(1);
-  const courseId = courses?.[0]?.id ?? null;
-  if (!courseId) {
-    throw new Error("Course type not found in courses table. Make sure it exists.");
-  }
-
-  // Prefer the explicit date selected in the form; fall back to weekday only for legacy callers.
-  let sessionDateStr: string;
-
-  if (explicitSessionDate) {
-    sessionDateStr = explicitSessionDate;
-  } else {
-    const today = new Date();
-    const currentDay = today.getDay();
-    const targetDay = input.day;
-    const daysUntil = (targetDay - currentDay + 7) % 7;
-    const sessionDate = new Date(today);
-    sessionDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
-    sessionDateStr = formatDateForDb(sessionDate);
-  }
-
-  // Step 1: Create class (NO time fields - those belong to sessions)
-  const { data: classData, error: classError } = await supabase
-    .from("classes")
-    .insert({
-      name: input.className,
-      course_id: courseId,
-      teacher_id: input.teacherId,
-      max_students: 10,
-      current_students: 0,
-      start_date: sessionDateStr,
-      is_active: true,
-    })
-    .select("*")
-    .single();
-
-  if (classError || !classData) {
-    throw new Error(classError?.message || "Failed to create class");
-  }
-
-  // Step 2: Create session WITH time fields
-  const { data: sessionData, error: sessionError } = await supabase
-    .from("sessions")
-    .insert({
-      class_id: classData.id,
-      teacher_id: input.teacherId,
-      session_date: sessionDateStr,
-      start_time: input.startTime,
-      end_time: input.endTime,
-    })
-    .select("*")
-    .single();
-
-  if (sessionError || !sessionData) {
-    // Rollback: delete the class we just created
-    await supabase.from("classes").delete().eq("id", classData.id);
-    throw new Error(sessionError?.message || "Failed to create session");
-  }
-
-  const created: ScheduleSessionItem = {
-    id: sessionData.id,
-    classId: classData.id,
-    teacherId: input.teacherId,
-    day: resolvedDay,
-    startTime: input.startTime,
-    endTime: input.endTime,
-    className: input.className,
-    teacher: teacher.fullName,
-    students: 0,
-    course: input.course,
-    sessionDate: sessionDateStr,
-  };
-
-  saveLocalSchedule([created, ...getLocalSchedule().filter((item) => item.id !== created.id)]);
-  return created;
-}
-
-/** Delete a schedule session permanently without deleting the parent group. */
-export async function deleteScheduleEntry(id: string): Promise<boolean> {
-  const supabase = getSupabaseClient();
-  if (!supabase) throw new Error("Supabase client not available");
-
-  const { data: session, error: sessionLoadError } = await supabase
-    .from("sessions")
-    .select("id, class_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (sessionLoadError) {
-    throw new Error(sessionLoadError.message || "Failed to load session before deleting");
-  }
-
-  if (!session) {
-    throw new Error("Session was not found.");
-  }
-
-  const { error: attendanceDeleteError } = await supabase
-    .from("attendance")
-    .delete()
-    .eq("session_id", id);
-
-  if (attendanceDeleteError) {
-    throw new Error(attendanceDeleteError.message || "Failed to delete session attendance records");
-  }
-
-  const { error: operationLogsDeleteError } = await supabase
-    .from("session_operation_logs")
-    .delete()
-    .eq("session_id", id);
-
-  if (operationLogsDeleteError) {
-    throw new Error(operationLogsDeleteError.message || "Failed to delete session operation logs");
-  }
-
-  const { error: sessionDeleteError } = await supabase
-    .from("sessions")
-    .delete()
-    .eq("id", id);
-
-  if (sessionDeleteError) {
-    throw new Error(sessionDeleteError.message || "Failed to delete session");
-  }
-
-  saveLocalSchedule(getLocalSchedule().filter((entry) => entry.id !== id));
-
-  return true;
-}
+import { createBrowserClient } from "@supabase/ssr";
+
+
+import type { CourseType } from "@/types/common.types";
+
+
+import type { Database } from "@/types/database.types";
+
+
+import type { CreateScheduleEntryInput, ParentListItem, ScheduleSessionDetails, ScheduleSessionItem, StudentListItem, TeacherListItem } from "@/types/crm";
+
+
+import { isBrowser, readStorage, writeStorage } from "@/services/storage";
+
+
+import { listParents } from "@/services/parents.service";
+
+
+import { listStudents } from "@/services/students.service";
+
+
+import { listTeachers } from "@/services/teachers.service";
+
+
+
+
+
+const SCHEDULE_KEY = "skidy.crm.schedule";
+
+
+const ALLOW_DEMO = process.env.NEXT_PUBLIC_ALLOW_DEMO_FALLBACK === "true";
+
+
+const VALID_COURSES: CourseType[] = ["scratch", "app_inventor", "robotics_basic", "ai_intro", "python", "godot", "robotics_iot", "fastapi", "html_css", "javascript_tailwind", "front_end", "ai_ml", "data_science", "back_end", "raspberry_pi", "web", "ai"];
+
+
+
+
+
+const DEFAULT_SCHEDULE: ScheduleSessionItem[] = [
+
+
+  { id: "1", classId: "class-1", teacherId: "1", day: 0, startTime: "16:00", endTime: "17:00", className: "Scratch A", teacher: "أ. محمود", students: 5, course: "scratch", sessionDate: null },
+
+
+  { id: "2", classId: "class-2", teacherId: "2", day: 0, startTime: "17:30", endTime: "18:30", className: "Python A", teacher: "أ. دينا", students: 4, course: "python", sessionDate: null },
+
+
+  { id: "3", classId: "class-3", teacherId: "3", day: 1, startTime: "16:00", endTime: "17:00", className: "Scratch B", teacher: "أ. كريم", students: 6, course: "scratch", sessionDate: null },
+
+
+  { id: "4", classId: "class-4", teacherId: "2", day: 2, startTime: "18:00", endTime: "19:00", className: "AI Intro", teacher: "أ. دينا", students: 3, course: "ai", sessionDate: null },
+
+
+  { id: "5", classId: "class-5", teacherId: "3", day: 3, startTime: "17:00", endTime: "18:00", className: "Web Starters", teacher: "أ. كريم", students: 4, course: "web", sessionDate: null },
+
+
+  { id: "6", classId: "class-6", teacherId: "1", day: 4, startTime: "16:30", endTime: "17:30", className: "Scratch Trial", teacher: "أ. محمود", students: 5, course: "scratch", sessionDate: null },
+
+
+];
+
+
+
+
+
+type RawClassRow = {
+
+
+  id?: string | null;
+
+
+  teacher_id?: string | null;
+
+
+  name?: string | null;
+
+
+  course_id?: string | null;
+
+
+  max_students?: number | null;
+
+
+  current_students?: number | null;
+
+
+  start_date?: string | null;
+
+
+  end_date?: string | null;
+
+
+  is_active?: boolean | null;
+
+
+  meeting_link?: string | null;
+
+
+  schedule_notes?: string | null;
+
+
+  teacher_session_duration_minutes?: number | null;
+
+
+  teacher_session_rate?: number | null;
+
+
+  teacher_finance_notes?: string | null;
+
+
+};
+
+
+
+
+
+type RawSessionRow = {
+
+
+  id?: string | null;
+
+
+  class_id?: string | null;
+
+
+  teacher_id?: string | null;
+
+
+  session_date?: string | null;
+
+
+  start_time?: string | null;
+
+
+  end_time?: string | null;
+
+
+  topic?: string | null;
+
+
+  notes?: string | null;
+
+
+  meeting_link?: string | null;
+
+
+  is_cancelled?: boolean | null;
+
+
+};
+
+
+
+
+
+type RawEnrollmentRow = {
+
+
+  class_id?: string | null;
+
+
+  is_active?: boolean | null;
+
+
+};
+
+
+
+
+
+function getSupabaseClient() {
+
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+
+  if (!url || !key || !isBrowser()) return null;
+
+
+  return createBrowserClient<Database>(url, key);
+
+
+}
+
+
+
+
+
+function sortSessions(items: ScheduleSessionItem[]): ScheduleSessionItem[] {
+
+
+  return [...items].sort((a, b) => {
+
+
+    if (a.day !== b.day) return a.day - b.day;
+
+
+    return a.startTime.localeCompare(b.startTime);
+
+
+  });
+
+
+}
+
+
+
+
+
+function asString(value: unknown, fallback = ""): string {
+
+
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+
+
+}
+
+
+
+
+
+function asNullableString(value: unknown): string | null {
+
+
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+
+
+}
+
+
+
+
+
+
+
+
+function asCourse(value: unknown, fallback: CourseType = "scratch"): CourseType {
+
+
+  return VALID_COURSES.includes(value as CourseType) ? (value as CourseType) : fallback;
+
+
+}
+
+
+
+
+
+function normalizeName(value: string | null | undefined): string {
+
+
+  return (value ?? "")
+
+
+    .toLowerCase()
+
+
+    .replace(/أ\.?\s*/g, "")
+
+
+    .replace(/[?-?]/g, "")
+
+
+    .replace(/\s+/g, " ")
+
+
+    .trim();
+
+
+}
+
+
+
+
+
+function getLocalSchedule(): ScheduleSessionItem[] {
+
+
+  return sortSessions(readStorage(SCHEDULE_KEY, ALLOW_DEMO ? DEFAULT_SCHEDULE : []));
+
+
+}
+
+
+
+
+
+function saveLocalSchedule(items: ScheduleSessionItem[]): void {
+
+
+  writeStorage(SCHEDULE_KEY, sortSessions(items));
+
+
+}
+
+
+
+
+
+function clearLocalSchedule(): void {
+
+
+  writeStorage(SCHEDULE_KEY, []);
+
+
+}
+
+
+
+
+
+function inferTeacher(
+
+
+  teacherId: string | null,
+
+
+  rawTeacher: unknown,
+
+
+  teachers: TeacherListItem[],
+
+
+): TeacherListItem | null {
+
+
+  if (teacherId) {
+
+
+    const direct = teachers.find((teacher) => teacher.id === teacherId);
+
+
+    if (direct) return direct;
+
+
+  }
+
+
+
+
+
+  const byName = asString(rawTeacher);
+
+
+  if (!byName) return null;
+
+
+  const target = normalizeName(byName);
+
+
+  return teachers.find((teacher) => {
+
+
+    const name = normalizeName(teacher.fullName);
+
+
+    return name.includes(target) || target.includes(name);
+
+
+  }) ?? null;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function formatDateForDb(date: Date): string {
+
+
+  const year = date.getFullYear();
+
+
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+
+  const day = String(date.getDate()).padStart(2, "0");
+
+
+  return `${year}-${month}-${day}`;
+
+
+}
+
+
+function trimTime(v: string): string {
+
+
+  const p = v.split(":");
+
+
+  return p.length >= 2 ? p[0] + ":" + p[1] : v;
+
+
+}
+
+
+
+
+
+function cleanClassName(v: string): string {
+
+
+  return v.replace(/\s*\([^)]*\)\s*/g, "").trim() || v;
+
+
+}
+
+
+function mapSessionFromClass(
+
+
+  row: RawClassRow,
+
+
+  teachers: TeacherListItem[],
+
+
+  enrollmentCount: number,
+
+
+  courseMap: Map<string, CourseType>,
+
+
+): ScheduleSessionItem {
+
+
+  const teacher = inferTeacher(asNullableString(row.teacher_id), null, teachers);
+
+
+  const id = asString(row.id, `class-${Math.random().toString(36).slice(2, 8)}`);
+
+
+
+
+
+  return {
+
+
+    id,
+
+
+    classId: asNullableString(row.id),
+
+
+    teacherId: asNullableString(row.teacher_id),
+
+
+    day: row.start_date ? new Date(row.start_date).getDay() : 0,
+
+
+    startTime: "16:00",
+
+
+    endTime: "17:00",
+
+
+    className: cleanClassName(asString(row.name, "Class")),
+
+
+    teacher: teacher?.fullName ?? "مدرس غير محدد",
+
+
+    students: enrollmentCount,
+
+
+    course: asCourse(row.course_id ? courseMap.get(row.course_id) : null),
+
+
+    sessionDate: null,
+
+
+      teacherSessionDurationMinutes: row.teacher_session_duration_minutes ?? null,
+
+
+    teacherSessionRate: row.teacher_session_rate ?? null,
+
+
+    teacherFinanceNotes: row.teacher_finance_notes ?? null,
+
+
+} satisfies ScheduleSessionItem;
+
+
+}
+
+
+
+
+
+function mapSessionFromSession(
+
+
+  row: RawSessionRow,
+
+
+  classMap: Map<string, RawClassRow>,
+
+
+  teachers: TeacherListItem[],
+
+
+  studentsCount: number,
+
+
+  courseMap: Map<string, CourseType>,
+
+
+): ScheduleSessionItem {
+
+
+  const classRow = row.class_id ? classMap.get(row.class_id) ?? null : null;
+
+
+  const teacher = inferTeacher(asNullableString(row.teacher_id ?? classRow?.teacher_id), null, teachers);
+
+
+  const id = asString(row.id, `session-${Math.random().toString(36).slice(2, 8)}`);
+
+
+
+
+
+  return {
+
+
+    id,
+
+
+    classId: asNullableString(row.class_id),
+
+
+    teacherId: asNullableString(row.teacher_id ?? classRow?.teacher_id),
+
+
+    day: row.session_date ? new Date(row.session_date).getDay() : 0,
+
+
+    startTime: trimTime(asString(row.start_time, "16:00")),
+
+
+    endTime: trimTime(asString(row.end_time, "17:00")),
+
+
+    className: cleanClassName(asString(classRow?.name ?? row.topic, "Session")),
+
+
+    teacher: teacher?.fullName ?? "مدرس غير محدد",
+
+
+    students: studentsCount,
+
+
+    course: asCourse(classRow?.course_id ? courseMap.get(classRow.course_id) : null),
+
+
+    sessionDate: asNullableString(row.session_date),
+
+
+      teacherSessionDurationMinutes: classRow?.teacher_session_duration_minutes ?? null,
+
+
+    teacherSessionRate: classRow?.teacher_session_rate ?? null,
+
+
+    teacherFinanceNotes: classRow?.teacher_finance_notes ?? null,
+
+
+} satisfies ScheduleSessionItem;
+
+
+}
+
+
+
+
+
+async function buildStudentsTeachersParents(): Promise<{
+
+
+  students: StudentListItem[];
+
+
+  teachers: TeacherListItem[];
+
+
+  parents: ParentListItem[];
+
+
+}> {
+
+
+  const [students, teachers, parents] = await Promise.all([listStudents(), listTeachers(), listParents()]);
+
+
+  return { students, teachers, parents };
+
+
+}
+
+
+
+
+
+export async function listScheduleSessions(): Promise<ScheduleSessionItem[]> {
+
+
+  const local = getLocalSchedule();
+
+
+  const supabase = getSupabaseClient();
+
+
+  if (!supabase) return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
+
+
+
+
+
+  try {
+
+
+    const [{ students, teachers }, classesResponse, sessionsResponse, coursesResponse, enrollmentsResponse] = await Promise.all([
+
+
+      buildStudentsTeachersParents(),
+
+
+      supabase.from("classes").select("*"),
+
+
+      supabase.from("sessions").select("*").order("session_date", { ascending: false }),
+
+
+      supabase.from("courses").select("id, type"),
+
+
+      supabase.from("class_enrollments").select("*"),
+
+
+    ]);
+
+
+
+
+
+    const classesRows = ((classesResponse.data ?? []) as RawClassRow[]);
+
+
+    const sessionRows = ((sessionsResponse.data ?? []) as RawSessionRow[]);
+
+
+    const enrollmentRows = ((enrollmentsResponse.data ?? []) as RawEnrollmentRow[]);
+
+
+
+
+
+    if (
+
+
+      classesResponse.error ||
+
+
+      sessionsResponse.error ||
+
+
+      enrollmentsResponse.error ||
+
+
+      (coursesResponse as { error: unknown }).error
+
+
+    ) {
+
+
+      console.error(
+
+
+        "[schedule] failed to load from Supabase",
+
+
+        classesResponse.error ||
+
+
+          sessionsResponse.error ||
+
+
+          enrollmentsResponse.error ||
+
+
+          (coursesResponse as { error: unknown }).error,
+
+
+      );
+
+
+      return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
+
+
+    }
+
+
+
+
+
+    const courseMap = new Map<string, CourseType>();
+
+
+    ((coursesResponse as { data: { id: string; type: string }[] | null }).data ?? []).forEach((c) =>
+
+
+      courseMap.set(c.id, c.type as CourseType),
+
+
+    );
+
+
+
+
+
+    if (classesRows.length === 0 && sessionRows.length === 0) {
+
+
+      clearLocalSchedule();
+
+
+      return ALLOW_DEMO ? DEFAULT_SCHEDULE : [];
+
+
+    }
+
+
+
+
+
+    const enrollmentCountByClassId = new Map<string, number>();
+
+
+    enrollmentRows.forEach((row) => {
+
+
+      if (!row.class_id) return;
+
+
+      const isActive = row.is_active ?? true;
+
+
+      if (!isActive) return;
+
+
+      enrollmentCountByClassId.set(row.class_id, (enrollmentCountByClassId.get(row.class_id) ?? 0) + 1);
+
+
+    });
+
+
+
+
+
+    const classMap = new Map(
+
+
+      classesRows
+
+
+        .map((row) => [asString(row.id), row] as const)
+
+
+        .filter(([id]) => id.length > 0),
+
+
+    );
+
+
+
+
+
+    const classIdsWithSessions = new Set(
+
+
+      sessionRows.map((row) => row.class_id).filter((id): id is string => typeof id === "string" && id.length > 0),
+
+
+    );
+
+
+
+
+
+    const mappedFromSessions = sessionRows.map((row) => {
+
+
+      const studentsCount = row.class_id ? (enrollmentCountByClassId.get(row.class_id) ?? 0) : 0;
+
+
+      return mapSessionFromSession(row, classMap, teachers, studentsCount, courseMap);
+
+
+    });
+
+
+
+
+
+    const mappedStandaloneClasses = classesRows
+
+
+      .filter((row) => {
+
+
+        const id = asString(row.id);
+
+
+        return !id || !classIdsWithSessions.has(id);
+
+
+      })
+
+
+      .map((row) => {
+
+
+        const id = asString(row.id);
+
+
+        const fallbackStudents = students.filter((student) => student.className === row.name).length;
+
+
+        return mapSessionFromClass(row, teachers, enrollmentCountByClassId.get(id) ?? fallbackStudents, courseMap);
+
+
+      });
+
+
+
+
+
+    const merged = sortSessions([...mappedFromSessions, ...mappedStandaloneClasses]);
+
+
+    saveLocalSchedule(merged);
+
+
+    return merged;
+
+
+  } catch (error) {
+
+
+    console.error("[schedule] unexpected failure", error);
+
+
+    return local.length > 0 ? local : (ALLOW_DEMO ? DEFAULT_SCHEDULE : []);
+
+
+  }
+
+
+}
+
+
+
+
+
+export async function getScheduleSessionById(id: string): Promise<ScheduleSessionItem | null> {
+
+
+  const items = await listScheduleSessions();
+
+
+  return items.find((session) => session.id === id) ?? null;
+
+
+}
+
+
+
+
+
+export async function getScheduleSessionDetails(id: string): Promise<ScheduleSessionDetails | null> {
+
+
+  const [session, students, teachers, parents, allSessions] = await Promise.all([
+
+
+    getScheduleSessionById(id),
+
+
+    listStudents(),
+
+
+    listTeachers(),
+
+
+    listParents(),
+
+
+    listScheduleSessions(),
+
+
+  ]);
+
+
+
+
+
+  if (!session) return null;
+
+
+
+
+
+  const teacherRecord = session.teacherId
+
+
+    ? teachers.find((teacher) => teacher.id === session.teacherId) ?? null
+
+
+    : teachers.find((teacher) => normalizeName(teacher.fullName) === normalizeName(session.teacher)) ?? null;
+
+
+
+
+
+  const supabase = getSupabaseClient();
+
+
+  let linkedStudents: StudentListItem[] = [];
+
+
+
+
+
+  if (session.classId && supabase) {
+
+
+    const { data: enrollmentRows, error: enrollmentError } = await supabase
+
+
+      .from("class_enrollments")
+
+
+      .select("student_id")
+
+
+      .eq("class_id", session.classId)
+
+
+      .eq("is_active", true);
+
+
+
+
+
+    if (enrollmentError) {
+
+
+      console.error("[schedule] failed to load session enrollments", enrollmentError);
+
+
+    }
+
+
+
+
+
+    const linkedStudentIds = new Set(
+
+
+      ((enrollmentRows ?? []) as Array<{ student_id?: string | null }>)
+
+
+        .map((row) => row.student_id)
+
+
+        .filter((value): value is string => Boolean(value)),
+
+
+    );
+
+
+
+
+
+    linkedStudents = students.filter((student) => linkedStudentIds.has(student.id));
+
+
+  }
+
+
+
+
+
+  if (linkedStudents.length === 0 && (!session.classId || !supabase)) {
+
+
+    linkedStudents = students.filter((student) => {
+
+
+      const classMatch = student.className ? normalizeName(student.className) === normalizeName(session.className) : false;
+
+
+      return classMatch;
+
+
+    });
+
+
+  }
+
+
+  const linkedParentIds = Array.from(new Set(linkedStudents.map((student) => student.parentId).filter((value): value is string => Boolean(value))));
+
+
+  const linkedParents = parents.filter((parent) => linkedParentIds.includes(parent.id));
+
+
+  const siblingSessions = allSessions.filter(
+
+
+    (item) => item.id !== session.id && ((session.classId && item.classId === session.classId) || normalizeName(item.className) === normalizeName(session.className)),
+
+
+  );
+
+
+
+
+
+  return {
+
+
+    ...session,
+
+
+    teacherRecord,
+
+
+    linkedStudents,
+
+
+    linkedParentIds,
+
+
+    linkedParents,
+
+
+    siblingSessions,
+
+
+  };
+
+
+}
+
+
+
+
+
+export async function getScheduleOverview(): Promise<{
+
+
+  sessionsCount: number;
+
+
+  totalStudents: number;
+
+
+  uniqueTeachers: number;
+
+
+  busiestDay: number;
+
+
+  busiestDayCount: number;
+
+
+}> {
+
+
+  const sessions = await listScheduleSessions();
+
+
+  const totalStudents = sessions.reduce((sum, session) => sum + session.students, 0);
+
+
+  const uniqueTeachers = new Set(sessions.map((session) => session.teacherId ?? session.teacher)).size;
+
+
+  const busiestDay = sessions.reduce<Record<number, number>>((acc, session) => {
+
+
+    acc[session.day] = (acc[session.day] ?? 0) + 1;
+
+
+    return acc;
+
+
+  }, {});
+
+
+
+
+
+  const busiestDayEntry = Object.entries(busiestDay).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+
+
+
+
+
+  return {
+
+
+    sessionsCount: sessions.length,
+
+
+    totalStudents,
+
+
+    uniqueTeachers,
+
+
+    busiestDay: busiestDayEntry ? Number(busiestDayEntry[0]) : 0,
+
+
+    busiestDayCount: busiestDayEntry ? Number(busiestDayEntry[1]) : 0,
+
+
+  };
+
+
+}
+
+
+
+
+
+
+
+
+export async function createScheduleEntry(input: CreateScheduleEntryInput): Promise<ScheduleSessionItem> {
+
+
+  const supabase = getSupabaseClient();
+
+
+  if (!supabase) {
+
+
+    throw new Error("Supabase client not available. Login first.");
+
+
+  }
+
+
+
+
+
+  const teachers = await listTeachers();
+
+
+  const teacher = teachers.find((item) => item.id === input.teacherId) ?? null;
+
+
+  if (!teacher) {
+
+
+    throw new Error("Select a valid teacher before saving.");
+
+
+  }
+
+
+
+
+
+  const explicitSessionDate =
+
+
+    typeof input.sessionDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.sessionDate)
+
+
+      ? input.sessionDate
+
+
+      : null;
+
+
+  const resolvedDay = explicitSessionDate ? new Date(explicitSessionDate + "T00:00:00").getDay() : input.day;
+
+
+
+
+
+  const existing = await listScheduleSessions();
+
+
+  const clash = existing.find((session) => {
+
+
+    if ((session.teacherId ?? "") !== input.teacherId) return false;
+
+
+    if (explicitSessionDate) {
+
+
+      if (session.sessionDate !== explicitSessionDate) return false;
+
+
+    } else if (session.day !== input.day) return false;
+
+
+    const startsInside = input.startTime >= session.startTime && input.startTime < session.endTime;
+
+
+    const endsInside = input.endTime > session.startTime && input.endTime <= session.endTime;
+
+
+    const wraps = input.startTime <= session.startTime && input.endTime >= session.endTime;
+
+
+    return startsInside || endsInside || wraps;
+
+
+  });
+
+
+
+
+
+  if (clash) {
+
+
+    throw new Error("Schedule conflict with " + clash.className + " for the same teacher.");
+
+
+  }
+
+
+
+
+
+  // Look up course_id from courses table using course type
+
+
+  const { data: courses } = await supabase
+
+
+    .from("courses")
+
+
+    .select("id")
+
+
+    .eq("type", input.course)
+
+
+    .eq("is_active", true)
+
+
+    .limit(1);
+
+
+  const courseId = courses?.[0]?.id ?? null;
+
+
+  if (!courseId) {
+
+
+    throw new Error("Course type not found in courses table. Make sure it exists.");
+
+
+  }
+
+
+
+
+
+  // Prefer the explicit date selected in the form; fall back to weekday only for legacy callers.
+
+
+  let sessionDateStr: string;
+
+
+
+
+
+  if (explicitSessionDate) {
+
+
+    sessionDateStr = explicitSessionDate;
+
+
+  } else {
+
+
+    const today = new Date();
+
+
+    const currentDay = today.getDay();
+
+
+    const targetDay = input.day;
+
+
+    const daysUntil = (targetDay - currentDay + 7) % 7;
+
+
+    const sessionDate = new Date(today);
+
+
+    sessionDate.setDate(today.getDate() + daysUntil);
+
+
+    sessionDateStr = formatDateForDb(sessionDate);
+
+
+  }
+
+
+
+
+
+  // Step 1: Create class (NO time fields - those belong to sessions)
+
+
+  const { data: classData, error: classError } = await supabase
+
+
+    .from("classes")
+
+
+    .insert({
+
+
+      name: input.className,
+
+
+      course_id: courseId,
+
+
+      teacher_id: input.teacherId,
+
+
+      max_students: 10,
+
+
+      current_students: 0,
+
+
+      start_date: sessionDateStr,
+
+
+      is_active: true,
+
+
+    })
+
+
+    .select("*")
+
+
+    .single();
+
+
+
+
+
+  if (classError || !classData) {
+
+
+    throw new Error(classError?.message || "Failed to create class");
+
+
+  }
+
+
+
+
+
+  // Step 2: Create session WITH time fields
+
+
+  const { data: sessionData, error: sessionError } = await supabase
+
+
+    .from("sessions")
+
+
+    .insert({
+
+
+      class_id: classData.id,
+
+
+      teacher_id: input.teacherId,
+
+
+      session_date: sessionDateStr,
+
+
+      start_time: input.startTime,
+
+
+      end_time: input.endTime,
+
+
+    })
+
+
+    .select("*")
+
+
+    .single();
+
+
+
+
+
+  if (sessionError || !sessionData) {
+
+
+    // Rollback: delete the class we just created
+
+
+    await supabase.from("classes").delete().eq("id", classData.id);
+
+
+    throw new Error(sessionError?.message || "Failed to create session");
+
+
+  }
+
+
+
+
+
+  const created: ScheduleSessionItem = {
+
+
+    id: sessionData.id,
+
+
+    classId: classData.id,
+
+
+    teacherId: input.teacherId,
+
+
+    day: resolvedDay,
+
+
+    startTime: input.startTime,
+
+
+    endTime: input.endTime,
+
+
+    className: input.className,
+
+
+    teacher: teacher.fullName,
+
+
+    students: 0,
+
+
+    course: input.course,
+
+
+    sessionDate: sessionDateStr,
+
+
+  };
+
+
+
+
+
+  saveLocalSchedule([created, ...getLocalSchedule().filter((item) => item.id !== created.id)]);
+
+
+  return created;
+
+
+}
+
+
+
+
+
+/** Delete a schedule session permanently without deleting the parent group. */
+
+
+export async function deleteScheduleEntry(id: string): Promise<boolean> {
+
+
+  const supabase = getSupabaseClient();
+
+
+  if (!supabase) throw new Error("Supabase client not available");
+
+
+
+
+
+  const { data: session, error: sessionLoadError } = await supabase
+
+
+    .from("sessions")
+
+
+    .select("id, class_id")
+
+
+    .eq("id", id)
+
+
+    .maybeSingle();
+
+
+
+
+
+  if (sessionLoadError) {
+
+
+    throw new Error(sessionLoadError.message || "Failed to load session before deleting");
+
+
+  }
+
+
+
+
+
+  if (!session) {
+
+
+    throw new Error("Session was not found.");
+
+
+  }
+
+
+
+
+
+  const { error: attendanceDeleteError } = await supabase
+
+
+    .from("attendance")
+
+
+    .delete()
+
+
+    .eq("session_id", id);
+
+
+
+
+
+  if (attendanceDeleteError) {
+
+
+    throw new Error(attendanceDeleteError.message || "Failed to delete session attendance records");
+
+
+  }
+
+
+
+
+
+  const { error: operationLogsDeleteError } = await supabase
+
+
+    .from("session_operation_logs")
+
+
+    .delete()
+
+
+    .eq("session_id", id);
+
+
+
+
+
+  if (operationLogsDeleteError) {
+
+
+    throw new Error(operationLogsDeleteError.message || "Failed to delete session operation logs");
+
+
+  }
+
+
+
+
+
+  const { error: sessionDeleteError } = await supabase
+
+
+    .from("sessions")
+
+
+    .delete()
+
+
+    .eq("id", id);
+
+
+
+
+
+  if (sessionDeleteError) {
+
+
+    throw new Error(sessionDeleteError.message || "Failed to delete session");
+
+
+  }
+
+
+
+
+
+  saveLocalSchedule(getLocalSchedule().filter((entry) => entry.id !== id));
+
+
+
+
+
+  return true;
+
+
+}
+
+
