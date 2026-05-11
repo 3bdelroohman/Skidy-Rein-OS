@@ -1700,7 +1700,7 @@ export async function completeGroupSessionSeries(input: {
 
   if (!anchor.sessionDate) {
 
-    throw new Error("The first session must have a date before completing the 8-session series.");
+    throw new Error("The first session must have a date before completing the series.");
 
   }
 
