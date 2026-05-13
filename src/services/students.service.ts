@@ -1137,3 +1137,60 @@ export async function deleteStudent(id: string): Promise<boolean> {
 
 
 
+
+
+/** Update basic profile fields for an existing student */
+export async function updateStudent(
+  id: string,
+  input: {
+    fullName: string;
+    age: number;
+    parentName: string;
+    parentPhone: string;
+    currentCourse: import("@/types/common.types").CourseType | null;
+    status: import("@/types/common.types").StudentStatus;
+  },
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("تعذر الاتصال بقاعدة البيانات.");
+
+  const fullName = input.fullName.trim();
+  if (!fullName) throw new Error("اسم الطالب مطلوب.");
+  if (!Number.isFinite(input.age) || input.age < 4 || input.age > 18)
+    throw new Error("عمر الطالب يجب أن يكون بين 4 و18 سنة.");
+
+  const { error: studentError } = await supabase
+    .from("students")
+    .update({
+      full_name: fullName,
+      age: input.age,
+      current_course: input.currentCourse ?? null,
+      status: input.status,
+    })
+    .eq("id", id);
+
+  if (studentError) throw new Error(studentError.message || "تعذر تحديث بيانات الطالب.");
+
+  // update parent name + phone via parent_id
+  const { data: studentRow } = await supabase
+    .from("students")
+    .select("parent_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (studentRow?.parent_id) {
+    const { error: parentError } = await supabase
+      .from("parents")
+      .update({
+        full_name: input.parentName.trim(),
+        phone: input.parentPhone.trim(),
+        whatsapp: input.parentPhone.trim(),
+      })
+      .eq("id", studentRow.parent_id);
+
+    if (parentError) throw new Error(parentError.message || "تعذر تحديث بيانات ولي الأمر.");
+  }
+
+  // invalidate local cache
+  saveLocalStudents(getLocalStudents().filter((s) => s.id !== id));
+}
