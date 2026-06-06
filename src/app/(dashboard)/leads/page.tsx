@@ -14,7 +14,7 @@ import Link from "next/link";
 
 
 
-import { Flame, LayoutGrid, List, Loader2, PlusCircle, TrendingUp, Users } from "lucide-react";
+import { Download, Flame, LayoutGrid, List, Loader2, PlusCircle, TrendingUp, Users } from "lucide-react";
 
 
 
@@ -79,6 +79,7 @@ import { SearchBar } from "@/components/ui/search-bar";
 
 
 import { EmptyState } from "@/components/ui/empty-state";
+import * as XLSX from "xlsx";
 
 
 
@@ -279,6 +280,35 @@ export default function LeadsPage() {
 
 
   const stageKeys = Object.keys(STAGE_CONFIGS) as LeadStage[];
+  const handleExportExcel = () => {
+    const rows = filtered.map((lead) => ({
+      [isAr ? "اسم ولي الأمر" : "Parent Name"]: lead.parentName,
+      [isAr ? "رقم الهاتف" : "Phone"]: lead.parentPhone,
+      [isAr ? "اسم الطالب" : "Child Name"]: lead.childName,
+      [isAr ? "السن" : "Age"]: lead.childAge ?? "",
+      [isAr ? "المرحلة" : "Stage"]: getStageLabel(lead.stage, locale),
+      [isAr ? "الحرارة" : "Temperature"]: isAr
+        ? TEMPERATURE_LABELS[lead.temperature]
+        : TEMPERATURE_EN_LABELS[lead.temperature],
+      [isAr ? "المصدر" : "Source"]: lead.source ?? "",
+      [isAr ? "الكورس المقترح" : "Suggested Course"]: lead.suggestedCourse ?? "",
+      [isAr ? "المسؤول" : "Assigned To"]: lead.assignedToName,
+      [isAr ? "آخر تواصل" : "Last Contact"]: lead.lastContactAt
+        ? new Date(lead.lastContactAt).toLocaleDateString(isAr ? "ar-EG" : "en-GB")
+        : "",
+      [isAr ? "المتابعة القادمة" : "Next Follow-Up"]: lead.nextFollowUpAt
+        ? new Date(lead.nextFollowUpAt).toLocaleDateString(isAr ? "ar-EG" : "en-GB")
+        : "",
+      [isAr ? "ملاحظات" : "Notes"]: lead.notes ?? "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, isAr ? "العملاء المحتملون" : "Leads");
+
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `leads-export-${today}.xlsx`);
+  };
 
 
 
@@ -363,33 +393,26 @@ export default function LeadsPage() {
 
 
         actions={
-
-
-
-          <Link href="/leads/new">
-
-
-
-            <Button size="sm" className="gap-1.5">
-
-
-
-              <PlusCircle className="h-4 w-4" />
-
-
-
-              {isAr ? "إضافة lead" : "Add Lead"}
-
-
-
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportExcel}
+              disabled={filtered.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              {isAr ? "تصدير Excel" : "Export Excel"}
             </Button>
 
-
-
-          </Link>
-
-
-
+            <Link href="/leads/new">
+              <Button size="sm" className="gap-1.5">
+                <PlusCircle className="h-4 w-4" />
+                {isAr ? "إضافة lead" : "Add Lead"}
+              </Button>
+            </Link>
+          </div>
         }
 
 

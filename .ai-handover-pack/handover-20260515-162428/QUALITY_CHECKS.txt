@@ -1,0 +1,4 @@
+# Quality Checks
+Generated at: 2026-05-15 16:24:31
+
+Mode: Skipped by default for speed. Run again with -RunQualityChecks to include lint/typecheck/build.

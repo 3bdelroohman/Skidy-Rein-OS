@@ -1,0 +1,118 @@
+# Quality Checks
+Generated at: 2026-05-15 16:24:45
+
+Mode: Running lint/typecheck/build when available.
+
+
+## npm run lint
+
+Command:
+```powershell
+npm run lint
+```
+
+Output:
+```text
+
+> skidy-rein-os@1.0.0 lint
+> eslint .
+
+
+```
+
+
+## npm run typecheck
+
+Command:
+```powershell
+npm run typecheck
+```
+
+Output:
+```text
+
+> skidy-rein-os@1.0.0 typecheck
+> tsc --noEmit
+
+
+```
+
+
+## npm run build
+
+Command:
+```powershell
+npm run build
+```
+
+Output:
+```text
+
+> skidy-rein-os@1.0.0 build
+> next build
+
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.0s
+  Running TypeScript ...
+  Finished TypeScript in 9.6s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/27) ...
+  Generating static pages using 11 workers (6/27) 
+  Generating static pages using 11 workers (13/27) 
+  Generating static pages using 11 workers (20/27) 
+✓ Generating static pages using 11 workers (27/27) in 403ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /account-center
+├ ƒ /action-center
+├ ƒ /follow-ups
+├ ƒ /groups
+├ ƒ /groups/[id]
+├ ƒ /groups/[id]/edit
+├ ƒ /groups/[id]/report/[studentId]
+├ ƒ /groups/new
+├ ƒ /leads
+├ ƒ /leads/[id]
+├ ƒ /leads/[id]/edit
+├ ƒ /leads/new
+├ ○ /login
+├ ƒ /operations-center
+├ ƒ /ownership-center
+├ ƒ /parents
+├ ƒ /parents/[id]
+├ ƒ /parents/[id]/edit
+├ ƒ /parents/new
+├ ƒ /payments
+├ ƒ /payments/[id]
+├ ƒ /payments/[id]/edit
+├ ƒ /payments/[id]/invoice
+├ ƒ /payments/invoice/[id]
+├ ƒ /payments/new
+├ ƒ /reports
+├ ƒ /schedule
+├ ƒ /schedule/[id]
+├ ƒ /schedule/new
+├ ƒ /settings
+├ ƒ /students
+├ ƒ /students/[id]
+├ ƒ /students/[id]/edit
+├ ƒ /students/[id]/report
+├ ƒ /students/new
+├ ƒ /teachers
+├ ƒ /teachers/[id]
+├ ƒ /teachers/[id]/edit
+├ ƒ /teachers/finance
+└ ƒ /teachers/new
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+```
